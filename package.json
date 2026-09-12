@@ -1,0 +1,50 @@
+{
+  "name": "tjournal-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline desktop trading journal",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @tjournal/desktop dev",
+    "build": "pnpm --filter @tjournal/desktop build",
+    "package": "pnpm --filter @tjournal/desktop package",
+    "make": "pnpm --filter @tjournal/desktop make",
+    "lint": "eslint .",
+    "typecheck": "tsc --build --pretty false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "architecture": "depcruise --config dependency-cruiser.cjs apps modules platform --output-type err-long",
+    "check": "pnpm lint && pnpm typecheck && pnpm architecture && pnpm test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/node": "^22.20.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitest/coverage-v8": "^5.0.0",
+    "autoprefixer": "^10.5.6",
+    "dependency-cruiser": "^18.2.0",
+    "eslint": "^10.10.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "jsdom": "^30.0.1",
+    "postcss": "^8.5.28",
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.0"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./apps/desktop" },
+    { "path": "./modules/trade" },
+    { "path": "./modules/account" },
+    { "path": "./modules/instrument" },
+    { "path": "./modules/settings" },
+    { "path": "./modules/icon-catalog" },
+    { "path": "./modules/journal" },
+    { "path": "./modules/analytics" },
+    { "path": "./platform/configuration" },
+    { "path": "./platform/database" },
+    { "path": "./platform/observability" },
+    { "path": "./platform/numeric" },
+    { "path": "./platform/ui" }
+  ]
+}

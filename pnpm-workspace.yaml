@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - modules/*
+  - platform/*
+verifyDepsBeforeRun: error
+enableGlobalVirtualStore: false
+allowBuilds:
+  electron: true
+  electron-winstaller: false
+  esbuild: true

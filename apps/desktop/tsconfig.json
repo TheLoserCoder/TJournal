@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "outDir": ".tsbuild",
+    "rootDir": "src",
+    "target": "ES2022",
+    "types": ["@testing-library/jest-dom/vitest", "electron", "node", "vitest/globals"]
+  },
+  "include": ["src"]
+}
