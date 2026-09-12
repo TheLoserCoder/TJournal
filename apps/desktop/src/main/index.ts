@@ -1,13 +1,10 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
 
+import { createDesktopContainer } from './desktop-container';
+import type { DesktopDependencies } from './desktop-container';
+import { registerIpcHandlers } from './register-ipc-handlers';
 import { createWindowOptions } from './window-options';
-
-interface AppInfo {
-  readonly name: string;
-  readonly platform: NodeJS.Platform;
-  readonly version: string;
-}
 
 const createMainWindow = (): BrowserWindow => {
   const preloadPath = join(__dirname, '../preload/index.js');
@@ -24,18 +21,26 @@ const createMainWindow = (): BrowserWindow => {
   return mainWindow;
 };
 
-const getAppInfo = (): AppInfo => ({
-  name: app.getName(),
-  platform: process.platform,
-  version: app.getVersion(),
-});
-
-const registerIpcHandlers = (): void => {
-  ipcMain.handle('app:get-info', getAppInfo);
-};
+let desktopDependencies: DesktopDependencies | null = null;
 
 app.whenReady().then(() => {
-  registerIpcHandlers();
+  const container = createDesktopContainer(app);
+  const dependencies = container.cradle;
+  desktopDependencies = dependencies;
+  const lastVaultPath = dependencies.recentVaultPreferences.getLastVaultPath();
+
+  registerIpcHandlers(dependencies, app.getName(), app.getVersion());
+
+  if (lastVaultPath !== null) {
+    try {
+      dependencies.openVaultUseCase.execute(lastVaultPath);
+      dependencies.checkVaultIntegrityUseCase.execute();
+      dependencies.logger.info('vault.restored');
+    } catch {
+      dependencies.logger.warn('vault.restore-failed', { code: 'vault-not-accessible' });
+    }
+  }
+
   createMainWindow();
 
   app.on('activate', () => {
@@ -49,4 +54,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  desktopDependencies?.journalStorage.close();
 });

@@ -9,6 +9,15 @@
   --accent: oklch(0.58 0.18 260);
 }
 
+:root[data-theme='dark'] {
+  --background: oklch(0.16 0.02 260);
+  --surface: oklch(0.22 0.02 260);
+  --foreground: oklch(0.94 0.01 260);
+  --muted: oklch(0.72 0.02 260);
+  --border: oklch(0.34 0.02 260);
+  --accent: oklch(0.72 0.14 260);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -79,6 +88,101 @@ h1 {
 .app-details div {
   border-top: 1px solid var(--border);
   padding-top: 0.75rem;
+}
+
+.actions,
+.trade-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+button {
+  cursor: pointer;
+  border: 0;
+  border-radius: 0.65rem;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  padding: 0.7rem 1rem;
+}
+
+.secondary-button {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--foreground);
+}
+
+.error-message {
+  border-left: 3px solid oklch(0.62 0.2 25);
+  color: var(--muted);
+  margin: 1rem 0;
+  padding-left: 0.75rem;
+}
+
+.journal-layout {
+  margin: 0 auto;
+  max-width: 70rem;
+  padding: 3rem 2rem;
+}
+
+.journal-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.journal-header h1,
+.journal-header .eyebrow {
+  flex-basis: 100%;
+}
+
+.theme-picker {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.trade-card {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+}
+
+.trade-card h2 {
+  margin-top: 0;
+}
+
+.trade-form label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 10rem;
+}
+
+input,
+select {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+  color: var(--foreground);
+  padding: 0.55rem;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  border-top: 1px solid var(--border);
+  padding: 0.65rem;
+  text-align: left;
 }
 
 dt {

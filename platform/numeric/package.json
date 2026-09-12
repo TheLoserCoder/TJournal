@@ -1,5 +1,10 @@
 {
   "name": "@tjournal/platform-numeric",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "exports": "./.tsbuild/index.js",
+  "types": "./.tsbuild/index.d.ts",
+  "dependencies": {
+    "decimal.js": "^10.6.0"
+  }
 }

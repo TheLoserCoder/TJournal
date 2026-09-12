@@ -1,15 +1,9 @@
-interface AppInfo {
-  readonly name: string;
-  readonly platform: string;
-  readonly version: string;
+import type { DesktopApi } from '../shared/desktop-api';
+
+declare global {
+  interface Window {
+    readonly tjournal: DesktopApi;
+  }
 }
 
-declare module '*.css';
-
-interface Window {
-  readonly tjournal: {
-    readonly app: {
-      getInfo(): Promise<AppInfo>;
-    };
-  };
-}
+export {};

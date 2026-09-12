@@ -10,6 +10,7 @@
     { "path": "./modules/journal" },
     { "path": "./modules/analytics" },
     { "path": "./platform/configuration" },
+    { "path": "./platform/errors" },
     { "path": "./platform/database" },
     { "path": "./platform/observability" },
     { "path": "./platform/numeric" },

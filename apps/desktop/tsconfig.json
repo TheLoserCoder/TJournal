@@ -10,5 +10,12 @@
     "target": "ES2022",
     "types": ["@testing-library/jest-dom/vitest", "electron", "node", "vitest/globals"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    { "path": "../../modules/journal" },
+    { "path": "../../platform/configuration" },
+    { "path": "../../platform/database" },
+    { "path": "../../platform/errors" },
+    { "path": "../../platform/observability" }
+  ]
 }

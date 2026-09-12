@@ -1,1 +1,1 @@
-export {};
+export { SqliteJournalStorage } from './sqlite-journal-storage';

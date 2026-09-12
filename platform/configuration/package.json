@@ -1,5 +1,10 @@
 {
   "name": "@tjournal/platform-configuration",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "exports": "./.tsbuild/index.js",
+  "types": "./.tsbuild/index.d.ts",
+  "dependencies": {
+    "zod": "^4.6.2"
+  }
 }

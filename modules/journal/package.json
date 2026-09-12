@@ -1,5 +1,13 @@
 {
   "name": "@tjournal/journal",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^22.20.2"
+  },
+  "dependencies": {
+    "@tjournal/platform-numeric": "workspace:*"
+  },
+  "exports": "./.tsbuild/index.js",
+  "types": "./.tsbuild/index.d.ts"
 }

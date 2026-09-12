@@ -1,0 +1,7 @@
+{
+  "name": "@tjournal/platform-errors",
+  "version": "0.1.0",
+  "private": true,
+  "exports": "./.tsbuild/index.js",
+  "types": "./.tsbuild/index.d.ts"
+}

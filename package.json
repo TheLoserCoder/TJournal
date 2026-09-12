@@ -10,9 +10,9 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
-    "dev": "pnpm --filter @tjournal/desktop dev",
-    "build": "pnpm --filter @tjournal/desktop build",
-    "package": "pnpm --filter @tjournal/desktop package",
+    "dev": "pnpm typecheck && pnpm --filter @tjournal/desktop dev",
+    "build": "pnpm typecheck && pnpm --filter @tjournal/desktop build",
+    "package": "pnpm typecheck && pnpm --filter @tjournal/desktop package",
     "make": "pnpm --filter @tjournal/desktop make",
     "lint": "eslint .",
     "typecheck": "tsc --build --pretty false",

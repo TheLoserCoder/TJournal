@@ -1,14 +1,29 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { WelcomePanel } from './App';
+import { App } from './App';
 
-describe('WelcomePanel', () => {
-  it('renders application details received from the desktop bridge', () => {
-    render(<WelcomePanel appInfo={{ name: 'TJournal', platform: 'win32', version: '0.1.0' }} />);
-
-    expect(screen.getByRole('heading', { name: 'TJournal' })).toBeInTheDocument();
-    expect(screen.getByText('0.1.0')).toBeInTheDocument();
-    expect(screen.getByText('win32')).toBeInTheDocument();
+describe('App', () => {
+  it('shows vault onboarding when no vault is active', async () => {
+    Object.defineProperty(window, 'matchMedia', {
+      value: vi.fn(() => ({
+        addEventListener: vi.fn(),
+        matches: false,
+        removeEventListener: vi.fn(),
+      })),
+    });
+    Object.defineProperty(window, 'tjournal', {
+      value: {
+        diagnostics: {
+          getStatus: vi.fn().mockResolvedValue({ ok: true, value: { vaultPath: null } }),
+        },
+        trades: { create: vi.fn(), list: vi.fn() },
+        vault: { create: vi.fn(), open: vi.fn() },
+      },
+    });
+    render(<App />);
+    expect(
+      await screen.findByRole('button', { name: /create vault|создать vault/i }),
+    ).toBeInTheDocument();
   });
 });

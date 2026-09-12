@@ -1,5 +1,15 @@
 {
   "name": "@tjournal/platform-database",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "exports": "./.tsbuild/index.js",
+  "types": "./.tsbuild/index.d.ts",
+  "dependencies": {
+    "@tjournal/journal": "workspace:*",
+    "@tjournal/platform-errors": "workspace:*",
+    "drizzle-orm": "1.0.0-rc.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2"
+  }
 }
