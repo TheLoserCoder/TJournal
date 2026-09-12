@@ -1,7 +1,16 @@
 export const IPC_CHANNELS = {
   diagnosticsGetStatus: 'diagnostics:get-status',
+  historyGetState: 'history:get-state',
+  historyRedo: 'history:redo',
+  historyUndo: 'history:undo',
+  instrumentsCreate: 'instruments:create',
+  instrumentsList: 'instruments:list',
+  settingsGet: 'settings:get',
+  settingsUpdate: 'settings:update',
   tradesCreate: 'trades:create',
+  tradesDelete: 'trades:delete',
   tradesList: 'trades:list',
+  tradesUpdate: 'trades:update',
   vaultCreate: 'vault:create',
   vaultOpen: 'vault:open',
 } as const;

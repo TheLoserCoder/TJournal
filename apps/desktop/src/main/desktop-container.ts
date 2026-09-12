@@ -10,10 +10,15 @@ import type { App } from 'electron';
 
 import {
   CheckVaultIntegrityUseCase,
+  CreateInstrumentUseCase,
   CreateTradeUseCase,
   CreateVaultUseCase,
+  DeleteTradeUseCase,
+  DeleteInstrumentUseCase,
+  ListInstrumentsUseCase,
   ListTradesUseCase,
   OpenVaultUseCase,
+  UpdateTradeUseCase,
 } from '@tjournal/journal';
 import {
   createRuntimeConfiguration,
@@ -24,19 +29,26 @@ import { createPinoFileLogger, type Logger } from '@tjournal/platform-observabil
 
 import { createElectronApplicationPaths } from './electron-application-paths';
 import { ElectronVaultLocationPicker } from './electron-vault-location-picker';
+import { UndoRedoHistory } from './history/undo-redo-history';
 import { RecentVaultPreferences } from './recent-vault-preferences';
 
 export interface DesktopDependencies {
   readonly applicationPaths: ApplicationPaths;
   readonly checkVaultIntegrityUseCase: CheckVaultIntegrityUseCase;
+  readonly createInstrumentUseCase: CreateInstrumentUseCase;
   readonly createTradeUseCase: CreateTradeUseCase;
   readonly createVaultUseCase: CreateVaultUseCase;
+  readonly deleteTradeUseCase: DeleteTradeUseCase;
+  readonly deleteInstrumentUseCase: DeleteInstrumentUseCase;
+  readonly history: UndoRedoHistory;
   readonly journalStorage: SqliteJournalStorage;
+  readonly listInstrumentsUseCase: ListInstrumentsUseCase;
   readonly listTradesUseCase: ListTradesUseCase;
   readonly logger: Logger;
   readonly openVaultUseCase: OpenVaultUseCase;
   readonly recentVaultPreferences: RecentVaultPreferences;
   readonly vaultLocationPicker: ElectronVaultLocationPicker;
+  readonly updateTradeUseCase: UpdateTradeUseCase;
 }
 
 export const createDesktopContainer = (electronApp: App): AwilixContainer<DesktopDependencies> => {
@@ -46,9 +58,14 @@ export const createDesktopContainer = (electronApp: App): AwilixContainer<Deskto
   return createContainer<DesktopDependencies>({ injectionMode: InjectionMode.CLASSIC }).register({
     applicationPaths: asValue(applicationPaths),
     checkVaultIntegrityUseCase: asClass(CheckVaultIntegrityUseCase).singleton(),
+    createInstrumentUseCase: asClass(CreateInstrumentUseCase).singleton(),
     createTradeUseCase: asClass(CreateTradeUseCase).singleton(),
     createVaultUseCase: asClass(CreateVaultUseCase).singleton(),
+    deleteTradeUseCase: asClass(DeleteTradeUseCase).singleton(),
+    deleteInstrumentUseCase: asClass(DeleteInstrumentUseCase).singleton(),
+    history: asClass(UndoRedoHistory).singleton(),
     journalStorage: asClass(SqliteJournalStorage).singleton(),
+    listInstrumentsUseCase: asClass(ListInstrumentsUseCase).singleton(),
     listTradesUseCase: asClass(ListTradesUseCase).singleton(),
     logger: asFunction(() =>
       createPinoFileLogger({
@@ -61,5 +78,6 @@ export const createDesktopContainer = (electronApp: App): AwilixContainer<Deskto
       () => new RecentVaultPreferences(applicationPaths.preferencesFilePath),
     ).singleton(),
     vaultLocationPicker: asClass(ElectronVaultLocationPicker).singleton(),
+    updateTradeUseCase: asClass(UpdateTradeUseCase).singleton(),
   });
 };

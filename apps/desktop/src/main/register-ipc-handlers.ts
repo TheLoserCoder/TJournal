@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 
 import { toSafeAppError } from '@tjournal/platform-errors';
 import type { Logger } from '@tjournal/platform-observability';
-import type { CreateTradeDto, IpcResult } from '../shared/desktop-api';
+import type { CreateTradeDto, IpcResult, TradeDto } from '../shared/desktop-api';
 import { IPC_CHANNELS } from '../shared/ipc-channels';
 
 import type { DesktopDependencies } from './desktop-container';
@@ -76,13 +76,138 @@ export const registerIpcHandlers = (
 
   ipcMain.handle(IPC_CHANNELS.tradesCreate, (_event, input: CreateTradeDto) =>
     asResult(
-      () => dependencies.createTradeUseCase.execute(input),
+      () => {
+        let created: TradeDto | null = null;
+        return dependencies.history.execute({
+          execute: () => {
+            created = dependencies.createTradeUseCase.execute(input, created?.id);
+            return created;
+          },
+          label: 'trade.create',
+          undo: () => {
+            if (created !== null) dependencies.deleteTradeUseCase.execute(created.id);
+          },
+        });
+      },
       logger,
       'ipc.trade-create.failed',
     ),
   );
 
+  ipcMain.handle(IPC_CHANNELS.tradesUpdate, (_event, input: TradeDto) =>
+    asResult(
+      () => {
+        const previous = dependencies.listTradesUseCase
+          .execute()
+          .find((trade) => trade.id === input.id);
+        if (previous === undefined) throw new Error('Trade not found.');
+        return dependencies.history.execute({
+          execute: () => dependencies.updateTradeUseCase.execute(input),
+          label: 'trade.update',
+          undo: () => {
+            dependencies.updateTradeUseCase.execute(previous);
+          },
+        });
+      },
+      logger,
+      'ipc.trade-update.failed',
+    ),
+  );
+
+  ipcMain.handle(IPC_CHANNELS.tradesDelete, (_event, id: string) =>
+    asResult(
+      () => {
+        const previous = dependencies.listTradesUseCase.execute().find((trade) => trade.id === id);
+        if (previous === undefined) throw new Error('Trade not found.');
+        return dependencies.history.execute({
+          execute: () => dependencies.deleteTradeUseCase.execute(id),
+          label: 'trade.delete',
+          undo: () => {
+            dependencies.createTradeUseCase.execute(
+              {
+                closedAt: previous.closedAt,
+                instrumentId: previous.instrumentId,
+                resultKind: previous.resultKind,
+                resultValue: previous.resultValue,
+              },
+              previous.id,
+            );
+          },
+        });
+      },
+      logger,
+      'ipc.trade-delete.failed',
+    ),
+  );
+
   ipcMain.handle(IPC_CHANNELS.tradesList, () =>
     asResult(() => dependencies.listTradesUseCase.execute(), logger, 'ipc.trades-list.failed'),
+  );
+
+  ipcMain.handle(IPC_CHANNELS.instrumentsList, () =>
+    asResult(
+      () => dependencies.listInstrumentsUseCase.execute(),
+      logger,
+      'ipc.instruments-list.failed',
+    ),
+  );
+
+  ipcMain.handle(IPC_CHANNELS.instrumentsCreate, (_event, input) =>
+    asResult(
+      () => {
+        let created: ReturnType<typeof dependencies.createInstrumentUseCase.execute> | null = null;
+        return dependencies.history.execute({
+          execute: () => {
+            created = dependencies.createInstrumentUseCase.execute(input, created?.id);
+            return created;
+          },
+          label: 'instrument.create',
+          undo: () => {
+            if (created !== null) dependencies.deleteInstrumentUseCase.execute(created.id);
+          },
+        });
+      },
+      logger,
+      'ipc.instrument-create.failed',
+    ),
+  );
+
+  ipcMain.handle(IPC_CHANNELS.historyGetState, () =>
+    asResult(() => dependencies.history.getState(), logger, 'ipc.history-get.failed'),
+  );
+  ipcMain.handle(IPC_CHANNELS.historyUndo, () =>
+    asResult(
+      () => {
+        dependencies.history.undo();
+        return dependencies.history.getState();
+      },
+      logger,
+      'ipc.history-undo.failed',
+    ),
+  );
+  ipcMain.handle(IPC_CHANNELS.historyRedo, () =>
+    asResult(
+      () => {
+        dependencies.history.redo();
+        return dependencies.history.getState();
+      },
+      logger,
+      'ipc.history-redo.failed',
+    ),
+  );
+
+  ipcMain.handle(IPC_CHANNELS.settingsGet, () =>
+    asResult(
+      () => dependencies.recentVaultPreferences.getSettings(),
+      logger,
+      'ipc.settings-get.failed',
+    ),
+  );
+  ipcMain.handle(IPC_CHANNELS.settingsUpdate, (_event, settings) =>
+    asResult(
+      () => dependencies.recentVaultPreferences.updateSettings(settings),
+      logger,
+      'ipc.settings-update.failed',
+    ),
   );
 };

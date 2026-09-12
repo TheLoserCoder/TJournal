@@ -7,3 +7,5 @@
 - Конкретные реализации создаются только composition root.
 - Публичные use cases и adapters имеют контракты и тесты.
 - Значимые архитектурные исключения фиксируются ADR.
+- Renderer следует MVP: View — только отображение и пользовательские callbacks; Presenter — UI-state и преобразование DTO в ViewModel; Renderer Gateway — единственная обёртка над typed preload API.
+- Бизнес-правила, валидация и persistence остаются в application/domain и main process. Redesign UI не должен требовать изменения use cases, SQLite или IPC-контрактов.

@@ -127,6 +127,66 @@ button {
   padding: 3rem 2rem;
 }
 
+.desktop-shell {
+  display: grid;
+  grid-template-columns: 15rem 1fr;
+  min-height: 100vh;
+}
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem;
+}
+.history-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.navigation-item {
+  align-items: center;
+  background: transparent;
+  color: var(--foreground);
+  display: flex;
+  gap: 0.75rem;
+  text-align: left;
+  width: 100%;
+}
+.navigation-item.active {
+  background: var(--accent);
+  color: white;
+}
+.page-content {
+  max-width: 80rem;
+  padding: 2rem;
+  width: 100%;
+}
+.quick-form {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.modal-backdrop {
+  align-items: center;
+  background: rgb(0 0 0 / 45%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+}
+.modal-card {
+  background: var(--surface);
+  border-radius: 1rem;
+  max-width: 34rem;
+  padding: 1.5rem;
+  width: 100%;
+}
+
 .journal-header {
   align-items: center;
   display: flex;

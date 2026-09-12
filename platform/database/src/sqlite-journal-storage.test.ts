@@ -21,10 +21,12 @@ describe('SqliteJournalStorage', () => {
 
     try {
       const descriptor = storage.createVault(vaultPath);
+      const instrument = storage.listInstruments()[0];
+      if (instrument === undefined) throw new Error('Seed instrument is missing.');
       storage.createTrade({
         closedAt: '2026-09-13T12:00:00.000Z',
         id: 'trade-1',
-        instrument: 'EURUSD',
+        instrumentId: instrument.id,
         resultKind: 'cash',
         resultValue: '12.50',
       });

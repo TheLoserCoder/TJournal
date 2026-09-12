@@ -8,7 +8,9 @@ import { drizzle } from 'drizzle-orm/node-sqlite';
 import { AppError } from '@tjournal/platform-errors';
 import type {
   ClosedTrade,
+  CreateInstrumentInput,
   CreateClosedTradeInput,
+  Instrument,
   JournalStorage,
   VaultDescriptor,
   VaultStatus,
@@ -20,6 +22,37 @@ const DATABASE_FILE_NAME = 'journal.sqlite';
 const MARKER_FILE_NAME = '.tjournal-vault.json';
 const VAULT_FORMAT_VERSION = 1;
 const INITIAL_MIGRATION_ID = '001-initial-journal-schema';
+const INSTRUMENTS_MIGRATION_ID = '002-instruments';
+
+const SEED_INSTRUMENTS: readonly CreateInstrumentInput[] = [
+  ...[
+    'EURUSD',
+    'GBPUSD',
+    'USDJPY',
+    'USDCHF',
+    'AUDUSD',
+    'USDCAD',
+    'NZDUSD',
+    'EURGBP',
+    'EURJPY',
+    'GBPJPY',
+  ].map((symbol) => ({ category: 'forex' as const, symbol })),
+  ...['XAUUSD', 'XAGUSD'].map((symbol) => ({ category: 'metal' as const, symbol })),
+  ...['US500', 'US100', 'US30', 'GER40', 'UK100', 'JP225'].map((symbol) => ({
+    category: 'index' as const,
+    symbol,
+  })),
+  ...['WTI', 'BRENT', 'NATGAS'].map((symbol) => ({ category: 'energy' as const, symbol })),
+  ...['BTCUSD', 'ETHUSD', 'SOLUSD', 'XRPUSD'].map((symbol) => ({
+    category: 'crypto' as const,
+    symbol,
+  })),
+  ...['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'META', 'GOOGL'].map((symbol) => ({
+    category: 'equity' as const,
+    symbol,
+  })),
+  ...['SPY', 'QQQ'].map((symbol) => ({ category: 'etf' as const, symbol })),
+];
 
 interface VaultMarker {
   readonly createdAt: string;
@@ -30,9 +63,18 @@ interface VaultMarker {
 interface TradeRow {
   readonly closed_at: string;
   readonly id: string;
-  readonly instrument: string;
+  readonly instrument_id: string;
+  readonly instrument_symbol: string;
   readonly result_kind: string;
   readonly result_value: string;
+}
+
+interface InstrumentRow {
+  readonly category: Instrument['category'];
+  readonly created_at: string;
+  readonly id: string;
+  readonly source: Instrument['source'];
+  readonly symbol: string;
 }
 
 const databaseFilePath = (vaultPath: string): string => join(vaultPath, DATABASE_FILE_NAME);
@@ -96,18 +138,85 @@ export class SqliteJournalStorage implements JournalStorage {
 
   public createTrade(input: CreateClosedTradeInput & { readonly id: string }): ClosedTrade {
     const database = this.requireDatabase();
+    const instrument = database
+      .prepare('SELECT id, symbol FROM instruments WHERE id = ?')
+      .get(input.instrumentId) as { readonly id: string; readonly symbol: string } | undefined;
+    if (instrument === undefined) {
+      throw new AppError({ code: 'vault-invalid', message: 'Trade instrument does not exist.' });
+    }
     database
       .prepare(
-        'INSERT INTO trades (id, instrument, closed_at, result_kind, result_value) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO trades (id, instrument, instrument_id, closed_at, result_kind, result_value) VALUES (?, ?, ?, ?, ?, ?)',
       )
-      .run(input.id, input.instrument, input.closedAt, input.resultKind, input.resultValue);
+      .run(
+        input.id,
+        instrument.symbol,
+        input.instrumentId,
+        input.closedAt,
+        input.resultKind,
+        input.resultValue,
+      );
 
     return {
       closedAt: input.closedAt,
       id: input.id,
-      instrument: input.instrument,
+      instrumentId: input.instrumentId,
+      instrumentSymbol: instrument.symbol,
       resultKind: input.resultKind,
       resultValue: input.resultValue,
+    };
+  }
+
+  public createInstrument(input: CreateInstrumentInput & { readonly id: string }): Instrument {
+    const database = this.requireDatabase();
+    const instrument: Instrument = {
+      category: input.category,
+      createdAt: new Date().toISOString(),
+      id: input.id,
+      source: 'custom',
+      symbol: input.symbol,
+    };
+    try {
+      database
+        .prepare(
+          'INSERT INTO instruments (id, symbol, category, source, created_at) VALUES (?, ?, ?, ?, ?)',
+        )
+        .run(
+          instrument.id,
+          instrument.symbol,
+          instrument.category,
+          instrument.source,
+          instrument.createdAt,
+        );
+      return instrument;
+    } catch (error) {
+      throw new AppError({
+        cause: error,
+        code: 'configuration-invalid',
+        message: 'Instrument already exists.',
+      });
+    }
+  }
+
+  public deleteTrade(id: string): ClosedTrade {
+    const trade = this.findTrade(id);
+    this.requireDatabase().prepare('DELETE FROM trades WHERE id = ?').run(id);
+    return trade;
+  }
+
+  public deleteInstrument(id: string): Instrument {
+    const row = this.requireDatabase()
+      .prepare('SELECT id, symbol, category, source, created_at FROM instruments WHERE id = ?')
+      .get(id) as InstrumentRow | undefined;
+    if (row === undefined)
+      throw new AppError({ code: 'vault-invalid', message: 'Instrument does not exist.' });
+    this.requireDatabase().prepare('DELETE FROM instruments WHERE id = ?').run(id);
+    return {
+      category: row.category,
+      createdAt: row.created_at,
+      id: row.id,
+      source: row.source,
+      symbol: row.symbol,
     };
   }
 
@@ -139,16 +248,35 @@ export class SqliteJournalStorage implements JournalStorage {
     const database = this.requireDatabase();
     const rows = database
       .prepare(
-        'SELECT id, instrument, closed_at, result_kind, result_value FROM trades ORDER BY closed_at DESC',
+        `SELECT trades.id, trades.closed_at, trades.result_kind, trades.result_value,
+          instruments.id AS instrument_id, instruments.symbol AS instrument_symbol
+         FROM trades JOIN instruments ON instruments.id = trades.instrument_id
+         ORDER BY trades.closed_at DESC`,
       )
       .all() as unknown as readonly TradeRow[];
 
     return rows.map((row) => ({
       closedAt: row.closed_at,
       id: row.id,
-      instrument: row.instrument,
+      instrumentId: row.instrument_id,
+      instrumentSymbol: row.instrument_symbol,
       resultKind: row.result_kind === 'percent' ? 'percent' : 'cash',
       resultValue: row.result_value,
+    }));
+  }
+
+  public listInstruments(): readonly Instrument[] {
+    const rows = this.requireDatabase()
+      .prepare(
+        'SELECT id, symbol, category, source, created_at FROM instruments ORDER BY symbol ASC',
+      )
+      .all() as unknown as readonly InstrumentRow[];
+    return rows.map((row) => ({
+      category: row.category,
+      createdAt: row.created_at,
+      id: row.id,
+      source: row.source,
+      symbol: row.symbol,
     }));
   }
 
@@ -159,6 +287,29 @@ export class SqliteJournalStorage implements JournalStorage {
     this.checkIntegrity();
 
     return toDescriptor(vaultPath, marker);
+  }
+
+  public updateTrade(trade: ClosedTrade): ClosedTrade {
+    const database = this.requireDatabase();
+    const instrument = database
+      .prepare('SELECT id, symbol FROM instruments WHERE id = ?')
+      .get(trade.instrumentId) as { readonly id: string; readonly symbol: string } | undefined;
+    if (instrument === undefined) {
+      throw new AppError({ code: 'vault-invalid', message: 'Trade instrument does not exist.' });
+    }
+    database
+      .prepare(
+        'UPDATE trades SET instrument = ?, instrument_id = ?, closed_at = ?, result_kind = ?, result_value = ? WHERE id = ?',
+      )
+      .run(
+        instrument.symbol,
+        instrument.id,
+        trade.closedAt,
+        trade.resultKind,
+        trade.resultValue,
+        trade.id,
+      );
+    return { ...trade, instrumentSymbol: instrument.symbol };
   }
 
   private applyMigrations(): void {
@@ -182,6 +333,45 @@ export class SqliteJournalStorage implements JournalStorage {
       database
         .prepare('INSERT OR IGNORE INTO tjournal_migrations (id, applied_at) VALUES (?, ?)')
         .run(INITIAL_MIGRATION_ID, new Date().toISOString());
+      const instrumentsMigration = database
+        .prepare('SELECT id FROM tjournal_migrations WHERE id = ?')
+        .get(INSTRUMENTS_MIGRATION_ID);
+      if (instrumentsMigration === undefined) {
+        database.exec(`
+          CREATE TABLE instruments (
+            id TEXT PRIMARY KEY NOT NULL,
+            symbol TEXT NOT NULL COLLATE NOCASE UNIQUE,
+            category TEXT NOT NULL,
+            source TEXT NOT NULL CHECK (source IN ('seed', 'custom')),
+            created_at TEXT NOT NULL
+          );
+          ALTER TABLE trades ADD COLUMN instrument_id TEXT REFERENCES instruments(id);
+        `);
+        const legacySymbols = database
+          .prepare('SELECT DISTINCT instrument FROM trades')
+          .all() as unknown as readonly { readonly instrument: string }[];
+        for (const legacy of legacySymbols) {
+          const id = randomUUID();
+          database
+            .prepare(
+              'INSERT INTO instruments (id, symbol, category, source, created_at) VALUES (?, ?, ?, ?, ?)',
+            )
+            .run(id, legacy.instrument, 'forex', 'custom', new Date().toISOString());
+          database
+            .prepare('UPDATE trades SET instrument_id = ? WHERE instrument = ?')
+            .run(id, legacy.instrument);
+        }
+        for (const seed of SEED_INSTRUMENTS) {
+          database
+            .prepare(
+              'INSERT OR IGNORE INTO instruments (id, symbol, category, source, created_at) VALUES (?, ?, ?, ?, ?)',
+            )
+            .run(randomUUID(), seed.symbol, seed.category, 'seed', new Date().toISOString());
+        }
+        database
+          .prepare('INSERT INTO tjournal_migrations (id, applied_at) VALUES (?, ?)')
+          .run(INSTRUMENTS_MIGRATION_ID, new Date().toISOString());
+      }
       database.exec('COMMIT');
     } catch (error) {
       database.exec('ROLLBACK');
@@ -228,5 +418,26 @@ export class SqliteJournalStorage implements JournalStorage {
     }
 
     return this.orm.$client;
+  }
+
+  private findTrade(id: string): ClosedTrade {
+    const row = this.requireDatabase()
+      .prepare(
+        `SELECT trades.id, trades.closed_at, trades.result_kind, trades.result_value,
+          instruments.id AS instrument_id, instruments.symbol AS instrument_symbol
+         FROM trades JOIN instruments ON instruments.id = trades.instrument_id WHERE trades.id = ?`,
+      )
+      .get(id) as TradeRow | undefined;
+    if (row === undefined) {
+      throw new AppError({ code: 'vault-invalid', message: 'Trade does not exist.' });
+    }
+    return {
+      closedAt: row.closed_at,
+      id: row.id,
+      instrumentId: row.instrument_id,
+      instrumentSymbol: row.instrument_symbol,
+      resultKind: row.result_kind === 'percent' ? 'percent' : 'cash',
+      resultValue: row.result_value,
+    };
   }
 }

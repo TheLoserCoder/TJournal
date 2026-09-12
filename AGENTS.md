@@ -18,6 +18,8 @@ Do not automatically accept a request that duplicates behaviour, breaks an invar
 - `platform/*` owns only cross-cutting mechanics such as database connection, configuration, observability, numeric implementation, and desktop shell integration.
 - Do not import an internal file from another module. Use its explicit public entry point.
 - Domain and application must not import Electron, React, SQLite, Drizzle, filesystem APIs, or other infrastructure libraries.
+- Renderer uses MVP: Views receive ViewModels and callbacks only; presenters own UI state and call typed renderer gateways; only gateway adapters may access preload APIs.
+- React View components must not call `window.tjournal`, contain persistence, domain validation, IPC handling, or command-history logic.
 - Do not create global `utils`, `helpers`, `services`, `types`, or `common` dumping grounds.
 
 ## Dependency injection and external libraries

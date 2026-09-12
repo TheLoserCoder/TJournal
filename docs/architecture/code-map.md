@@ -33,5 +33,6 @@ Renderer feature -> typed preload API -> main IPC handler -> application use cas
 - `apps/desktop/src/main/desktop-container.ts` — единственный composition root Awilix в main process.
 - `apps/desktop/src/main/register-ipc-handlers.ts` — typed IPC, безопасные DTO и диагностика.
 - `apps/desktop/src/preload/index.ts` и `apps/desktop/src/shared/*` — единственная поверхность, доступная renderer.
+- `apps/desktop/src/renderer/gateway/*` — renderer adapter к preload; `features/*/*presenter*` — MVP presenter; `features/*/*view*` — чистые React Views.
 - `modules/journal/src/contracts/journal-storage.ts` — контракт данных журнала без Electron, SQLite и файловой системы.
 - `platform/database/src/sqlite-journal-storage.ts` — структура vault, SQLite, идемпотентная миграция и `integrity_check`.

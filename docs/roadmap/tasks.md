@@ -15,6 +15,12 @@
 - Storage contract: the journal domain depends only on `JournalStorage`; the SQLite/Drizzle implementation stays in `platform/database`.
 - Tests: safe errors, runtime configuration, UI onboarding, vault creation/reopening/integrity/trade persistence, refusal to overwrite a non-empty folder.
 
+## FND-006 — Journal workspace and instrument catalog
+
+- Status: Done
+- Delivered: MVP renderer boundary, sidebar workspace, basic trades CRUD, seeded vault-scoped instruments, application settings, and session Undo/Redo.
+- Constraints: the detail form currently edits only date, instrument and result; accounts and extended trade fields remain separate tasks.
+
 ## Правило задач
 
 Каждая следующая задача содержит цель, зависимости, затрагиваемые контракты, критерии приёмки, тестовые сценарии, документацию для обновления и статус.

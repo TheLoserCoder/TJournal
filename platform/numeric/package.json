@@ -2,6 +2,7 @@
   "name": "@tjournal/platform-numeric",
   "version": "0.1.0",
   "private": true,
+  "type": "commonjs",
   "exports": "./.tsbuild/index.js",
   "types": "./.tsbuild/index.d.ts",
   "dependencies": {

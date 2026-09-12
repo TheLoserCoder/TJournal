@@ -2,6 +2,7 @@
   "name": "@tjournal/journal",
   "version": "0.1.0",
   "private": true,
+  "type": "commonjs",
   "devDependencies": {
     "@types/node": "^22.20.2"
   },
