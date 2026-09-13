@@ -43,6 +43,7 @@ Do not automatically accept a request that duplicates behaviour, breaks an invar
 ## Constants and configuration
 
 - No magic strings, magic numbers, duplicated business rules, hardcoded user text, paths, colours, routes, or environment values.
+- User-visible text is defined only in the i18n dictionary and accessed through named translation-key constants. Tests must use those constants or named test data, never copy UI text inline.
 - A small file-local set of constants belongs at the top of its file.
 - A larger local set belongs in a neighbouring `*.config.ts` file.
 - Shared values belong to a named domain configuration module. User choices belong in settings. UI tokens belong in the design system. Text belongs in i18n.

@@ -1,11 +1,12 @@
 import { useMemo, type ReactElement } from 'react';
 
 interface ComboboxProps {
+  readonly ariaLabel: string;
   readonly onChange: (value: string) => void;
   readonly options: readonly string[];
   readonly value: string;
 }
-export const Combobox = ({ onChange, options, value }: ComboboxProps): ReactElement => {
+export const Combobox = ({ ariaLabel, onChange, options, value }: ComboboxProps): ReactElement => {
   const listId = 'instrument-options';
   const matching = useMemo(
     () => options.filter((option) => option.includes(value.toUpperCase())),
@@ -14,7 +15,7 @@ export const Combobox = ({ onChange, options, value }: ComboboxProps): ReactElem
   return (
     <>
       <input
-        aria-label="Актив"
+        aria-label={ariaLabel}
         list={listId}
         onChange={(event) => onChange(event.target.value)}
         value={value}

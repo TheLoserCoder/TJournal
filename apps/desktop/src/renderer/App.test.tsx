@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
+import { i18n } from './i18n';
+import { TRANSLATION_KEYS } from './i18n-keys';
 
 describe('App', () => {
   it('shows the trades shell through the renderer gateway', async () => {
@@ -40,7 +42,11 @@ describe('App', () => {
       },
     });
     render(<App />);
-    expect(await screen.findByRole('heading', { name: 'Сделки' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Настройки' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: i18n.t(TRANSLATION_KEYS.navigationTrades) }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n.t(TRANSLATION_KEYS.navigationSettings) }),
+    ).toBeInTheDocument();
   });
 });

@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { Modal } from './modal';
 
 interface ConfirmModalProps {
+  readonly cancelLabel: string;
   readonly confirmLabel: string;
   readonly message: string;
   readonly onCancel: () => void;
@@ -9,6 +10,7 @@ interface ConfirmModalProps {
   readonly title: string;
 }
 export const ConfirmModal = ({
+  cancelLabel,
   confirmLabel,
   message,
   onCancel,
@@ -19,7 +21,7 @@ export const ConfirmModal = ({
     <p>{message}</p>
     <div className="actions">
       <button className="secondary-button" onClick={onCancel} type="button">
-        Отмена
+        {cancelLabel}
       </button>
       <button onClick={onConfirm} type="button">
         {confirmLabel}

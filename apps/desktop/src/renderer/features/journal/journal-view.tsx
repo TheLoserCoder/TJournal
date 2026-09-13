@@ -1,18 +1,20 @@
 import { useMemo, useState, type FormEvent, type ReactElement } from 'react';
 import { BarChart3, Home, Redo2, Settings, Table2, Undo2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import type { TradeDto } from '../../../shared/desktop-api';
 import { Combobox } from '../../components/combobox';
 import { ConfirmModal } from '../../components/confirm-modal';
 import { Modal } from '../../components/modal';
 import { PageHeader } from '../../components/page-header';
+import { TRANSLATION_KEYS } from '../../i18n-keys';
 import type { JournalPresenter } from './use-journal-presenter';
 
 const NAVIGATION = [
-  { icon: Home, id: 'dashboard', label: 'Главная' },
-  { icon: Table2, id: 'trades', label: 'Сделки' },
-  { icon: BarChart3, id: 'statistics', label: 'Статистика' },
-  { icon: Settings, id: 'settings', label: 'Настройки' },
+  { icon: Home, id: 'dashboard', labelKey: TRANSLATION_KEYS.navigationDashboard },
+  { icon: Table2, id: 'trades', labelKey: TRANSLATION_KEYS.navigationTrades },
+  { icon: BarChart3, id: 'statistics', labelKey: TRANSLATION_KEYS.navigationStatistics },
+  { icon: Settings, id: 'settings', labelKey: TRANSLATION_KEYS.navigationSettings },
 ] as const;
 
 export const JournalView = ({
@@ -20,6 +22,7 @@ export const JournalView = ({
 }: {
   readonly presenter: JournalPresenter;
 }): ReactElement => {
+  const { t } = useTranslation();
   const [symbol, setSymbol] = useState('');
   const [resultKind, setResultKind] = useState<'cash' | 'percent'>('cash');
   const [resultValue, setResultValue] = useState('');
@@ -55,9 +58,10 @@ export const JournalView = ({
   const content =
     presenter.page === 'trades' ? (
       <section>
-        <PageHeader title="Сделки" />
+        <PageHeader title={t(TRANSLATION_KEYS.navigationTrades)} />
         <form className="quick-form" onSubmit={(event) => void create(event)}>
           <Combobox
+            ariaLabel={t(TRANSLATION_KEYS.fieldAsset)}
             onChange={setSymbol}
             options={instruments.map((instrument) => instrument.symbol)}
             value={symbol}
@@ -72,10 +76,10 @@ export const JournalView = ({
             onChange={(event) => setResultKind(event.target.value as 'cash' | 'percent')}
             value={resultKind}
           >
-            <option value="cash">USD</option>
-            <option value="percent">%</option>
+            <option value="cash">{t(TRANSLATION_KEYS.tradeUnitCash)}</option>
+            <option value="percent">{t(TRANSLATION_KEYS.tradeUnitPercent)}</option>
           </select>
-          <button type="submit">Создать</button>
+          <button type="submit">{t(TRANSLATION_KEYS.actionCreate)}</button>
           <button
             className="secondary-button"
             onClick={() =>
@@ -90,21 +94,21 @@ export const JournalView = ({
             }
             type="button"
           >
-            Подробнее
+            {t(TRANSLATION_KEYS.tradeDetails)}
           </button>
         </form>
         <input
-          aria-label="Поиск сделок"
+          aria-label={t(TRANSLATION_KEYS.searchTrades)}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Поиск актива"
+          placeholder={t(TRANSLATION_KEYS.searchAssets)}
           value={search}
         />
         <table>
           <thead>
             <tr>
-              <th>Дата</th>
-              <th>Актив</th>
-              <th>Результат</th>
+              <th>{t(TRANSLATION_KEYS.fieldDate)}</th>
+              <th>{t(TRANSLATION_KEYS.fieldAsset)}</th>
+              <th>{t(TRANSLATION_KEYS.fieldResult)}</th>
               <th />
             </tr>
           </thead>
@@ -114,18 +118,23 @@ export const JournalView = ({
                 <td>{new Date(trade.closedAt).toLocaleDateString()}</td>
                 <td>{trade.instrumentSymbol}</td>
                 <td>
-                  {trade.resultValue} {trade.resultKind === 'cash' ? 'USD' : '%'}
+                  {trade.resultValue}{' '}
+                  {t(
+                    trade.resultKind === 'cash'
+                      ? TRANSLATION_KEYS.tradeUnitCash
+                      : TRANSLATION_KEYS.tradeUnitPercent,
+                  )}
                 </td>
                 <td>
                   <button onClick={() => setEditing(trade)} type="button">
-                    Изменить
+                    {t(TRANSLATION_KEYS.actionEdit)}
                   </button>
                   <button
                     className="secondary-button"
                     onClick={() => void presenter.deleteTrade(trade.id)}
                     type="button"
                   >
-                    Удалить
+                    {t(TRANSLATION_KEYS.actionDelete)}
                   </button>
                 </td>
               </tr>
@@ -135,9 +144,9 @@ export const JournalView = ({
       </section>
     ) : presenter.page === 'settings' ? (
       <section>
-        <PageHeader title="Настройки" />
+        <PageHeader title={t(TRANSLATION_KEYS.navigationSettings)} />
         <label>
-          Тема
+          {t(TRANSLATION_KEYS.fieldTheme)}
           <select
             onChange={(event) =>
               void presenter.updateSettings({
@@ -147,13 +156,13 @@ export const JournalView = ({
             }
             value={presenter.settings.themeMode}
           >
-            <option value="auto">Авто</option>
-            <option value="light">Светлая</option>
-            <option value="dark">Тёмная</option>
+            <option value="auto">{t(TRANSLATION_KEYS.themeAuto)}</option>
+            <option value="light">{t(TRANSLATION_KEYS.themeLight)}</option>
+            <option value="dark">{t(TRANSLATION_KEYS.themeDark)}</option>
           </select>
         </label>
         <label>
-          Язык
+          {t(TRANSLATION_KEYS.fieldLanguage)}
           <select
             onChange={(event) =>
               void presenter.updateSettings({
@@ -163,16 +172,22 @@ export const JournalView = ({
             }
             value={presenter.settings.languageMode}
           >
-            <option value="system">Системный</option>
-            <option value="ru">Русский</option>
-            <option value="en">English</option>
+            <option value="system">{t(TRANSLATION_KEYS.languageSystem)}</option>
+            <option value="ru">{t(TRANSLATION_KEYS.languageRussian)}</option>
+            <option value="en">{t(TRANSLATION_KEYS.languageEnglish)}</option>
           </select>
         </label>
       </section>
     ) : (
       <section>
-        <PageHeader title={presenter.page === 'dashboard' ? 'Главная' : 'Статистика'} />
-        <p>В разработке.</p>
+        <PageHeader
+          title={t(
+            presenter.page === 'dashboard'
+              ? TRANSLATION_KEYS.navigationDashboard
+              : TRANSLATION_KEYS.navigationStatistics,
+          )}
+        />
+        <p>{t(TRANSLATION_KEYS.pageComingSoon)}</p>
       </section>
     );
   return (
@@ -182,7 +197,7 @@ export const JournalView = ({
           <button
             disabled={!presenter.history.canUndo}
             onClick={() => void presenter.undo()}
-            title="Отменить (Ctrl+Z)"
+            title={`${t(TRANSLATION_KEYS.actionUndo)} (Ctrl+Z)`}
             type="button"
           >
             <Undo2 />
@@ -190,7 +205,7 @@ export const JournalView = ({
           <button
             disabled={!presenter.history.canRedo}
             onClick={() => void presenter.redo()}
-            title="Повторить (Ctrl+Y)"
+            title={`${t(TRANSLATION_KEYS.actionRedo)} (Ctrl+Y)`}
             type="button"
           >
             <Redo2 />
@@ -204,7 +219,7 @@ export const JournalView = ({
             type="button"
           >
             <item.icon />
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </button>
         ))}
       </aside>
@@ -214,17 +229,18 @@ export const JournalView = ({
       </div>
       {confirmSymbol !== null && (
         <ConfirmModal
-          confirmLabel="Создать"
-          message={`Создать новый актив ${confirmSymbol}?`}
+          cancelLabel={t(TRANSLATION_KEYS.actionCancel)}
+          confirmLabel={t(TRANSLATION_KEYS.actionCreate)}
+          message={t(TRANSLATION_KEYS.assetCreateConfirmation, { symbol: confirmSymbol })}
           onCancel={() => setConfirmSymbol(null)}
           onConfirm={() => void createAssetAndTrade()}
-          title="Новый актив"
+          title={t(TRANSLATION_KEYS.assetCreateTitle)}
         />
       )}
       {editing !== null && (
-        <Modal title="Детали сделки">
+        <Modal title={t(TRANSLATION_KEYS.tradeDetails)}>
           <label>
-            Дата
+            {t(TRANSLATION_KEYS.fieldDate)}
             <input
               onChange={(event) =>
                 setEditing({ ...editing, closedAt: new Date(event.target.value).toISOString() })
@@ -234,7 +250,7 @@ export const JournalView = ({
             />
           </label>
           <label>
-            Результат
+            {t(TRANSLATION_KEYS.fieldResult)}
             <input
               onChange={(event) => setEditing({ ...editing, resultValue: event.target.value })}
               value={editing.resultValue}
@@ -242,7 +258,7 @@ export const JournalView = ({
           </label>
           <div className="actions">
             <button className="secondary-button" onClick={() => setEditing(null)} type="button">
-              Отмена
+              {t(TRANSLATION_KEYS.actionCancel)}
             </button>
             <button
               onClick={() => {
@@ -261,7 +277,7 @@ export const JournalView = ({
               }}
               type="button"
             >
-              Сохранить
+              {t(TRANSLATION_KEYS.actionSave)}
             </button>
           </div>
         </Modal>
