@@ -35,6 +35,7 @@ app.whenReady().then(() => {
     try {
       dependencies.openVaultUseCase.execute(lastVaultPath);
       dependencies.checkVaultIntegrityUseCase.execute();
+      dependencies.committedChangeCoordinator.resetForVault();
       dependencies.logger.info('vault.restored');
     } catch {
       dependencies.logger.warn('vault.restore-failed', { code: 'vault-not-accessible' });
@@ -57,5 +58,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  void desktopDependencies?.analyticsWorkerClient.close();
   desktopDependencies?.journalStorage.close();
 });

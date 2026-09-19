@@ -7,6 +7,25 @@
 3. Check `docs/architecture/code-map.md` and search the existing code before creating a file, class, contract, adapter, route, or component.
 4. Decide whether the request extends or contradicts an existing decision.
 
+## Skills
+
+Load and apply these skills through the `skill` tool during development:
+
+- `clean-code` — when writing, refactoring, or reviewing code quality.
+- `clean-architecture` — when designing or reviewing layers, module boundaries, ports, and dependency direction.
+- `web-design-guidelines` — when building or reviewing renderer UI.
+
+The skills are guidance. This constitution, the ADRs, and the architecture documents take precedence whenever they conflict.
+
+## Model roles and handoff
+
+- Sol is the project planner and architect. Sol researches the repository, checks for conflicts with existing ADRs and architecture, chooses the implementation approach, decomposes the work, identifies affected contracts, edge cases, tests, acceptance criteria, and documentation updates.
+- Terra and Luna are implementation agents. They execute the prepared plan within its stated boundaries and must not independently change architectural decisions, public contracts, the data model, or the scope without an explicit, evidence-based reason.
+- A plan handed to an implementation agent must be detailed enough to execute without making unstated architectural decisions. It explicitly records the goal and scope, current implementation and integration points, affected modules and files, required type/API/IPC/schema/persistence changes, implementation order, validation and error-handling rules, edge cases, test scenarios, verification commands, completion criteria, and documentation updates.
+- If an executor discovers ambiguity or a conflict with the plan, the executor first checks the existing rules and project documents, then reports a blocking question or discrepancy. It must not silently introduce a new architectural decision.
+- Small and obvious changes may use a compact plan, but the plan must still state the expected result, affected area, and verification method.
+- Model roles do not override the project constitution, security requirements, required checks, or the obligation to disclose unverified assumptions.
+
 ## Challenge poor decisions
 
 Do not automatically accept a request that duplicates behaviour, breaks an invariant, weakens security, risks data loss, violates an ADR, or creates needless complexity. Explain the concrete impact, cite the affected code or document, and propose alternatives. If the owner explicitly insists, update the roadmap and ADR before implementing unless safety rules forbid the action.
@@ -19,6 +38,7 @@ Do not automatically accept a request that duplicates behaviour, breaks an invar
 - Do not import an internal file from another module. Use its explicit public entry point.
 - Domain and application must not import Electron, React, SQLite, Drizzle, filesystem APIs, or other infrastructure libraries.
 - Renderer uses MVP: Views receive ViewModels and callbacks only; presenters own UI state and call typed renderer gateways; only gateway adapters may access preload APIs.
+- Reusable presentation components such as `DataTable` may manage rendering mechanics, but receive only a ViewModel and callbacks. They must not contain CRUD, IPC, domain validation, persistence or command-history decisions.
 - React View components must not call `window.tjournal`, contain persistence, domain validation, IPC handling, or command-history logic.
 - Do not create global `utils`, `helpers`, `services`, `types`, or `common` dumping grounds.
 
@@ -44,6 +64,7 @@ Do not automatically accept a request that duplicates behaviour, breaks an invar
 
 - No magic strings, magic numbers, duplicated business rules, hardcoded user text, paths, colours, routes, or environment values.
 - User-visible text is defined only in the i18n dictionary and accessed through named translation-key constants. Tests must use those constants or named test data, never copy UI text inline.
+- Use named UI design tokens for radii, spacing, shadows, control dimensions and semantic colors. Secondary actions should be icon-first from the approved icon family, always with a localized `aria-label` and tooltip. Dynamic toolbars reserve their action area so state changes do not cause layout jumps; animations must be subtle and respect `prefers-reduced-motion`.
 - A small file-local set of constants belongs at the top of its file.
 - A larger local set belongs in a neighbouring `*.config.ts` file.
 - Shared values belong to a named domain configuration module. User choices belong in settings. UI tokens belong in the design system. Text belongs in i18n.

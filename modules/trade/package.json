@@ -1,5 +1,18 @@
 {
   "name": "@tjournal/trade",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "type": "commonjs",
+  "exports": {
+    ".": "./.tsbuild/index.js",
+    "./calculations": "./src/domain/browser-calculations.ts"
+  },
+  "types": "./.tsbuild/index.d.ts",
+  "devDependencies": {
+    "@types/node": "^22.20.2"
+  },
+  "dependencies": {
+    "@tjournal/platform-numeric": "workspace:*",
+    "decimal.js": "^10.6.0"
+  }
 }

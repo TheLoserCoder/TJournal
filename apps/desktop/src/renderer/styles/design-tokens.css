@@ -1,0 +1,286 @@
+/* FND-014: reference, semantic and component design tokens. */
+:root {
+  /* Reference palette: cool indigo neutrals with restrained status colors. */
+  --ref-neutral-0: #ffffff;
+  --ref-neutral-25: #fbfbfe;
+  --ref-neutral-50: #f6f7fb;
+  --ref-neutral-100: #eef0f6;
+  --ref-neutral-200: #e1e4ee;
+  --ref-neutral-300: #cbd0df;
+  --ref-neutral-500: #697088;
+  --ref-neutral-700: #353b50;
+  --ref-neutral-900: #1d2233;
+  --ref-indigo-100: #eeeffa;
+  --ref-indigo-500: #7b7bc4;
+  --ref-indigo-600: #6b6bb5;
+  --ref-indigo-700: #5b5b9e;
+  --ref-blue-500: #7089c8;
+  --ref-violet-500: #9485c5;
+  --ref-positive-100: #e9f2ee;
+  --ref-positive-500: #5c917e;
+  --ref-positive-700: #3f7665;
+  --ref-negative-100: #f6edef;
+  --ref-negative-500: #b77a84;
+  --ref-negative-700: #985965;
+  --ref-warning-100: #f6f0e6;
+  --ref-warning-500: #a28658;
+
+  /* Reference scales. */
+  --ref-space-1: 0.25rem;
+  --ref-space-2: 0.5rem;
+  --ref-space-3: 0.75rem;
+  --ref-space-4: 1rem;
+  --ref-space-5: 1.25rem;
+  --ref-space-6: 1.5rem;
+  --ref-space-8: 2rem;
+  --ref-space-10: 2.5rem;
+  --ref-radius-sm: 0.25rem;
+  --ref-radius-md: 0.375rem;
+  --ref-radius-lg: 0.625rem;
+  --ref-radius-pill: 999px;
+  --ref-shadow-sm: 0 0.0625rem 0.25rem rgb(30 35 60 / 5%);
+  --ref-shadow-md: 0 0.375rem 1rem rgb(30 35 60 / 8%);
+  --ref-shadow-lg: 0 1rem 2.25rem rgb(30 35 60 / 12%);
+  --ref-duration-fast: 120ms;
+  --ref-duration-normal: 180ms;
+  --ref-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Semantic light theme. */
+  --color-canvas: var(--ref-neutral-50);
+  --color-surface: var(--ref-neutral-0);
+  --color-surface-subtle: var(--ref-neutral-100);
+  --color-surface-elevated: var(--ref-neutral-25);
+  --color-text-primary: var(--ref-neutral-900);
+  --color-text-secondary: var(--ref-neutral-700);
+  --color-text-muted: var(--ref-neutral-500);
+  --color-border: var(--ref-neutral-200);
+  --color-border-strong: var(--ref-neutral-300);
+  --color-accent: var(--ref-indigo-600);
+  --color-accent-hover: var(--ref-indigo-700);
+  --color-accent-subtle: var(--ref-indigo-100);
+  --color-focus: var(--ref-indigo-500);
+  --color-positive: var(--ref-positive-500);
+  --color-positive-strong: var(--ref-positive-700);
+  --color-positive-subtle: var(--ref-positive-100);
+  --color-negative: var(--ref-negative-500);
+  --color-negative-strong: var(--ref-negative-700);
+  --color-negative-subtle: var(--ref-negative-100);
+  --color-warning: var(--ref-warning-500);
+  --color-warning-subtle: var(--ref-warning-100);
+  --color-info: var(--ref-blue-500);
+  --color-chart-primary: var(--ref-indigo-600);
+  --color-chart-secondary: var(--ref-blue-500);
+  --color-chart-tertiary: var(--ref-violet-500);
+  --color-overlay: rgb(19 25 45 / 44%);
+
+  --heading-page-foreground: var(--color-text-primary);
+  --heading-section-foreground: color-mix(
+    in srgb,
+    var(--color-accent) 48%,
+    var(--color-text-primary)
+  );
+  --heading-card-foreground: var(--color-text-secondary);
+  --icon-default-foreground: var(--color-text-secondary);
+  --icon-muted-foreground: var(--color-text-muted);
+
+  /* Component roles. */
+  --button-primary-background: var(--color-accent-subtle);
+  --button-primary-background-hover: color-mix(
+    in srgb,
+    var(--color-accent) 14%,
+    var(--color-surface)
+  );
+  --button-primary-border: color-mix(in srgb, var(--color-accent) 34%, var(--color-border));
+  --button-primary-foreground: var(--color-accent-hover);
+  --button-secondary-background: var(--color-surface);
+  --button-secondary-border: var(--color-border-strong);
+  --button-secondary-accent-background: color-mix(
+    in srgb,
+    var(--ref-violet-500) 12%,
+    var(--color-surface)
+  );
+  --button-secondary-accent-border: color-mix(
+    in srgb,
+    var(--ref-violet-500) 42%,
+    var(--color-border)
+  );
+  --button-secondary-accent-foreground: var(--ref-violet-500);
+  --button-secondary-accent-hover: color-mix(
+    in srgb,
+    var(--ref-violet-500) 20%,
+    var(--color-surface)
+  );
+  --button-danger-background: var(--color-negative-subtle);
+  --button-danger-border: color-mix(in srgb, var(--color-negative) 38%, var(--color-border));
+  --button-danger-foreground: var(--color-negative-strong);
+  --button-danger-hover: color-mix(in srgb, var(--color-negative) 14%, var(--color-surface));
+  --button-success-background: var(--color-positive-subtle);
+  --button-success-border: color-mix(in srgb, var(--color-positive) 38%, var(--color-border));
+  --button-success-foreground: var(--color-positive-strong);
+  --button-accent-ghost-foreground: var(--color-accent);
+  --button-accent-ghost-hover: var(--color-accent-subtle);
+  --button-dismiss-background: var(--color-negative-subtle);
+  --button-dismiss-border: color-mix(in srgb, var(--color-negative) 40%, var(--color-border));
+  --button-dismiss-foreground: var(--color-negative-strong);
+  --button-dismiss-idle-background: transparent;
+  --button-dismiss-idle-border: var(--color-border);
+  --button-dismiss-idle-foreground: var(--color-negative-strong);
+  --button-edit-background: color-mix(in srgb, var(--ref-blue-500) 10%, var(--color-surface));
+  --button-edit-border: color-mix(in srgb, var(--ref-blue-500) 34%, var(--color-border));
+  --button-edit-foreground: var(--ref-blue-500);
+  --button-edit-hover: color-mix(in srgb, var(--ref-blue-500) 18%, var(--color-surface));
+  --navigation-active-background: var(--color-accent-subtle);
+  --navigation-active-foreground: var(--color-accent);
+  --input-background: var(--color-surface);
+  --input-border: var(--color-border);
+  --input-border-focus: var(--color-focus);
+  --table-header-background: var(--color-surface-subtle);
+  --table-row-hover: var(--color-surface-subtle);
+  --table-row-selected: var(--color-accent-subtle);
+  --table-row-height: 3rem;
+  --dialog-background: var(--color-surface);
+  --metric-background: var(--color-surface);
+  --metric-border: var(--color-border);
+  --workspace-section-gap: var(--ref-space-3);
+  --workspace-toolbar-height: 4.25rem;
+  --overlay-z-base: 50;
+  --overlay-z-dialog: 60;
+  --overlay-z-dialog-content: 61;
+  --overlay-z-dialog-popup: 70;
+  --overlay-z-tooltip: 80;
+
+  /* Compatibility aliases consumed by the existing primitives. */
+  --background: var(--color-canvas);
+  --surface: var(--color-surface);
+  --surface-elevated: var(--color-surface-elevated);
+  --foreground: var(--color-text-primary);
+  --muted: var(--color-text-muted);
+  --border: var(--color-border);
+  --accent: var(--color-accent);
+  --ui-control-height: 2.25rem;
+  --ui-radius: var(--ref-radius-md);
+  --ui-radius-large: var(--ref-radius-lg);
+  --ui-shadow: var(--ref-shadow-sm);
+  --ui-shadow-raised: var(--ref-shadow-md);
+  --ui-overlay: var(--color-overlay);
+  --ui-danger: var(--color-negative);
+  --ui-success: var(--color-positive);
+  --ui-result-positive: var(--color-positive-subtle);
+  --ui-result-negative: var(--color-negative-subtle);
+  --ui-direction-long: var(--color-positive-subtle);
+  --ui-direction-short: var(--color-warning-subtle);
+}
+
+:root[data-theme='dark'] {
+  --ref-dark-canvas: #121520;
+  --ref-dark-surface: #191d2b;
+  --ref-dark-surface-subtle: #252b3d;
+  --ref-dark-surface-elevated: #202536;
+  --ref-dark-border: #2e3548;
+  --ref-dark-border-strong: #414b64;
+  --ref-dark-text-primary: #f0f2f8;
+  --ref-dark-text-secondary: #d3d8e5;
+  --ref-dark-text-muted: #a8b0c3;
+  --ref-dark-indigo: #a4a4dc;
+  --ref-dark-indigo-hover: #b8b8e7;
+  --ref-dark-indigo-subtle: #2d2e57;
+  --ref-dark-blue: #9aaddd;
+  --ref-dark-violet: #b5a9d2;
+  --ref-dark-positive: #80b5a1;
+  --ref-dark-positive-strong: #a1cbb9;
+  --ref-dark-positive-subtle: #203d38;
+  --ref-dark-negative: #d69aa4;
+  --ref-dark-negative-strong: #e8b8bf;
+  --ref-dark-negative-subtle: #452b36;
+  --ref-dark-warning: #d4ad64;
+  --ref-dark-warning-subtle: #443922;
+
+  --color-canvas: var(--ref-dark-canvas);
+  --color-surface: var(--ref-dark-surface);
+  --color-surface-subtle: var(--ref-dark-surface-subtle);
+  --color-surface-elevated: var(--ref-dark-surface-elevated);
+  --color-text-primary: var(--ref-dark-text-primary);
+  --color-text-secondary: var(--ref-dark-text-secondary);
+  --color-text-muted: var(--ref-dark-text-muted);
+  --color-border: var(--ref-dark-border);
+  --color-border-strong: var(--ref-dark-border-strong);
+  --color-accent: var(--ref-dark-indigo);
+  --color-accent-hover: var(--ref-dark-indigo-hover);
+  --color-accent-subtle: var(--ref-dark-indigo-subtle);
+  --color-focus: var(--ref-dark-indigo-hover);
+  --color-positive: var(--ref-dark-positive);
+  --color-positive-strong: var(--ref-dark-positive-strong);
+  --color-positive-subtle: var(--ref-dark-positive-subtle);
+  --color-negative: var(--ref-dark-negative);
+  --color-negative-strong: var(--ref-dark-negative-strong);
+  --color-negative-subtle: var(--ref-dark-negative-subtle);
+  --color-warning: var(--ref-dark-warning);
+  --color-warning-subtle: var(--ref-dark-warning-subtle);
+  --color-info: var(--ref-dark-blue);
+  --color-chart-primary: var(--ref-dark-indigo);
+  --color-chart-secondary: var(--ref-dark-blue);
+  --color-chart-tertiary: var(--ref-dark-violet);
+  --color-overlay: rgb(0 0 0 / 62%);
+
+  --heading-page-foreground: var(--color-text-primary);
+  --heading-section-foreground: color-mix(
+    in srgb,
+    var(--color-accent) 58%,
+    var(--color-text-primary)
+  );
+  --heading-card-foreground: var(--color-text-secondary);
+  --icon-default-foreground: var(--color-text-secondary);
+  --icon-muted-foreground: var(--color-text-muted);
+
+  --button-primary-background: var(--color-accent-subtle);
+  --button-primary-background-hover: color-mix(
+    in srgb,
+    var(--color-accent) 20%,
+    var(--color-surface)
+  );
+  --button-primary-border: color-mix(in srgb, var(--color-accent) 52%, var(--color-border));
+  --button-primary-foreground: var(--color-accent-hover);
+
+  --button-secondary-accent-background: color-mix(
+    in srgb,
+    var(--ref-dark-violet) 18%,
+    var(--color-surface)
+  );
+  --button-secondary-accent-border: color-mix(
+    in srgb,
+    var(--ref-dark-violet) 54%,
+    var(--color-border)
+  );
+  --button-secondary-accent-foreground: var(--ref-dark-violet);
+  --button-secondary-accent-hover: color-mix(
+    in srgb,
+    var(--ref-dark-violet) 28%,
+    var(--color-surface)
+  );
+  --button-dismiss-background: var(--color-negative-subtle);
+  --button-dismiss-border: color-mix(in srgb, var(--color-negative) 58%, var(--color-border));
+  --button-dismiss-foreground: var(--color-negative-strong);
+  --button-dismiss-idle-background: transparent;
+  --button-dismiss-idle-border: var(--ref-dark-border-strong);
+  --button-dismiss-idle-foreground: var(--color-negative-strong);
+  --button-edit-background: color-mix(in srgb, var(--ref-dark-blue) 16%, var(--color-surface));
+  --button-edit-border: color-mix(in srgb, var(--ref-dark-blue) 54%, var(--color-border));
+  --button-edit-foreground: var(--ref-dark-blue);
+  --button-edit-hover: color-mix(in srgb, var(--ref-dark-blue) 26%, var(--color-surface));
+  --button-danger-background: var(--color-negative-subtle);
+  --button-danger-border: color-mix(in srgb, var(--color-negative) 58%, var(--color-border));
+  --button-danger-foreground: var(--color-negative-strong);
+  --button-danger-hover: color-mix(in srgb, var(--color-negative) 26%, var(--color-surface));
+  --button-success-background: var(--color-positive-subtle);
+  --button-success-border: color-mix(in srgb, var(--color-positive) 58%, var(--color-border));
+  --button-success-foreground: var(--color-positive-strong);
+  --button-accent-ghost-foreground: var(--color-accent);
+  --button-accent-ghost-hover: var(--color-accent-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ref-duration-fast: 1ms;
+    --ref-duration-normal: 1ms;
+  }
+}

@@ -8,11 +8,15 @@
     "outDir": ".tsbuild",
     "rootDir": "src",
     "target": "ES2022",
-    "types": ["@testing-library/jest-dom/vitest", "electron", "node", "vitest/globals"]
+    "types": ["@testing-library/jest-dom/vitest", "node", "vitest/globals"]
   },
   "include": ["src"],
   "references": [
+    { "path": "../../modules/account" },
+    { "path": "../../modules/instrument" },
+    { "path": "../../modules/analytics" },
     { "path": "../../modules/journal" },
+    { "path": "../../modules/trade" },
     { "path": "../../platform/configuration" },
     { "path": "../../platform/database" },
     { "path": "../../platform/errors" },

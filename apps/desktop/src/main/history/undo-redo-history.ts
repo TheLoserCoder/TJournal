@@ -33,17 +33,19 @@ export class UndoRedoHistory {
     };
   }
 
-  public redo(): void {
+  public redo(): boolean {
     const command = this.redoStack.pop();
-    if (command === undefined) return;
+    if (command === undefined) return false;
     command.execute();
     this.undoStack.push(command);
+    return true;
   }
 
-  public undo(): void {
+  public undo(): boolean {
     const command = this.undoStack.pop();
-    if (command === undefined) return;
+    if (command === undefined) return false;
     command.undo();
     this.redoStack.push(command);
+    return true;
   }
 }

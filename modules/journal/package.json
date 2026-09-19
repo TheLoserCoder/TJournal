@@ -6,9 +6,6 @@
   "devDependencies": {
     "@types/node": "^22.20.2"
   },
-  "dependencies": {
-    "@tjournal/platform-numeric": "workspace:*"
-  },
   "exports": "./.tsbuild/index.js",
   "types": "./.tsbuild/index.d.ts"
 }

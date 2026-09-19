@@ -1,17 +1,20 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
+import {
+  applicationSettingsSchema,
+  DEFAULT_APPLICATION_SETTINGS,
+} from '../shared/application-settings';
+import type { ApplicationSettingsDto } from '../shared/desktop-api';
+
 interface PreferencesDocument {
-  readonly languageMode?: 'en' | 'ru' | 'system';
+  readonly languageMode?: ApplicationSettingsDto['languageMode'];
   readonly lastVaultPath?: string;
-  readonly themeMode?: 'auto' | 'dark' | 'light';
+  readonly tableLayouts?: ApplicationSettingsDto['tableLayouts'];
+  readonly themeMode?: ApplicationSettingsDto['themeMode'];
+  readonly tradeSummary?: ApplicationSettingsDto['tradeSummary'];
 }
 
-export interface ApplicationSettings {
-  readonly languageMode: 'en' | 'ru' | 'system';
-  readonly themeMode: 'auto' | 'dark' | 'light';
-}
-
-const DEFAULT_SETTINGS: ApplicationSettings = { languageMode: 'system', themeMode: 'auto' };
+export type ApplicationSettings = ApplicationSettingsDto;
 
 export class RecentVaultPreferences {
   public constructor(private readonly preferencesFilePath: string) {}
@@ -23,10 +26,16 @@ export class RecentVaultPreferences {
 
   public getSettings(): ApplicationSettings {
     const document = this.read();
-    return {
-      languageMode: document.languageMode ?? DEFAULT_SETTINGS.languageMode,
-      themeMode: document.themeMode ?? DEFAULT_SETTINGS.themeMode,
-    };
+    const parsed = applicationSettingsSchema.safeParse({
+      languageMode: document.languageMode ?? DEFAULT_APPLICATION_SETTINGS.languageMode,
+      tableLayouts: document.tableLayouts ?? DEFAULT_APPLICATION_SETTINGS.tableLayouts,
+      themeMode: document.themeMode ?? DEFAULT_APPLICATION_SETTINGS.themeMode,
+      tradeSummary: {
+        ...DEFAULT_APPLICATION_SETTINGS.tradeSummary,
+        ...document.tradeSummary,
+      },
+    });
+    return parsed.success ? parsed.data : DEFAULT_APPLICATION_SETTINGS;
   }
 
   public setLastVaultPath(vaultPath: string): void {
