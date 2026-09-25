@@ -3,9 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
-  "exports": "./.tsbuild/index.js",
+  "exports": {
+    ".": "./.tsbuild/index.js",
+    "./report-contracts": "./src/report-contracts.ts"
+  },
   "types": "./.tsbuild/index.d.ts",
   "dependencies": {
+    "@tjournal/instrument": "workspace:*",
     "@tjournal/trade": "workspace:*",
     "decimal.js": "^10.6.0"
   }

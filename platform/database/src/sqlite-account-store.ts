@@ -117,10 +117,13 @@ export class SqliteAccountStore implements AccountStore {
           );
         }
       });
-      const account = this.find(input.id);
+      const account = this.getAccountById(input.id);
       if (account === null) throw new Error('Account was not created.');
       return account;
     } catch (error) {
+      // Infrastructure errors (for example a missing vault) must keep their own
+      // code; only genuine account conflicts are reported as invalid configuration.
+      if (error instanceof AppError) throw error;
       throw new AppError({
         cause: error,
         code: 'configuration-invalid',
@@ -309,25 +312,82 @@ export class SqliteAccountStore implements AccountStore {
 
   public listAccounts(): readonly (TradingAccount &
     AccountBalance & { readonly configuredAssetsCount: number })[] {
-    const rows = this.vaultDatabase
-      .require()
+    const database = this.vaultDatabase.require();
+    const rows = database
       .prepare(
         'SELECT id, name, opening_balance_usd, created_at, updated_at, archived_at, default_risk_usd FROM accounts ORDER BY archived_at IS NOT NULL, name',
       )
       .all() as unknown as readonly AccountRow[];
+
+    // Grouped read models: one query per fact table keeps the projection
+    // independent of the account count.
+    const impactsByAccount = new Map<string, Decimal>();
+    const impactRows = database
+      .prepare(
+        'SELECT account_id, account_balance_impact_usd FROM trades WHERE account_id IS NOT NULL AND account_balance_impact_usd IS NOT NULL',
+      )
+      .iterate() as unknown as IterableIterator<{
+      readonly account_balance_impact_usd: string;
+      readonly account_id: string;
+    }>;
+    for (const row of impactRows) {
+      const current = impactsByAccount.get(row.account_id);
+      impactsByAccount.set(
+        row.account_id,
+        current === undefined
+          ? new Decimal(row.account_balance_impact_usd)
+          : current.plus(row.account_balance_impact_usd),
+      );
+    }
+
+    const movementsByAccount = new Map<string, Decimal>();
+    const movementRows = database
+      .prepare('SELECT account_id, kind, amount_usd FROM cash_movements')
+      .iterate() as unknown as IterableIterator<{
+      readonly account_id: string;
+      readonly amount_usd: string;
+      readonly kind: CashMovementKind;
+    }>;
+    for (const row of movementRows) {
+      const current = movementsByAccount.get(row.account_id) ?? new Decimal(0);
+      movementsByAccount.set(
+        row.account_id,
+        row.kind === CASH_MOVEMENT_KINDS.deposit
+          ? current.plus(row.amount_usd)
+          : current.minus(row.amount_usd),
+      );
+    }
+
+    const uncoveredByAccount = new Map<string, number>();
+    const uncoveredRows = database
+      .prepare(
+        'SELECT account_id, COUNT(*) AS count FROM trades WHERE account_id IS NOT NULL AND account_balance_impact_usd IS NULL GROUP BY account_id',
+      )
+      .all() as unknown as readonly { readonly account_id: string; readonly count: number }[];
+    for (const row of uncoveredRows) {
+      uncoveredByAccount.set(row.account_id, Number(row.count));
+    }
+
+    const defaultsByAccount = new Map<string, number>();
+    const defaultRows = database
+      .prepare(
+        'SELECT account_id, COUNT(*) AS count FROM account_instrument_defaults GROUP BY account_id',
+      )
+      .all() as unknown as readonly { readonly account_id: string; readonly count: number }[];
+    for (const row of defaultRows) {
+      defaultsByAccount.set(row.account_id, Number(row.count));
+    }
+
     return rows.map((row) => ({
       ...toAccount(row),
-      ...this.getAccountBalance(row.id),
-      configuredAssetsCount: Number(
-        (
-          this.vaultDatabase
-            .require()
-            .prepare(
-              'SELECT COUNT(*) AS count FROM account_instrument_defaults WHERE account_id = ?',
-            )
-            .get(row.id) as { count: number }
-        ).count,
-      ),
+      accountId: row.id,
+      configuredAssetsCount: defaultsByAccount.get(row.id) ?? 0,
+      currentKnownBalanceUsd: new Decimal(row.opening_balance_usd)
+        .plus(impactsByAccount.get(row.id) ?? 0)
+        .plus(movementsByAccount.get(row.id) ?? 0)
+        .toFixed(),
+      openingBalanceUsd: row.opening_balance_usd,
+      uncoveredTradeCount: uncoveredByAccount.get(row.id) ?? 0,
     }));
   }
 
@@ -457,7 +517,7 @@ export class SqliteAccountStore implements AccountStore {
     return movement;
   }
 
-  private find(id: string): TradingAccount | null {
+  public getAccountById(id: string): TradingAccount | null {
     const row = this.vaultDatabase
       .require()
       .prepare(
@@ -468,7 +528,7 @@ export class SqliteAccountStore implements AccountStore {
   }
 
   private requireAccount(id: string): TradingAccount {
-    const account = this.find(id);
+    const account = this.getAccountById(id);
     if (account === null)
       throw new AppError({ code: 'vault-invalid', message: 'Account does not exist.' });
     return account;

@@ -14,6 +14,7 @@ export interface AccountStore {
   createAccount(input: CreateTradingAccountInput & { readonly id: string }): TradingAccount;
   deleteCashMovement(id: string): CashMovement;
   deleteAccount(id: string): TradingAccount;
+  getAccountById(id: string): TradingAccount | null;
   getAccountBalance(
     accountId: string,
     excludedTradeId?: string,

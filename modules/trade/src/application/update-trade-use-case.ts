@@ -1,17 +1,22 @@
 import Decimal from 'decimal.js';
 
 import type { AccountBalanceReader, TradeStore } from '../contracts/trade-store';
+import type { TradeTagReferenceReader } from '../contracts/tag-reference-reader';
+import type { TradeUnitOfWork } from '../contracts/trade-unit-of-work';
 import { calculateExecutionResult } from '../domain/calculate-execution-result';
 import {
   TRADE_RESULT_KINDS,
   TRADE_RESULT_SOURCES,
+  normalizeTagIds,
   type ClosedTrade,
   type RiskBindingSnapshot,
+  type TradeResultKind,
 } from '../domain/trade';
 import { convertTradeResult } from '../domain/convert-trade-result';
 import {
   TRADE_VALIDATION_CODES,
   TradeValidationError,
+  normalizeTradeNotes,
   validateTradeInput,
 } from '../domain/trade-validation';
 
@@ -19,33 +24,35 @@ import {
 export class UpdateTradeUseCase {
   public constructor(
     private readonly tradeStore: TradeStore,
+    private readonly tradeUnitOfWork: TradeUnitOfWork,
     private readonly accountStore: AccountBalanceReader,
+    private readonly tagStore?: TradeTagReferenceReader,
   ) {}
 
   public execute(trade: ClosedTrade): ClosedTrade {
+    const notes = normalizeTradeNotes(trade);
     validateTradeInput({
       ...trade,
+      ...notes,
       accountId: trade.account?.accountId,
       riskUsd: trade.account?.initialRiskUsd ?? null,
     });
+    const tagIds = this.requireKnownTagIds(normalizeTagIds(trade.tagIds));
     const calculation =
       trade.execution === null || trade.direction === null
         ? null
         : calculateExecutionResult(trade.direction, trade.execution);
-    const nextKind =
-      calculation === null ? (trade.inputResultKind ?? trade.resultKind) : TRADE_RESULT_KINDS.cash;
-    const nextInputValue = trade.inputResultValue ?? trade.resultValue;
-    const financialInputChanged =
-      calculation !== null ||
-      (trade.inputResultKind === undefined && trade.inputResultValue === undefined
-        ? nextKind !== trade.resultKind || nextInputValue !== trade.resultValue
-        : nextKind !== trade.inputResultKind || nextInputValue !== trade.inputResultValue);
     const accountId = trade.account?.accountId;
-    const persisted = this.tradeStore.listTrades().find((item) => item.id === trade.id);
+    const persisted = this.tradeStore.getTradeById(trade.id);
     const accountChanged = persisted?.account?.accountId !== accountId;
+    const { financialInputChanged, nextInputValue, nextKind } = resolveResultInput(
+      trade,
+      persisted,
+      calculation !== null,
+    );
 
     if (accountId === undefined && !financialInputChanged)
-      return this.tradeStore.updateTrade(trade);
+      return this.tradeStore.updateTrade({ ...trade, ...notes });
     if (accountId === undefined) {
       throw new TradeValidationError([
         { code: TRADE_VALIDATION_CODES.missingAccount, path: 'accountId' },
@@ -65,7 +72,7 @@ export class UpdateTradeUseCase {
 
     // Metadata edits must not rebase a saved percentage or R conversion.
     if (!financialInputChanged && trade.netResultUsd !== undefined && !accountChanged)
-      return this.tradeStore.updateTrade(trade);
+      return this.tradeStore.updateTrade({ ...trade, ...notes });
 
     const context = this.accountStore.getAccountBalanceContext(accountId, trade.id, true);
     const needsFinancialConversion = financialInputChanged || trade.netResultUsd === undefined;
@@ -121,6 +128,8 @@ export class UpdateTradeUseCase {
             };
     const updated: ClosedTrade = {
       ...trade,
+      ...notes,
+      tagIds,
       account: {
         accountId: context.accountId,
         accountName: context.accountName,
@@ -139,10 +148,68 @@ export class UpdateTradeUseCase {
       resultValue: calculation?.netUsd ?? nextInputValue,
       riskBindingSnapshot,
     };
-    const saved = this.tradeStore.updateTrade(updated);
-    if (riskBindingSnapshot !== null) {
-      this.accountStore.saveAccountRiskUsd(accountId, riskBindingSnapshot.value);
+    return this.tradeUnitOfWork.execute(() => {
+      const saved = this.tradeStore.updateTrade(updated);
+      if (riskBindingSnapshot !== null) {
+        this.accountStore.saveAccountRiskUsd(accountId, riskBindingSnapshot.value);
+      }
+      return saved;
+    });
+  }
+
+  private requireKnownTagIds(tagIds: readonly string[]): readonly string[] {
+    if (tagIds.length === 0) return tagIds;
+    if (this.tagStore === undefined) {
+      throw new TradeValidationError([{ code: TRADE_VALIDATION_CODES.unknownTag, path: 'tagIds' }]);
     }
-    return saved;
+    const existing = new Set(this.tagStore.filterExistingTagIds(tagIds));
+    if (tagIds.some((tagId) => !existing.has(tagId))) {
+      throw new TradeValidationError([{ code: TRADE_VALIDATION_CODES.unknownTag, path: 'tagIds' }]);
+    }
+    return tagIds;
   }
 }
+
+interface ResolvedResultInput {
+  readonly financialInputChanged: boolean;
+  readonly nextInputValue: string;
+  readonly nextKind: TradeResultKind;
+}
+
+/**
+ * Detects an explicit financial edit against the persisted trade. The details
+ * dialog edits the canonical result while other flows send a changed
+ * quick-entry input; a metadata edit leaves both pairs unchanged.
+ */
+const resolveResultInput = (
+  trade: ClosedTrade,
+  persisted: ClosedTrade | null | undefined,
+  calculated: boolean,
+): ResolvedResultInput => {
+  if (calculated) {
+    return {
+      financialInputChanged: true,
+      nextInputValue: trade.inputResultValue ?? trade.resultValue,
+      nextKind: TRADE_RESULT_KINDS.cash,
+    };
+  }
+  const inputKind = trade.inputResultKind ?? trade.resultKind;
+  const inputValue = trade.inputResultValue ?? trade.resultValue;
+  if (persisted === null || persisted === undefined) {
+    return { financialInputChanged: false, nextInputValue: inputValue, nextKind: inputKind };
+  }
+  if (trade.resultKind !== persisted.resultKind || trade.resultValue !== persisted.resultValue) {
+    return {
+      financialInputChanged: true,
+      nextInputValue: trade.resultValue,
+      nextKind: trade.resultKind,
+    };
+  }
+  return {
+    financialInputChanged:
+      inputKind !== (persisted.inputResultKind ?? persisted.resultKind) ||
+      inputValue !== (persisted.inputResultValue ?? persisted.resultValue),
+    nextInputValue: inputValue,
+    nextKind: inputKind,
+  };
+};

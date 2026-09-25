@@ -12,11 +12,13 @@
   },
   "include": ["src"],
   "references": [
+    { "path": "../../modules/analytics" },
     { "path": "../../modules/account" },
     { "path": "../../modules/instrument" },
     { "path": "../../modules/journal" },
+    { "path": "../../modules/tag" },
     { "path": "../../modules/trade" },
     { "path": "../errors" },
-    { "path": "../numeric" }
+    { "path": "../observability" }
   ]
 }

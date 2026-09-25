@@ -6,14 +6,16 @@
   "exports": "./.tsbuild/index.js",
   "types": "./.tsbuild/index.d.ts",
   "dependencies": {
-    "@tjournal/journal": "workspace:*",
     "@tjournal/account": "workspace:*",
+    "@tjournal/analytics": "workspace:*",
     "@tjournal/instrument": "workspace:*",
-    "@tjournal/trade": "workspace:*",
+    "@tjournal/journal": "workspace:*",
     "@tjournal/platform-errors": "workspace:*",
-    "@tjournal/platform-numeric": "workspace:*",
+    "@tjournal/platform-observability": "workspace:*",
+    "@tjournal/tag": "workspace:*",
+    "@tjournal/trade": "workspace:*",
     "decimal.js": "^10.6.0",
-    "drizzle-orm": "1.0.0-rc.4"
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@types/node": "^22.20.2"

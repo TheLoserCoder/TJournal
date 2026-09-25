@@ -11,6 +11,19 @@ const NEUTRAL_COST_SETTINGS_MIGRATION_ID = '004-neutral-cost-settings';
 const DATA_REVISIONS_MIGRATION_ID = '005-data-revisions';
 const ACCOUNTS_ASSETS_MIGRATION_ID = '006-accounts-assets';
 const CASH_MOVEMENTS_MIGRATION_ID = '007-cash-movements';
+const TAGS_MIGRATION_ID = '008-tags';
+const TRADE_NOTES_MIGRATION_ID = '009-trade-notes-and-review';
+const MIGRATION_IDS = [
+  INITIAL_MIGRATION_ID,
+  INSTRUMENTS_MIGRATION_ID,
+  EXTENDED_TRADES_MIGRATION_ID,
+  NEUTRAL_COST_SETTINGS_MIGRATION_ID,
+  DATA_REVISIONS_MIGRATION_ID,
+  ACCOUNTS_ASSETS_MIGRATION_ID,
+  CASH_MOVEMENTS_MIGRATION_ID,
+  TAGS_MIGRATION_ID,
+  TRADE_NOTES_MIGRATION_ID,
+] as const;
 const VAULT_PREFERENCES_ID = 'vault';
 
 const SEED_INSTRUMENTS = [
@@ -54,6 +67,7 @@ export class SqliteVaultDatabase {
   private database: DatabaseSync | null = null;
   private databasePath: string | null = null;
   private readOnly = false;
+  private transactionDepth = 0;
   private vaultPath: string | null = null;
 
   public close(): void {
@@ -63,6 +77,7 @@ export class SqliteVaultDatabase {
     this.database = null;
     this.databasePath = null;
     this.readOnly = false;
+    this.transactionDepth = 0;
     this.vaultPath = null;
   }
 
@@ -75,18 +90,43 @@ export class SqliteVaultDatabase {
   }
 
   public open(databasePath: string, vaultPath: string): void {
-    this.close();
-    this.database = new DatabaseSync(databasePath, { timeout: 5000 });
-    this.database.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+    const database = new DatabaseSync(databasePath, { timeout: 5000 });
+    try {
+      database.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+    } catch (error) {
+      database.close();
+      throw error;
+    }
+    // Prepare the replacement before closing the active connection. A path can
+    // become inaccessible between candidate inspection and final activation;
+    // that failure must not drop the current vault session.
+    try {
+      this.close();
+    } catch (error) {
+      database.close();
+      throw error;
+    }
+    this.database = database;
     this.databasePath = databasePath;
     this.readOnly = false;
     this.vaultPath = vaultPath;
   }
 
   public openReadOnly(databasePath: string): void {
-    this.close();
-    this.database = new DatabaseSync(databasePath, { readOnly: true, timeout: 5000 });
-    this.database.exec('PRAGMA foreign_keys = ON; PRAGMA query_only = ON;');
+    const database = new DatabaseSync(databasePath, { readOnly: true, timeout: 5000 });
+    try {
+      database.exec('PRAGMA foreign_keys = ON; PRAGMA query_only = ON;');
+    } catch (error) {
+      database.close();
+      throw error;
+    }
+    try {
+      this.close();
+    } catch (error) {
+      database.close();
+      throw error;
+    }
+    this.database = database;
     this.databasePath = databasePath;
     this.readOnly = true;
     this.vaultPath = null;
@@ -103,15 +143,42 @@ export class SqliteVaultDatabase {
     return this.database;
   }
 
+  /**
+   * Runs the operation in a transaction. Nested calls use SQLite savepoints so
+   * a store method can keep its own transactional boundary while a use case
+   * wraps several store writes in one atomic unit.
+   */
   public transaction<T>(operation: () => T): T {
     const database = this.require();
-    database.exec('BEGIN IMMEDIATE');
+    const parentDepth = this.transactionDepth;
+    const isOutermost = parentDepth === 0;
+    const savepointName = `tjournal_sp_${parentDepth}`;
+    if (isOutermost) database.exec('BEGIN IMMEDIATE');
+    else database.exec(`SAVEPOINT ${savepointName}`);
+    this.transactionDepth = parentDepth + 1;
     try {
       const result = operation();
-      database.exec('COMMIT');
+      this.transactionDepth = parentDepth;
+      if (isOutermost) database.exec('COMMIT');
+      else database.exec(`RELEASE SAVEPOINT ${savepointName}`);
       return result;
     } catch (error) {
-      database.exec('ROLLBACK');
+      // Restore the exact entry depth even when COMMIT or RELEASE itself fails.
+      this.transactionDepth = parentDepth;
+      try {
+        if (isOutermost) {
+          database.exec('ROLLBACK');
+        } else {
+          database.exec(`ROLLBACK TO SAVEPOINT ${savepointName}`);
+          database.exec(`RELEASE SAVEPOINT ${savepointName}`);
+        }
+      } catch (rollbackError) {
+        throw new AppError({
+          cause: error,
+          code: 'vault-invalid',
+          message: `SQLite rollback failed: ${rollbackError instanceof Error ? rollbackError.message : 'unknown error'}.`,
+        });
+      }
       throw error;
     }
   }
@@ -138,6 +205,8 @@ export class SqliteVaultDatabase {
         if (!this.hasMigration(DATA_REVISIONS_MIGRATION_ID)) this.migrateDataRevisions();
         if (!this.hasMigration(ACCOUNTS_ASSETS_MIGRATION_ID)) this.migrateAccountsAssets();
         if (!this.hasMigration(CASH_MOVEMENTS_MIGRATION_ID)) this.migrateCashMovements();
+        if (!this.hasMigration(TAGS_MIGRATION_ID)) this.migrateTags();
+        if (!this.hasMigration(TRADE_NOTES_MIGRATION_ID)) this.migrateTradeNotes();
         this.ensureAccountAttributionColumns();
         this.ensureAccountAttributionIntegrityTriggers();
       });
@@ -155,6 +224,22 @@ export class SqliteVaultDatabase {
       .prepare('SELECT resource, revision FROM data_revisions ORDER BY resource')
       .all() as unknown as readonly { resource: string; revision: number }[];
     return Object.fromEntries(rows.map((row) => [row.resource, row.revision]));
+  }
+
+  public appliedMigrations(): readonly string[] {
+    const table = this.require()
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(MIGRATIONS_TABLE);
+    if (table === undefined) return [];
+    const rows = this.require()
+      .prepare(`SELECT id FROM ${MIGRATIONS_TABLE} ORDER BY id`)
+      .all() as unknown as readonly { id: string }[];
+    return rows.map((row) => row.id);
+  }
+
+  public pendingMigrations(): readonly string[] {
+    const applied = new Set(this.appliedMigrations());
+    return MIGRATION_IDS.filter((id) => !applied.has(id));
   }
 
   private hasMigration(id: string): boolean {
@@ -544,5 +629,66 @@ export class SqliteVaultDatabase {
         END;
     `);
     this.recordMigration(CASH_MOVEMENTS_MIGRATION_ID);
+  }
+
+  private migrateTags(): void {
+    const database = this.require();
+    database.exec(`
+      CREATE TABLE tags (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        name_key TEXT NOT NULL UNIQUE,
+        description TEXT NOT NULL DEFAULT '',
+        color TEXT NOT NULL CHECK (color IN ('amber', 'blue', 'cyan', 'indigo', 'olive', 'orange', 'rose', 'slate', 'teal', 'violet')),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE trade_tags (
+        trade_id TEXT NOT NULL REFERENCES trades(id) ON DELETE CASCADE,
+        tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+        PRIMARY KEY (trade_id, tag_id)
+      );
+      CREATE INDEX trade_tags_tag_idx ON trade_tags (tag_id, trade_id);
+    `);
+    database
+      .prepare(`INSERT OR IGNORE INTO data_revisions (resource, revision) VALUES (?, 0), (?, 0)`)
+      .run('tags', 'trade-tags');
+    database.exec(`
+      CREATE TRIGGER tags_revision_after_insert
+        AFTER INSERT ON tags BEGIN
+          UPDATE data_revisions SET revision = revision + 1 WHERE resource = 'tags';
+        END;
+      CREATE TRIGGER tags_revision_after_update
+        AFTER UPDATE ON tags BEGIN
+          UPDATE data_revisions SET revision = revision + 1 WHERE resource = 'tags';
+        END;
+      CREATE TRIGGER tags_revision_after_delete
+        AFTER DELETE ON tags BEGIN
+          UPDATE data_revisions SET revision = revision + 1 WHERE resource = 'tags';
+        END;
+      CREATE TRIGGER trade_tags_revision_after_insert
+        AFTER INSERT ON trade_tags BEGIN
+          UPDATE data_revisions SET revision = revision + 1 WHERE resource = 'trade-tags';
+        END;
+      CREATE TRIGGER trade_tags_revision_after_update
+        AFTER UPDATE ON trade_tags BEGIN
+          UPDATE data_revisions SET revision = revision + 1 WHERE resource = 'trade-tags';
+        END;
+      CREATE TRIGGER trade_tags_revision_after_delete
+        AFTER DELETE ON trade_tags BEGIN
+          UPDATE data_revisions SET revision = revision + 1 WHERE resource = 'trade-tags';
+        END;
+    `);
+    this.recordMigration(TAGS_MIGRATION_ID);
+  }
+
+  private migrateTradeNotes(): void {
+    this.require().exec(`
+      ALTER TABLE trades ADD COLUMN entry_note TEXT;
+      ALTER TABLE trades ADD COLUMN review_note TEXT;
+      ALTER TABLE trades ADD COLUMN review_status TEXT NOT NULL DEFAULT 'unreviewed'
+        CHECK (review_status IN ('unreviewed', 'reviewed'));
+    `);
+    this.recordMigration(TRADE_NOTES_MIGRATION_ID);
   }
 }

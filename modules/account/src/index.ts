@@ -22,8 +22,14 @@ export { CreateCashMovementUseCase } from './application/create-cash-movement-us
 export { CreateAccountUseCase } from './application/create-account-use-case';
 export { DeleteAccountUseCase } from './application/delete-account-use-case';
 export { DeleteCashMovementUseCase } from './application/delete-cash-movement-use-case';
+export { GetAccountByIdUseCase } from './application/get-account-by-id-use-case';
+export { GetCashMovementByIdUseCase } from './application/get-cash-movement-by-id-use-case';
+export { ListAccountDefaultsUseCase } from './application/list-account-defaults-use-case';
 export { ListAccountsUseCase } from './application/list-accounts-use-case';
 export { ListCashMovementsUseCase } from './application/list-cash-movements-use-case';
+export { ListInstrumentDefaultsUseCase } from './application/list-instrument-defaults-use-case';
+export { RestoreAccountSnapshotUseCase } from './application/restore-account-snapshot-use-case';
 export { RestoreAccountUseCase } from './application/restore-account-use-case';
+export { RestoreInstrumentDefaultsUseCase } from './application/restore-instrument-defaults-use-case';
 export { UpdateAccountUseCase } from './application/update-account-use-case';
 export { UpdateCashMovementUseCase } from './application/update-cash-movement-use-case';

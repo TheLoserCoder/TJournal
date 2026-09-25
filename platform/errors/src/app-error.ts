@@ -1,6 +1,9 @@
 export type AppErrorCode =
+  | 'backup-failed'
+  | 'backup-invalid'
   | 'configuration-invalid'
   | 'storage-integrity-failed'
+  | 'restore-failed'
   | 'validation-invalid'
   | 'vault-already-initialized'
   | 'vault-invalid'

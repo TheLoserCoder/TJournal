@@ -1,13 +1,17 @@
-import type { CreateInstrumentInput, Instrument } from '../domain/instrument';
 import type { VaultDescriptor, VaultStatus } from '../domain/vault';
 
+/** Vault lifecycle only: the instrument catalog is owned by `modules/instrument`. */
 export interface JournalStorage {
   checkIntegrity(): void;
   close(): void;
-  createInstrument(input: CreateInstrumentInput & { readonly id: string }): Instrument;
   createVault(vaultPath: string): VaultDescriptor;
-  deleteInstrument(id: string): Instrument;
   getStatus(): VaultStatus;
-  listInstruments(): readonly Instrument[];
+  inspectVault(vaultPath: string): VaultDescriptor;
+  /** Reads the migration ledger on a separate, read-only connection. */
+  pendingMigrations(vaultPath: string): readonly string[];
+  /**
+   * Opens the vault as the active session. When the candidate cannot be opened
+   * or migrated, the previously active vault must stay untouched.
+   */
   openVault(vaultPath: string): VaultDescriptor;
 }

@@ -1,0 +1,14 @@
+{
+  "name": "@tjournal/tag",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "exports": {
+    ".": "./.tsbuild/index.js",
+    "./palette": "./src/domain/browser-palette.ts"
+  },
+  "types": "./.tsbuild/index.d.ts",
+  "devDependencies": {
+    "@types/node": "^22.20.2"
+  }
+}

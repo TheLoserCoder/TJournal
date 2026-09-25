@@ -5,11 +5,12 @@ export {
   TRADE_DIRECTIONS,
   TRADE_RESULT_KINDS,
   TRADE_RESULT_SOURCES,
+  TRADE_REVIEW_STATUSES,
+  normalizeTagIds,
   type ClosedTrade,
   type AccountAttributionSnapshot,
   type CreateClosedTradeInput,
   type ExitAllocationKind,
-  type InstrumentCalculationProfile,
   type InstrumentCalculationSnapshot,
   type NeutralCostSettings,
   type NeutralRange,
@@ -20,6 +21,7 @@ export {
   type TradeExecutionInput,
   type TradeExit,
   type TradePreferences,
+  type TradeReviewStatus,
   type TradeResultKind,
   type TradeResultSource,
 } from './domain/trade';
@@ -37,6 +39,7 @@ export { calculatePercentageRemainder } from './domain/rebalance-percentage-exit
 export {
   TRADE_RESULT_TONES,
   classifyTradeResult,
+  classifyTradeResultValue,
   getTradeMetricValue,
   getTradeNeutralAssessmentValue,
   type TradeResultAssessmentOptions,
@@ -44,7 +47,10 @@ export {
 } from './domain/assess-trade-result';
 export {
   TRADE_VALIDATION_CODES,
+  MAX_TRADE_NOTE_CODE_POINTS,
   TradeValidationError,
+  isTradeNoteWithinLimit,
+  normalizeTradeNotes,
   validateTradeInput,
   validateTradePreferences,
   type TradeValidationIssue,
@@ -55,15 +61,36 @@ export type {
   AccountBalanceReader,
   TradeStore,
 } from './contracts/trade-store';
+export type { TradeTagReferenceReader } from './contracts/tag-reference-reader';
+export type { TradeUnitOfWork } from './contracts/trade-unit-of-work';
+export {
+  JOURNAL_TABLE_ENTRY_KINDS,
+  JOURNAL_TABLE_SORT_FIELDS,
+  MAX_JOURNAL_TABLE_PAGE_SIZE,
+  NUMBER_BOUND_MODES,
+  type JournalTableEntryKind,
+  type JournalTableFilters,
+  type JournalTableMovementRow,
+  type JournalTablePage,
+  type JournalTableQuery,
+  type JournalTableReader,
+  type JournalTableResultBounds,
+  type JournalTableRow,
+  type JournalTableSort,
+  type JournalTableSortDirection,
+  type JournalTableSortField,
+  type JournalTableTradeRow,
+  type JournalTableTradeSource,
+  type NumberBoundMode,
+} from './contracts/journal-table-reader';
 export { CreateTradeUseCase } from './application/create-trade-use-case';
 export { DeleteTradeUseCase } from './application/delete-trade-use-case';
 export { DeleteTradesUseCase } from './application/delete-trades-use-case';
 export { GetTradePreferencesUseCase } from './application/get-trade-preferences-use-case';
-export { GetInstrumentProfileUseCase } from './application/get-instrument-profile-use-case';
+export { GetTradeByIdUseCase } from './application/get-trade-by-id-use-case';
 export { ListTradesUseCase } from './application/list-trades-use-case';
 export { RestoreTradesUseCase } from './application/restore-trades-use-case';
 export { RestoreTradeUseCase } from './application/restore-trade-use-case';
 export { RestoreTradePreferencesUseCase } from './application/restore-trade-preferences-use-case';
-export { SaveInstrumentProfileUseCase } from './application/save-instrument-profile-use-case';
 export { SaveTradePreferencesUseCase } from './application/save-trade-preferences-use-case';
 export { UpdateTradeUseCase } from './application/update-trade-use-case';

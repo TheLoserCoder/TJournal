@@ -9,6 +9,13 @@ import {
   type TradePreferences,
   type TradeResultKind,
 } from './trade';
+import { isTradeNoteWithinLimit, normalizeTradeNotes } from './trade-note-rules';
+
+export {
+  isTradeNoteWithinLimit,
+  MAX_TRADE_NOTE_CODE_POINTS,
+  normalizeTradeNotes,
+} from './trade-note-rules';
 
 export const TRADE_VALIDATION_CODES = {
   allocationMismatch: 'allocation-mismatch',
@@ -22,7 +29,9 @@ export const TRADE_VALIDATION_CODES = {
   mustBeNonNegative: 'must-be-non-negative',
   mustBePositive: 'must-be-positive',
   neutralRangeInvalid: 'neutral-range-invalid',
+  noteTooLong: 'note-too-long',
   percentBalanceUnavailable: 'percent-balance-unavailable',
+  unknownTag: 'unknown-tag',
   unresolvedLegacyResult: 'unresolved-legacy-result',
 } as const;
 export type TradeValidationIssueCode =
@@ -80,10 +89,21 @@ export const validateTradeInput = (input: {
   readonly execution: TradeExecution | TradeExecutionInput | null;
   readonly resultKind: TradeResultKind;
   readonly resultValue: string;
+  readonly entryNote?: string | null;
+  readonly reviewNote?: string | null;
   readonly accountId?: string | null;
   readonly riskUsd?: string | null;
 }): void => {
   const issues: TradeValidationIssue[] = [];
+  const normalizedNotes = normalizeTradeNotes(input);
+  for (const [path, note] of [
+    ['entryNote', normalizedNotes.entryNote],
+    ['reviewNote', normalizedNotes.reviewNote],
+  ] as const) {
+    if (note !== null && !isTradeNoteWithinLimit(note)) {
+      issues.push({ code: TRADE_VALIDATION_CODES.noteTooLong, path });
+    }
+  }
   if (Number.isNaN(Date.parse(input.closedAt))) {
     issues.push({ code: TRADE_VALIDATION_CODES.invalidDate, path: 'closedAt' });
   }

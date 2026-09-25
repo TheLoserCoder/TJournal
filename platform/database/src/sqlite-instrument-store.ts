@@ -41,7 +41,7 @@ export class SqliteInstrumentStore implements InstrumentStore {
             'INSERT INTO instruments (id, symbol, category, source, created_at, updated_at, archived_at) VALUES (?, ?, ?, ?, ?, ?, NULL)',
           )
           .run(input.id, input.symbol, input.category, 'custom', now, now);
-        this.saveProfile(input.id, input.calculationProfile ?? null, now);
+        this.replaceProfile(input.id, input.calculationProfile ?? null, now);
       });
     } catch (error) {
       throw new AppError({
@@ -62,6 +62,10 @@ export class SqliteInstrumentStore implements InstrumentStore {
     if (row.count > 0) return this.setArchived(id, new Date().toISOString());
     this.vaultDatabase.require().prepare('DELETE FROM instruments WHERE id = ?').run(id);
     return instrument;
+  }
+
+  public getInstrumentProfile(id: string): InstrumentCalculationProfile | null {
+    return this.getInstrumentById(id)?.calculationProfile ?? null;
   }
 
   public listInstruments(): readonly Instrument[] {
@@ -91,7 +95,7 @@ export class SqliteInstrumentStore implements InstrumentStore {
           .require()
           .prepare('UPDATE instruments SET symbol = ?, category = ?, updated_at = ? WHERE id = ?')
           .run(input.symbol, input.category, now, input.id);
-        this.saveProfile(input.id, input.calculationProfile ?? null, now);
+        this.replaceProfile(input.id, input.calculationProfile ?? null, now);
       });
     } catch (error) {
       throw new AppError({
@@ -127,7 +131,7 @@ export class SqliteInstrumentStore implements InstrumentStore {
     };
   }
 
-  private require(id: string): Instrument {
+  public getInstrumentById(id: string): Instrument | null {
     const row = this.vaultDatabase
       .require()
       .prepare(
@@ -138,12 +142,41 @@ export class SqliteInstrumentStore implements InstrumentStore {
        WHERE instruments.id = ?`,
       )
       .get(id) as InstrumentRow | undefined;
-    if (row === undefined)
-      throw new AppError({ code: 'vault-invalid', message: 'Instrument does not exist.' });
-    return this.map(row);
+    return row === undefined ? null : this.map(row);
   }
 
-  private saveProfile(
+  private require(id: string): Instrument {
+    const instrument = this.getInstrumentById(id);
+    if (instrument === null)
+      throw new AppError({ code: 'vault-invalid', message: 'Instrument does not exist.' });
+    return instrument;
+  }
+
+  public saveInstrumentProfile(
+    profile: InstrumentCalculationProfile,
+  ): InstrumentCalculationProfile {
+    this.require(profile.instrumentId);
+    const normalized = {
+      ...profile,
+      tickSize: new Decimal(profile.tickSize).toFixed(),
+      tickValueUsdPerLot: new Decimal(profile.tickValueUsdPerLot).toFixed(),
+    };
+    this.vaultDatabase
+      .require()
+      .prepare(
+        `INSERT INTO instrument_calculation_profiles (instrument_id, tick_size, tick_value_usd_per_lot, updated_at) VALUES (?, ?, ?, ?)
+         ON CONFLICT(instrument_id) DO UPDATE SET tick_size = excluded.tick_size, tick_value_usd_per_lot = excluded.tick_value_usd_per_lot, updated_at = excluded.updated_at`,
+      )
+      .run(
+        normalized.instrumentId,
+        normalized.tickSize,
+        normalized.tickValueUsdPerLot,
+        normalized.updatedAt,
+      );
+    return normalized;
+  }
+
+  private replaceProfile(
     instrumentId: string,
     profile: CreateInstrumentInput['calculationProfile'],
     updatedAt: string,

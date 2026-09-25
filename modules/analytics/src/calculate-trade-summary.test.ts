@@ -11,6 +11,7 @@ import { calculateTradeSummary, SUMMARY_PERIODS } from './calculate-trade-summar
 const trade = (id: string, symbol: string, value: string): ClosedTrade => ({
   closedAt: '2026-09-10T12:00:00.000Z',
   direction: TRADE_DIRECTIONS.long,
+  entryNote: null,
   execution: null,
   id,
   instrumentId: symbol,
@@ -18,7 +19,10 @@ const trade = (id: string, symbol: string, value: string): ClosedTrade => ({
   resultKind: TRADE_RESULT_KINDS.cash,
   resultSource: TRADE_RESULT_SOURCES.manual,
   resultValue: value,
+  reviewNote: null,
+  reviewStatus: 'unreviewed',
   riskBindingSnapshot: null,
+  tagIds: [],
 });
 
 describe('calculateTradeSummary', () => {
@@ -122,5 +126,108 @@ describe('calculateTradeSummary', () => {
 
     expect(defaults).toMatchObject({ losingTrades: 1, neutralTrades: 0, totalResult: '-6' });
     expect(withCosts).toMatchObject({ losingTrades: 1, neutralTrades: 0, totalResult: '-6' });
+  });
+
+  it('honours the entry kind filter of a deposit-only table selection', () => {
+    const query = {
+      filters: {
+        closedFrom: null,
+        closedTo: null,
+        entryKinds: ['deposit' as const],
+        instrumentIds: null,
+        resultKinds: null,
+      },
+      metric: TRADE_RESULT_KINDS.cash,
+      neutralCostSettings: { includeCommission: false, includeSpread: false },
+      neutralRange: null,
+      now: new Date(),
+      period: SUMMARY_PERIODS.all,
+    };
+
+    expect(calculateTradeSummary([trade('1', 'EURUSD', '100')], query)).toMatchObject({
+      totalResult: null,
+      totalTrades: 0,
+    });
+    expect(
+      calculateTradeSummary([trade('1', 'EURUSD', '100')], { ...query, filters: null }),
+    ).toMatchObject({
+      totalTrades: 1,
+    });
+  });
+
+  it('filters by the original quick-entry unit', () => {
+    const percentTrade: ClosedTrade = {
+      ...trade('1', 'EURUSD', '5'),
+      inputResultKind: TRADE_RESULT_KINDS.percent,
+      netResultUsd: '50',
+      resultKind: TRADE_RESULT_KINDS.percent,
+    };
+    const cashTrade = trade('2', 'EURUSD', '100');
+    const query = {
+      filters: {
+        closedFrom: null,
+        closedTo: null,
+        instrumentIds: null,
+        resultKinds: null,
+        resultUnits: [TRADE_RESULT_KINDS.percent],
+      },
+      metric: TRADE_RESULT_KINDS.cash,
+      neutralCostSettings: { includeCommission: false, includeSpread: false },
+      neutralRange: null,
+      now: new Date(),
+      period: SUMMARY_PERIODS.all,
+    };
+
+    expect(calculateTradeSummary([percentTrade, cashTrade], query).totalTrades).toBe(1);
+  });
+
+  it('applies inclusive USD bounds to the authoritative result', () => {
+    const withUsd = (id: string, value: string): ClosedTrade => ({
+      ...trade(id, 'EURUSD', value),
+      netResultUsd: value,
+    });
+    const query = {
+      filters: {
+        closedFrom: null,
+        closedTo: null,
+        instrumentIds: null,
+        netResultBounds: { maximum: '100', minimum: '-50' },
+        resultKinds: null,
+      },
+      metric: TRADE_RESULT_KINDS.cash,
+      neutralCostSettings: { includeCommission: false, includeSpread: false },
+      neutralRange: null,
+      now: new Date(),
+      period: SUMMARY_PERIODS.all,
+    };
+
+    expect(
+      calculateTradeSummary([withUsd('1', '-50'), withUsd('2', '100')], query).totalTrades,
+    ).toBe(2);
+    expect(calculateTradeSummary([withUsd('3', '100.0001')], query).totalTrades).toBe(0);
+  });
+
+  it('matches an exact USD value when both bounds carry the same amount', () => {
+    const withUsd = (id: string, value: string): ClosedTrade => ({
+      ...trade(id, 'EURUSD', value),
+      netResultUsd: value,
+    });
+    const query = {
+      filters: {
+        closedFrom: null,
+        closedTo: null,
+        instrumentIds: null,
+        netResultBounds: { maximum: '50', minimum: '50' },
+        resultKinds: null,
+      },
+      metric: TRADE_RESULT_KINDS.cash,
+      neutralCostSettings: { includeCommission: false, includeSpread: false },
+      neutralRange: null,
+      now: new Date(),
+      period: SUMMARY_PERIODS.all,
+    };
+
+    expect(calculateTradeSummary([withUsd('1', '50.00')], query).totalTrades).toBe(1);
+    expect(calculateTradeSummary([withUsd('2', '50.01')], query).totalTrades).toBe(0);
   });
 });

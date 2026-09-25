@@ -7,6 +7,12 @@ export type TradeResultKind = (typeof TRADE_RESULT_KINDS)[keyof typeof TRADE_RES
 export const TRADE_RESULT_SOURCES = { calculated: 'calculated', manual: 'manual' } as const;
 export type TradeResultSource = (typeof TRADE_RESULT_SOURCES)[keyof typeof TRADE_RESULT_SOURCES];
 
+export const TRADE_REVIEW_STATUSES = {
+  reviewed: 'reviewed',
+  unreviewed: 'unreviewed',
+} as const;
+export type TradeReviewStatus = (typeof TRADE_REVIEW_STATUSES)[keyof typeof TRADE_REVIEW_STATUSES];
+
 export const EXIT_ALLOCATION_KINDS = { lots: 'lots', percent: 'percent' } as const;
 export type ExitAllocationKind = (typeof EXIT_ALLOCATION_KINDS)[keyof typeof EXIT_ALLOCATION_KINDS];
 
@@ -59,23 +65,36 @@ export interface ClosedTrade {
   readonly inputResultValue?: string;
   readonly instrumentId: string;
   readonly instrumentSymbol: string;
+  readonly entryNote: string | null;
   /** Null on legacy rows that have not yet been explicitly resolved. */
   readonly netResultUsd?: string;
+  readonly reviewNote: string | null;
+  readonly reviewStatus: TradeReviewStatus;
   readonly resultKind: TradeResultKind;
   readonly resultSource: TradeResultSource;
   readonly resultValue: string;
   readonly riskBindingSnapshot: RiskBindingSnapshot | null;
+  readonly tagIds: readonly string[];
 }
+
+/** Stable, order-preserving deduplication of the requested tag assignments. */
+export const normalizeTagIds = (tagIds: readonly string[] | undefined): readonly string[] => [
+  ...new Set(tagIds ?? []),
+];
 
 export interface CreateClosedTradeInput {
   readonly accountId: string;
   readonly closedAt: string;
   readonly direction: TradeDirection;
   readonly execution: TradeExecutionInput | null;
+  readonly entryNote?: string | null;
   readonly instrumentId: string;
+  readonly reviewNote?: string | null;
+  readonly reviewStatus?: TradeReviewStatus;
   readonly riskUsd?: string;
   readonly resultKind: TradeResultKind;
   readonly resultValue: string;
+  readonly tagIds?: readonly string[];
 }
 
 export interface AccountAttributionSnapshot {
@@ -86,13 +105,6 @@ export interface AccountAttributionSnapshot {
   readonly conversionBalanceUsd?: string | null;
   readonly conversion: 'cash' | 'percent-of-balance' | 'r-cash-risk' | 'r-percent-risk' | null;
   readonly initialRiskUsd?: string | null;
-}
-
-export interface InstrumentCalculationProfile {
-  readonly instrumentId: string;
-  readonly tickSize: string;
-  readonly tickValueUsdPerLot: string;
-  readonly updatedAt: string;
 }
 
 export interface NeutralRange {

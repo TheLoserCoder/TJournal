@@ -18,9 +18,11 @@ import {
   UpdateTradeUseCase,
 } from '@tjournal/trade';
 
+import { SqliteInstrumentStore } from './sqlite-instrument-store';
 import { SqliteJournalStorage } from './sqlite-journal-storage';
 import { SqliteAccountStore } from './sqlite-account-store';
 import { SqliteTradeStore } from './sqlite-trade-store';
+import { SqliteTradeUnitOfWork } from './sqlite-trade-unit-of-work';
 import { SqliteVaultDatabase } from './sqlite-vault-database';
 
 const createTemporaryDirectory = (): string => mkdtempSync(join(tmpdir(), 'tjournal-'));
@@ -41,18 +43,22 @@ describe('SqliteJournalStorage', () => {
 
     try {
       const descriptor = storage.createVault(vaultPath);
-      const instrument = storage.listInstruments()[0];
+      const instrument = new SqliteInstrumentStore(database).listInstruments()[0];
       if (instrument === undefined) throw new Error('Seed instrument is missing.');
       trades.createTrade({
         closedAt: '2026-09-13T12:00:00.000Z',
         direction: TRADE_DIRECTIONS.long,
+        entryNote: null,
         execution: null,
         id: 'trade-1',
         instrumentId: instrument.id,
         resultKind: 'cash',
         resultSource: TRADE_RESULT_SOURCES.manual,
         resultValue: '12.50',
+        reviewNote: null,
+        reviewStatus: 'unreviewed',
         riskBindingSnapshot: null,
+        tagIds: [],
       });
 
       expect(descriptor.path).toBe(vaultPath);
@@ -95,6 +101,22 @@ describe('SqliteJournalStorage', () => {
     }
   });
 
+  it('keeps the vault error when an account is created without an open vault', () => {
+    const accounts = new SqliteAccountStore(new SqliteVaultDatabase());
+
+    try {
+      accounts.createAccount({
+        id: 'account-without-vault',
+        name: 'Test account',
+        openingBalanceUsd: '0',
+      });
+      throw new Error('Expected account creation to fail.');
+    } catch (error) {
+      expect(error).toBeInstanceOf(AppError);
+      expect((error as AppError).code).toBe('vault-not-accessible');
+    }
+  });
+
   it('deletes many trades atomically and restores them together', () => {
     const parentDirectory = createTemporaryDirectory();
     const vaultPath = join(parentDirectory, 'journal');
@@ -104,20 +126,24 @@ describe('SqliteJournalStorage', () => {
 
     try {
       storage.createVault(vaultPath);
-      const instrument = storage.listInstruments()[0];
+      const instrument = new SqliteInstrumentStore(database).listInstruments()[0];
       if (instrument === undefined) throw new Error('Seed instrument is missing.');
       const tradeIds = [FIRST_TRADE_ID, SECOND_TRADE_ID] as const;
       for (const id of tradeIds) {
         trades.createTrade({
           closedAt: TEST_CLOSED_AT,
           direction: TRADE_DIRECTIONS.long,
+          entryNote: null,
           execution: null,
           id,
           instrumentId: instrument.id,
           resultKind: TEST_RESULT_KIND,
           resultSource: TRADE_RESULT_SOURCES.manual,
           resultValue: TEST_RESULT_VALUE,
+          reviewNote: null,
+          reviewStatus: 'unreviewed',
           riskBindingSnapshot: null,
+          tagIds: [],
         });
       }
 
@@ -141,11 +167,18 @@ describe('SqliteJournalStorage', () => {
     const storage = new SqliteJournalStorage(database);
     const accounts = new SqliteAccountStore(database);
     const trades = new SqliteTradeStore(database);
-    const createTrade = new CreateTradeUseCase(trades, accounts);
+    const tradeUnitOfWork = new SqliteTradeUnitOfWork(database);
+    const createTrade = new CreateTradeUseCase(
+      trades,
+      tradeUnitOfWork,
+      accounts,
+      undefined,
+      new SqliteInstrumentStore(database),
+    );
 
     try {
       storage.createVault(vaultPath);
-      const instrument = storage.listInstruments()[0];
+      const instrument = new SqliteInstrumentStore(database).listInstruments()[0];
       if (instrument === undefined) throw new Error('Seed instrument is missing.');
       accounts.createAccount({
         defaults: [],
@@ -233,12 +266,19 @@ describe('SqliteJournalStorage', () => {
     const storage = new SqliteJournalStorage(database);
     const accounts = new SqliteAccountStore(database);
     const trades = new SqliteTradeStore(database);
-    const createTrade = new CreateTradeUseCase(trades, accounts);
-    const updateTrade = new UpdateTradeUseCase(trades, accounts);
+    const tradeUnitOfWork = new SqliteTradeUnitOfWork(database);
+    const createTrade = new CreateTradeUseCase(
+      trades,
+      tradeUnitOfWork,
+      accounts,
+      undefined,
+      new SqliteInstrumentStore(database),
+    );
+    const updateTrade = new UpdateTradeUseCase(trades, tradeUnitOfWork, accounts);
 
     try {
       storage.createVault(vaultPath);
-      const instrument = storage.listInstruments()[0];
+      const instrument = new SqliteInstrumentStore(database).listInstruments()[0];
       if (instrument === undefined) throw new Error('Seed instrument is missing.');
       accounts.createAccount({
         defaults: [],
@@ -289,11 +329,12 @@ describe('SqliteJournalStorage', () => {
     const storage = new SqliteJournalStorage(database);
     const accounts = new SqliteAccountStore(database);
     const trades = new SqliteTradeStore(database);
-    const updateTrade = new UpdateTradeUseCase(trades, accounts);
+    const tradeUnitOfWork = new SqliteTradeUnitOfWork(database);
+    const updateTrade = new UpdateTradeUseCase(trades, tradeUnitOfWork, accounts);
 
     try {
       storage.createVault(vaultPath);
-      const instrument = storage.listInstruments()[0];
+      const instrument = new SqliteInstrumentStore(database).listInstruments()[0];
       if (instrument === undefined) throw new Error('Seed instrument is missing.');
       accounts.createAccount({
         defaults: [],
@@ -304,13 +345,17 @@ describe('SqliteJournalStorage', () => {
       trades.createTrade({
         closedAt: TEST_CLOSED_AT,
         direction: TRADE_DIRECTIONS.long,
+        entryNote: null,
         execution: null,
         id: 'legacy-percent-trade',
         instrumentId: instrument.id,
         resultKind: TRADE_RESULT_KINDS.percent,
         resultSource: TRADE_RESULT_SOURCES.manual,
         resultValue: '10',
+        reviewNote: null,
+        reviewStatus: 'unreviewed',
         riskBindingSnapshot: null,
+        tagIds: [],
       });
       const legacyTrade = trades.listTrades()[0];
       if (legacyTrade === undefined) throw new Error('Legacy trade is missing.');
@@ -349,11 +394,18 @@ describe('SqliteJournalStorage', () => {
     const storage = new SqliteJournalStorage(database);
     const trades = new SqliteTradeStore(database);
     const accounts = new SqliteAccountStore(database);
-    const createTrade = new CreateTradeUseCase(trades, accounts);
+    const tradeUnitOfWork = new SqliteTradeUnitOfWork(database);
+    const createTrade = new CreateTradeUseCase(
+      trades,
+      tradeUnitOfWork,
+      accounts,
+      undefined,
+      new SqliteInstrumentStore(database),
+    );
 
     try {
       storage.createVault(vaultPath);
-      const instrument = storage.listInstruments()[0];
+      const instrument = new SqliteInstrumentStore(database).listInstruments()[0];
       if (instrument === undefined) throw new Error('Seed instrument is missing.');
       accounts.createAccount({
         defaults: [],
@@ -361,7 +413,7 @@ describe('SqliteJournalStorage', () => {
         name: 'Calculation account',
         openingBalanceUsd: '1000',
       });
-      trades.saveInstrumentProfile({
+      new SqliteInstrumentStore(database).saveInstrumentProfile({
         instrumentId: instrument.id,
         tickSize: '0.5',
         tickValueUsdPerLot: '10',
@@ -440,24 +492,28 @@ describe('SqliteJournalStorage', () => {
 
     try {
       storage.createVault(vaultPath);
-      const instrument = storage.listInstruments()[0];
+      const instrument = new SqliteInstrumentStore(database).listInstruments()[0];
       if (instrument === undefined) throw new Error('Seed instrument is missing.');
       const initial = database.getDataRevisions();
       trades.createTrade({
         closedAt: TEST_CLOSED_AT,
         direction: TRADE_DIRECTIONS.long,
+        entryNote: null,
         execution: null,
         id: 'revision-trade',
         instrumentId: instrument.id,
         resultKind: TEST_RESULT_KIND,
         resultSource: TRADE_RESULT_SOURCES.manual,
         resultValue: TEST_RESULT_VALUE,
+        reviewNote: null,
+        reviewStatus: 'unreviewed',
         riskBindingSnapshot: null,
+        tagIds: [],
       });
       const afterTrade = database.getDataRevisions();
       expect(afterTrade.trades).toBe((initial.trades ?? 0) + 1);
 
-      storage.createInstrument({
+      new SqliteInstrumentStore(database).createInstrument({
         category: 'forex',
         id: 'revision-instrument',
         symbol: 'REVISION',
@@ -465,7 +521,7 @@ describe('SqliteJournalStorage', () => {
       const afterInstrument = database.getDataRevisions();
       expect(afterInstrument.instruments).toBe((afterTrade.instruments ?? 0) + 1);
 
-      trades.saveInstrumentProfile({
+      new SqliteInstrumentStore(database).saveInstrumentProfile({
         instrumentId: instrument.id,
         tickSize: '0.1',
         tickValueUsdPerLot: '1',
@@ -475,6 +531,54 @@ describe('SqliteJournalStorage', () => {
 
       trades.saveTradePreferences(trades.getTradePreferences());
       expect(database.getDataRevisions()['trade-preferences']).toBe(1);
+    } finally {
+      storage.close();
+      rmSync(parentDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it('inspects a valid vault without opening it', () => {
+    const parentDirectory = createTemporaryDirectory();
+    const vaultPath = join(parentDirectory, 'journal');
+    const storage = new SqliteJournalStorage();
+
+    try {
+      storage.createVault(vaultPath);
+
+      // The explicit "check" runs while the same vault is open in the active session.
+      expect(storage.inspectVault(vaultPath).path).toBe(vaultPath);
+
+      storage.close();
+      const descriptor = storage.inspectVault(vaultPath);
+
+      expect(descriptor.path).toBe(vaultPath);
+      expect(storage.getStatus()).toEqual({ isOpen: false, path: null });
+    } finally {
+      storage.close();
+      rmSync(parentDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it('reports a non-vault folder as invalid and a missing path as inaccessible', () => {
+    const parentDirectory = createTemporaryDirectory();
+    const storage = new SqliteJournalStorage();
+
+    try {
+      try {
+        storage.inspectVault(parentDirectory);
+        throw new Error('Expected inspection of a non-vault folder to fail.');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AppError);
+        expect((error as AppError).code).toBe('vault-invalid');
+      }
+
+      try {
+        storage.inspectVault(join(parentDirectory, 'missing'));
+        throw new Error('Expected inspection of a missing path to fail.');
+      } catch (error) {
+        expect(error).toBeInstanceOf(AppError);
+        expect((error as AppError).code).toBe('vault-not-accessible');
+      }
     } finally {
       storage.close();
       rmSync(parentDirectory, { force: true, recursive: true });

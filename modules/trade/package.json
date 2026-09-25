@@ -5,14 +5,15 @@
   "type": "commonjs",
   "exports": {
     ".": "./.tsbuild/index.js",
-    "./calculations": "./src/domain/browser-calculations.ts"
+    "./calculations": "./src/domain/browser-calculations.ts",
+    "./note-rules": "./src/domain/trade-note-rules.ts"
   },
   "types": "./.tsbuild/index.d.ts",
   "devDependencies": {
     "@types/node": "^22.20.2"
   },
   "dependencies": {
-    "@tjournal/platform-numeric": "workspace:*",
+    "@tjournal/instrument": "workspace:*",
     "decimal.js": "^10.6.0"
   }
 }

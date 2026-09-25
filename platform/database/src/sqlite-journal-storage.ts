@@ -3,33 +3,21 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path';
 
 import { AppError } from '@tjournal/platform-errors';
-import type {
-  CreateInstrumentInput,
-  Instrument,
-  JournalStorage,
-  VaultDescriptor,
-  VaultStatus,
-} from '@tjournal/journal';
+import type { JournalStorage, VaultDescriptor, VaultStatus } from '@tjournal/journal';
 
 import { SqliteVaultDatabase } from './sqlite-vault-database';
-
-const ATTACHMENTS_DIRECTORY_NAME = 'attachments';
-const BACKUPS_DIRECTORY_NAME = 'backups';
-const DATABASE_FILE_NAME = 'journal.sqlite';
-const MARKER_FILE_NAME = '.tjournal-vault.json';
-const VAULT_FORMAT_VERSION = 1;
+import {
+  ATTACHMENTS_DIRECTORY_NAME,
+  BACKUPS_DIRECTORY_NAME,
+  DATABASE_FILE_NAME,
+  MARKER_FILE_NAME,
+  VAULT_FORMAT_VERSION,
+} from './vault-layout';
 
 interface VaultMarker {
   readonly createdAt: string;
   readonly formatVersion: number;
   readonly vaultId: string;
-}
-interface InstrumentRow {
-  readonly category: Instrument['category'];
-  readonly created_at: string;
-  readonly id: string;
-  readonly source: Instrument['source'];
-  readonly symbol: string;
 }
 
 const markerFilePath = (vaultPath: string): string => join(vaultPath, MARKER_FILE_NAME);
@@ -69,37 +57,6 @@ export class SqliteJournalStorage implements JournalStorage {
     this.vaultDatabase.close();
   }
 
-  public createInstrument(input: CreateInstrumentInput & { readonly id: string }): Instrument {
-    const instrument: Instrument = {
-      ...input,
-      createdAt: new Date().toISOString(),
-      id: input.id,
-      source: 'custom',
-    };
-    try {
-      this.vaultDatabase
-        .require()
-        .prepare(
-          'INSERT INTO instruments (id, symbol, category, source, created_at, updated_at, archived_at) VALUES (?, ?, ?, ?, ?, ?, NULL)',
-        )
-        .run(
-          instrument.id,
-          instrument.symbol,
-          instrument.category,
-          instrument.source,
-          instrument.createdAt,
-          instrument.createdAt,
-        );
-      return instrument;
-    } catch (error) {
-      throw new AppError({
-        cause: error,
-        code: 'configuration-invalid',
-        message: 'Instrument already exists.',
-      });
-    }
-  }
-
   public createVault(vaultPath: string): VaultDescriptor {
     if (existsSync(vaultPath) && readdirSync(vaultPath).length > 0) {
       throw new AppError({
@@ -112,50 +69,101 @@ export class SqliteJournalStorage implements JournalStorage {
     mkdirSync(join(vaultPath, BACKUPS_DIRECTORY_NAME));
     const marker = createMarker();
     writeFileSync(markerFilePath(vaultPath), JSON.stringify(marker), 'utf8');
+    this.migrateCandidate(vaultPath);
     this.openDatabase(vaultPath);
     return toDescriptor(vaultPath, marker);
-  }
-
-  public deleteInstrument(id: string): Instrument {
-    const row = this.vaultDatabase
-      .require()
-      .prepare('SELECT id, symbol, category, source, created_at FROM instruments WHERE id = ?')
-      .get(id) as InstrumentRow | undefined;
-    if (row === undefined)
-      throw new AppError({ code: 'vault-invalid', message: 'Instrument does not exist.' });
-    this.vaultDatabase.require().prepare('DELETE FROM instruments WHERE id = ?').run(id);
-    return this.mapInstrument(row);
   }
 
   public getStatus(): VaultStatus {
     return { isOpen: this.vaultDatabase.getPath() !== null, path: this.vaultDatabase.getPath() };
   }
 
-  public listInstruments(): readonly Instrument[] {
-    const rows = this.vaultDatabase
-      .require()
-      .prepare(
-        'SELECT id, symbol, category, source, created_at FROM instruments ORDER BY symbol ASC',
-      )
-      .all() as unknown as readonly InstrumentRow[];
-    return rows.map((row) => this.mapInstrument(row));
+  /**
+   * Validates a vault folder without touching the active session: the marker must
+   * be readable and well formed, the database file must exist, and SQLite must
+   * report a healthy integrity check. A failing candidate never replaces the
+   * currently open vault.
+   */
+  public inspectVault(vaultPath: string): VaultDescriptor {
+    const marker = this.readMarker(vaultPath);
+    this.checkDatabaseIntegrity(join(vaultPath, DATABASE_FILE_NAME));
+    return toDescriptor(vaultPath, marker);
+  }
+
+  public pendingMigrations(vaultPath: string): readonly string[] {
+    this.readMarker(vaultPath);
+    const databasePath = join(vaultPath, DATABASE_FILE_NAME);
+    if (!existsSync(databasePath)) {
+      throw new AppError({ code: 'vault-invalid', message: 'Vault database is missing.' });
+    }
+    const candidate = new SqliteVaultDatabase();
+    try {
+      candidate.openReadOnly(databasePath);
+      return candidate.pendingMigrations();
+    } finally {
+      candidate.close();
+    }
   }
 
   public openVault(vaultPath: string): VaultDescriptor {
     const marker = this.readMarker(vaultPath);
+    // Migrating the candidate on a separate connection keeps the active session
+    // untouched when a vault fails to open or migrate.
+    this.migrateCandidate(vaultPath);
     this.openDatabase(vaultPath);
     this.checkIntegrity();
     return toDescriptor(vaultPath, marker);
   }
 
-  private mapInstrument(row: InstrumentRow): Instrument {
-    return {
-      category: row.category,
-      createdAt: row.created_at,
-      id: row.id,
-      source: row.source,
-      symbol: row.symbol,
-    };
+  /**
+   * Applies pending migrations on a throwaway connection so a failing candidate
+   * cannot replace or close the currently open vault.
+   */
+  private migrateCandidate(vaultPath: string): void {
+    const candidate = new SqliteVaultDatabase();
+    try {
+      candidate.open(join(vaultPath, DATABASE_FILE_NAME), vaultPath);
+      candidate.migrate();
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError({
+        cause: error,
+        code: 'vault-invalid',
+        message: 'Vault migrations could not be applied.',
+      });
+    } finally {
+      candidate.close();
+    }
+  }
+
+  private checkDatabaseIntegrity(databasePath: string): void {
+    if (!existsSync(databasePath)) {
+      throw new AppError({
+        code: 'vault-invalid',
+        message: 'Vault database is missing.',
+      });
+    }
+    const database = new SqliteVaultDatabase();
+    try {
+      database.openReadOnly(databasePath);
+      const result = database.require().prepare('PRAGMA integrity_check').get() as
+        { integrity_check?: unknown } | undefined;
+      if (result?.integrity_check !== 'ok') {
+        throw new AppError({
+          code: 'storage-integrity-failed',
+          message: 'SQLite integrity check failed.',
+        });
+      }
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError({
+        cause: error,
+        code: 'storage-integrity-failed',
+        message: 'Vault database check failed.',
+      });
+    } finally {
+      database.close();
+    }
   }
 
   private openDatabase(vaultPath: string): void {
@@ -164,8 +172,24 @@ export class SqliteJournalStorage implements JournalStorage {
   }
 
   private readMarker(vaultPath: string): VaultMarker {
+    if (!existsSync(vaultPath)) {
+      throw new AppError({
+        code: 'vault-not-accessible',
+        message: 'Vault folder is not accessible.',
+      });
+    }
+    let raw: string;
     try {
-      const marker: unknown = JSON.parse(readFileSync(markerFilePath(vaultPath), 'utf8'));
+      raw = readFileSync(markerFilePath(vaultPath), 'utf8');
+    } catch (error) {
+      throw new AppError({
+        cause: error,
+        code: 'vault-invalid',
+        message: 'Vault marker is missing or unreadable.',
+      });
+    }
+    try {
+      const marker: unknown = JSON.parse(raw);
       if (!isVaultMarker(marker)) throw new Error('Vault marker is invalid.');
       return marker;
     } catch (error) {

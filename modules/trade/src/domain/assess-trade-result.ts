@@ -23,8 +23,13 @@ export interface TradeResultAssessmentOptions {
   readonly neutralRange: NeutralRange | null;
 }
 
+type AssessableTrade = Pick<
+  ClosedTrade,
+  'account' | 'netResultUsd' | 'resultKind' | 'resultValue' | 'riskBindingSnapshot'
+>;
+
 export const getTradeMetricValue = (
-  trade: ClosedTrade,
+  trade: AssessableTrade,
   metric: TradeResultKind,
 ): Decimal | null => {
   if (metric === TRADE_RESULT_KINDS.cash && trade.netResultUsd !== undefined)
@@ -48,7 +53,7 @@ export const getTradeMetricValue = (
 };
 
 export const getTradeNeutralAssessmentValue = (
-  trade: ClosedTrade,
+  trade: AssessableTrade,
   options: TradeResultAssessmentOptions,
 ): Decimal | null => {
   // Costs are already part of the authoritative net USD result when execution data exists.
@@ -57,15 +62,23 @@ export const getTradeNeutralAssessmentValue = (
 };
 
 export const classifyTradeResult = (
-  trade: ClosedTrade,
+  trade: AssessableTrade,
   options: TradeResultAssessmentOptions,
 ): TradeResultTone | null => {
   const value = getTradeNeutralAssessmentValue(trade, options);
   if (value === null) return null;
-  const range = options.neutralRange ?? DEFAULT_NEUTRAL_RANGE;
+  return classifyTradeResultValue(value.toString(), options.neutralRange);
+};
+
+export const classifyTradeResultValue = (
+  value: string,
+  neutralRange: NeutralRange | null,
+): TradeResultTone => {
+  const range = neutralRange ?? DEFAULT_NEUTRAL_RANGE;
   const lower = new Decimal(range.lower);
   const upper = new Decimal(range.upper);
-  if (value.greaterThan(upper)) return TRADE_RESULT_TONES.positive;
-  if (value.lessThan(lower)) return TRADE_RESULT_TONES.negative;
+  const decimalValue = new Decimal(value);
+  if (decimalValue.greaterThan(upper)) return TRADE_RESULT_TONES.positive;
+  if (decimalValue.lessThan(lower)) return TRADE_RESULT_TONES.negative;
   return TRADE_RESULT_TONES.neutral;
 };

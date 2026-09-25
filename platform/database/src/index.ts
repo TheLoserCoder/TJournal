@@ -1,5 +1,10 @@
 export { SqliteJournalStorage } from './sqlite-journal-storage';
+export { SqliteVaultBackupStore } from './sqlite-vault-backup-store';
 export { SqliteAccountStore } from './sqlite-account-store';
 export { SqliteInstrumentStore } from './sqlite-instrument-store';
+export { SqliteTagStore } from './sqlite-tag-store';
 export { SqliteTradeStore } from './sqlite-trade-store';
+export { SqliteJournalTableReader } from './sqlite-journal-table-reader';
+export { SqliteTradeUnitOfWork } from './sqlite-trade-unit-of-work';
 export { SqliteVaultDatabase } from './sqlite-vault-database';
+export { SqliteAnalyticsFactSource } from './sqlite-analytics-fact-source';

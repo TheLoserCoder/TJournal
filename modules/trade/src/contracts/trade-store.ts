@@ -1,4 +1,4 @@
-import type { ClosedTrade, InstrumentCalculationProfile, TradePreferences } from '../domain/trade';
+import type { ClosedTrade, TradePreferences } from '../domain/trade';
 
 export interface AccountBalanceContext {
   readonly accountId: string;
@@ -20,11 +20,12 @@ export interface TradeStore {
   createTrade(input: Omit<ClosedTrade, 'instrumentSymbol'>): ClosedTrade;
   deleteTrade(id: string): ClosedTrade;
   deleteTrades(ids: readonly string[]): readonly ClosedTrade[];
-  getInstrumentProfile(instrumentId: string): InstrumentCalculationProfile | null;
+  getTradeById(id: string): ClosedTrade | null;
+  /** Batch point lookup preserving the requested order and skipping unknown ids. */
+  getTradesByIds(ids: readonly string[]): readonly ClosedTrade[];
   getTradePreferences(): TradePreferences;
   listTrades(): readonly ClosedTrade[];
   restoreTrades(trades: readonly ClosedTrade[]): void;
-  saveInstrumentProfile(profile: InstrumentCalculationProfile): InstrumentCalculationProfile;
   restoreTradePreferences(preferences: TradePreferences, trades: readonly ClosedTrade[]): void;
   saveTradePreferences(preferences: TradePreferences, rebindHistorical?: boolean): TradePreferences;
   updateTrade(trade: ClosedTrade): ClosedTrade;

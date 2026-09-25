@@ -1,6 +1,7 @@
 import Decimal from 'decimal.js';
 
 import {
+  TRADE_RESULT_KINDS,
   type ClosedTrade,
   type NeutralCostSettings,
   type NeutralRange,
@@ -26,8 +27,15 @@ export interface TradeSummaryQuery {
   readonly filters?: {
     readonly closedFrom: string | null;
     readonly closedTo: string | null;
+    readonly entryKinds?: readonly ('trade' | 'deposit' | 'withdrawal')[] | null;
     readonly instrumentIds: readonly string[] | null;
+    readonly netResultBounds?: {
+      readonly maximum: string | null;
+      readonly minimum: string | null;
+    } | null;
     readonly resultKinds: readonly TradeResultKind[] | null;
+    readonly resultUnits?: readonly TradeResultKind[] | null;
+    readonly textQuery?: string | null;
     readonly accountIds?: readonly string[] | null;
     readonly includeUnassigned?: boolean;
   } | null;
@@ -84,6 +92,27 @@ export const calculateTradeSummary = (
     }
     if (filters.resultKinds !== null && !filters.resultKinds.includes(trade.resultKind)) {
       return false;
+    }
+    if (filters.resultUnits != null) {
+      const unit = trade.inputResultKind ?? trade.resultKind;
+      if (!filters.resultUnits.includes(unit)) return false;
+    }
+    if (filters.entryKinds != null && !filters.entryKinds.includes('trade')) return false;
+    if (filters.textQuery != null && filters.textQuery !== '') {
+      if (!trade.id.toUpperCase().includes(filters.textQuery.toUpperCase())) return false;
+    }
+    if (filters.netResultBounds != null) {
+      const { minimum, maximum } = filters.netResultBounds;
+      if (minimum !== null || maximum !== null) {
+        const value = getTradeMetricValue(trade, TRADE_RESULT_KINDS.cash);
+        if (value === null) return false;
+        if (minimum !== null && maximum !== null && minimum === maximum) {
+          if (!value.equals(new Decimal(minimum))) return false;
+        } else {
+          if (minimum !== null && value.lessThan(new Decimal(minimum))) return false;
+          if (maximum !== null && value.greaterThan(new Decimal(maximum))) return false;
+        }
+      }
     }
     if (filters.accountIds !== undefined && filters.accountIds !== null) {
       const assigned = trade.account?.accountId;
