@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { BUTTON_VARIANTS } from '../../components/ui/button.config';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Dialog } from '../../components/ui/dialog';
+import { TextField } from '../../components/ui/text-field';
 
 interface TableLayoutDialogViewProps {
   readonly applyLabel: string;
@@ -20,6 +21,10 @@ interface TableLayoutDialogViewProps {
   readonly onShowCashMovementsChange?: (value: boolean) => void;
   readonly showCashMovements?: boolean;
   readonly showCashMovementsLabel?: string;
+  readonly onRiskUsdChange?: (value: string) => void;
+  readonly riskUsd?: string;
+  readonly riskUsdLabel?: string;
+  readonly riskUsdHint?: string;
   readonly title: string;
 }
 
@@ -34,6 +39,10 @@ export const TableLayoutDialogView = ({
   onShowCashMovementsChange,
   showCashMovements,
   showCashMovementsLabel,
+  onRiskUsdChange,
+  riskUsd,
+  riskUsdLabel,
+  riskUsdHint,
   title,
 }: TableLayoutDialogViewProps): ReactElement => (
   <Dialog closeLabel={closeLabel} onOpenChange={(open) => !open && onClose()} open title={title}>
@@ -62,6 +71,19 @@ export const TableLayoutDialogView = ({
             {showCashMovementsLabel}
           </label>
         )}
+      {onRiskUsdChange !== undefined && riskUsd !== undefined && riskUsdLabel !== undefined && (
+        <label className="table-layout-risk">
+          <span className="table-layout-risk-label">{riskUsdLabel}</span>
+          <TextField
+            aria-label={riskUsdLabel}
+            inputMode="decimal"
+            onChange={(event) => onRiskUsdChange(event.target.value)}
+            placeholder={riskUsdLabel}
+            value={riskUsd}
+          />
+          {riskUsdHint !== undefined && <span className="form-help">{riskUsdHint}</span>}
+        </label>
+      )}
     </div>
     <div className="ui-dialog-actions">
       <Button onClick={onClose} type="button" variant={BUTTON_VARIANTS.secondary}>

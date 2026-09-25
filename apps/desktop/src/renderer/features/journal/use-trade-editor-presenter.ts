@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   calculateExecutionResult,
@@ -34,13 +34,17 @@ const withoutExecution = (trade: TradeDto): Omit<TradeDto, 'execution'> => {
     account: trade.account,
     closedAt: trade.closedAt,
     direction: trade.direction,
+    entryNote: trade.entryNote,
     id: trade.id,
     instrumentId: trade.instrumentId,
     instrumentSymbol: trade.instrumentSymbol,
     resultKind: trade.resultKind,
     resultSource: trade.resultSource,
     resultValue: trade.resultValue,
+    reviewNote: trade.reviewNote,
+    reviewStatus: trade.reviewStatus,
     riskBindingSnapshot: trade.riskBindingSnapshot,
+    tagIds: trade.tagIds,
   };
 };
 
@@ -61,13 +65,18 @@ export interface TradeEditorPresenter {
   addExit(): void;
   closeEditor(): void;
   openDetails(): void;
+  openSavedTrade(id: string): Promise<void>;
   removeExit(index: number): void;
   setEditingClosedAt(value: string): void;
   setEditingAccountId(value: string | null): void;
   setEditingDirection(value: 'long' | 'short'): void;
+  setEditingEntryNote(value: string): void;
   setEditingInstrumentId(value: string): void;
+  setEditingReviewNote(value: string): void;
+  setEditingReviewStatus(value: TradeDto['reviewStatus']): void;
   setEditingResultKind(value: TradeDto['resultKind']): void;
   setEditingResultValue(value: string): void;
+  setEditingTagIds(value: readonly string[]): void;
   setEditingTrade(trade: TradeDto): void;
   setExecutionEnabled(value: boolean): void;
   setExecutionField(
@@ -99,6 +108,7 @@ export const useTradeEditorPresenter = (
   const [initialExecutionDraft, setInitialExecutionDraft] = useState<TradeExecutionInputDto | null>(
     null,
   );
+  const submitting = useRef(false);
 
   const loadEditor = (trade: TradeDto): void => {
     const nextExecutionDraft = toExecutionDraft(trade);
@@ -118,7 +128,7 @@ export const useTradeEditorPresenter = (
   };
 
   const submitEditingTrade = async (): Promise<void> => {
-    if (editingTrade === null) return;
+    if (submitting.current || editingTrade === null) return;
     if (
       editingTrade.id !== EMPTY_TRADE_ID &&
       initialEditingTrade !== null &&
@@ -132,38 +142,49 @@ export const useTradeEditorPresenter = (
       closeEditor();
       return;
     }
-    if (editingTrade.id === EMPTY_TRADE_ID) {
-      const selected = journal.instruments.find(
-        (instrument) => instrument.symbol === editingTrade.instrumentSymbol.toUpperCase(),
-      );
-      if (selected !== undefined) {
-        await journal.createTrade({
+    submitting.current = true;
+    try {
+      if (editingTrade.id === EMPTY_TRADE_ID) {
+        const selected = journal.instruments.find(
+          (instrument) => instrument.symbol === editingTrade.instrumentSymbol.toUpperCase(),
+        );
+        if (selected === undefined) return;
+        const saved = await journal.createTrade({
           accountId: editingTrade.account?.accountId ?? quick.accountId ?? '',
           direction: editingTrade.direction ?? quick.direction,
           execution: executionDraft,
+          entryNote: editingTrade.entryNote,
           instrumentId: selected.id,
+          reviewNote: editingTrade.reviewNote,
+          reviewStatus: editingTrade.reviewStatus,
           resultKind: editingTrade.resultKind,
           resultValue: editingTrade.resultValue,
+          tagIds: editingTrade.tagIds,
         });
+        // A failed save keeps the dialog and the whole draft for a retry.
+        if (!saved) return;
+      } else {
+        const execution =
+          executionDraft === null
+            ? null
+            : editingTrade.execution !== null
+              ? { ...executionDraft, instrumentSnapshot: editingTrade.execution.instrumentSnapshot }
+              : editingProfile === null
+                ? null
+                : {
+                    ...executionDraft,
+                    instrumentSnapshot: {
+                      tickSize: editingProfile.tickSize,
+                      tickValueUsdPerLot: editingProfile.tickValueUsdPerLot,
+                    },
+                  };
+        const saved = await journal.updateTrade({ ...editingTrade, execution });
+        if (!saved) return;
       }
-    } else {
-      const execution =
-        executionDraft === null
-          ? null
-          : editingTrade.execution !== null
-            ? { ...executionDraft, instrumentSnapshot: editingTrade.execution.instrumentSnapshot }
-            : editingProfile === null
-              ? null
-              : {
-                  ...executionDraft,
-                  instrumentSnapshot: {
-                    tickSize: editingProfile.tickSize,
-                    tickValueUsdPerLot: editingProfile.tickValueUsdPerLot,
-                  },
-                };
-      await journal.updateTrade({ ...editingTrade, execution });
+      closeEditor();
+    } finally {
+      submitting.current = false;
     }
-    closeEditor();
   };
 
   let executionPreview: string | null = null;
@@ -211,6 +232,10 @@ export const useTradeEditorPresenter = (
     editingTrade,
     executionDraft,
     executionPreview,
+    openSavedTrade: async (id) => {
+      const trade = await journal.getTrade(id);
+      if (trade !== null) loadEditor(trade);
+    },
     openDetails: () =>
       loadEditor({
         closedAt: new Date().toISOString(),
@@ -226,6 +251,7 @@ export const useTradeEditorPresenter = (
                 conversion: null,
               },
         direction: quick.direction,
+        entryNote: null,
         execution: null,
         id: EMPTY_TRADE_ID,
         instrumentId: journal.instruments[0]?.id ?? EMPTY_TRADE_ID,
@@ -233,7 +259,10 @@ export const useTradeEditorPresenter = (
         resultKind: quick.resultKind,
         resultSource: 'manual',
         resultValue: quick.resultValue,
+        reviewNote: null,
+        reviewStatus: 'unreviewed',
         riskBindingSnapshot: null,
+        tagIds: [],
       }),
     removeExit: (index) =>
       setExecutionDraft((current) =>
@@ -272,6 +301,9 @@ export const useTradeEditorPresenter = (
     setEditingDirection: (value) => {
       if (editingTrade !== null) setEditingTrade({ ...editingTrade, direction: value });
     },
+    setEditingEntryNote: (entryNote) => {
+      if (editingTrade !== null) setEditingTrade({ ...editingTrade, entryNote });
+    },
     setEditingInstrumentId: (instrumentId) => {
       const instrument = journal.instruments.find((item) => item.id === instrumentId);
       if (editingTrade !== null && instrument !== undefined) {
@@ -289,6 +321,15 @@ export const useTradeEditorPresenter = (
     },
     setEditingResultValue: (resultValue) => {
       if (editingTrade !== null) setEditingTrade({ ...editingTrade, resultValue });
+    },
+    setEditingReviewNote: (reviewNote) => {
+      if (editingTrade !== null) setEditingTrade({ ...editingTrade, reviewNote });
+    },
+    setEditingReviewStatus: (reviewStatus) => {
+      if (editingTrade !== null) setEditingTrade({ ...editingTrade, reviewStatus });
+    },
+    setEditingTagIds: (tagIds) => {
+      if (editingTrade !== null) setEditingTrade({ ...editingTrade, tagIds: [...tagIds] });
     },
     setEditingTrade: loadEditor,
     setExecutionEnabled: (value) =>

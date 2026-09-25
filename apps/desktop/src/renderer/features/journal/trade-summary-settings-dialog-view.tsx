@@ -138,7 +138,7 @@ export const TradeSummarySettingsDialogView = ({
         </Button>
         <Button
           onClick={() => {
-            void settingsPresenter.saveRiskAndRanges().then(summaryPresenter.closeSettings);
+            void settingsPresenter.saveNeutralSettings().then(summaryPresenter.closeSettings);
           }}
           type="button"
         >

@@ -105,6 +105,41 @@ describe('TradeSummaryView', () => {
     ).toHaveTextContent('100%');
   });
 
+  it('renders the win rate as an exact value with a decorative donut', () => {
+    renderSummary(createPresenter());
+
+    const winRate = screen.getByRole('group', {
+      name: `${i18n.t(TRANSLATION_KEYS.statisticsWinRate)}: 100`,
+    });
+    const ring = winRate.querySelector('.ui-win-rate-ring');
+
+    expect(winRate.querySelector('strong')).toHaveTextContent('100%');
+    expect(ring).not.toBeNull();
+    expect(ring).toHaveAttribute('aria-hidden', 'true');
+    expect(ring?.getAttribute('style')).toContain('100%');
+  });
+
+  it('omits the donut when the win rate is unavailable', () => {
+    renderSummary(
+      createPresenter({
+        summary: {
+          accountedBalanceUsd: undefined,
+          bestInstrument: null,
+          coveredTrades: 0,
+          losingTrades: 0,
+          neutralTrades: 0,
+          totalResult: null,
+          totalTrades: 0,
+          winRate: null,
+          winningTrades: 0,
+          worstInstrument: null,
+        },
+      }),
+    );
+
+    expect(document.querySelector('.ui-win-rate-ring')).toBeNull();
+  });
+
   it('preserves negative, unavailable and refreshing states', () => {
     const presenter = createPresenter({
       summaryRefreshing: true,

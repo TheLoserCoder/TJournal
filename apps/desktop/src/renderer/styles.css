@@ -1,7 +1,10 @@
 @import 'tailwindcss';
 @import 'react-day-picker/style.css';
 @import './styles/design-tokens.css';
+@import './styles/data-table.css';
 @import './styles/design-system.css';
+@import './features/journal/trades-page.css';
+@import './features/statistics/statistics-page.css';
 
 @layer legacy {
   :root {
@@ -216,129 +219,9 @@
     border-radius: 0.65rem;
     padding: 0.65rem;
   }
-  .data-table-scroll {
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    max-height: calc(100vh - 15rem);
-    max-width: 100%;
-    overflow: auto;
-    position: relative;
-    width: 100%;
-  }
-  .data-table {
-    table-layout: fixed;
-    width: 100%;
-  }
-  .data-table th {
-    background: var(--surface);
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-  .data-table-header {
-    align-items: center;
-    display: flex;
-    gap: 0.25rem;
-    min-width: 0;
-    position: relative;
-  }
-  .table-sort-button,
-  .table-text {
-    align-items: center;
-    background: transparent;
-    border-radius: 0;
-    color: var(--foreground);
-    display: flex;
-    gap: 0.35rem;
-    min-width: 0;
-    overflow: hidden;
-    padding: 0;
-    text-align: left;
-  }
-  .table-sort-button {
-    flex: 1;
-  }
-  .table-sort-button span,
-  .table-text {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .table-sort-button svg,
-  .column-filter-button svg {
-    height: 0.9rem;
-    min-width: 0.9rem;
-    width: 0.9rem;
-  }
-  .column-filter {
-    margin-left: auto;
-    position: relative;
-  }
-  .column-filter-button {
-    background: transparent;
-    color: var(--muted);
-    padding: 0.25rem;
-  }
-  .column-filter-button:hover,
-  .column-filter-button.active {
-    background: color-mix(in oklch, var(--accent) 18%, transparent);
-    color: var(--accent);
-  }
-  .column-filter-popover {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 0.65rem;
-    box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 20%);
-    min-width: 15rem;
-    padding: 0.75rem;
-    position: absolute;
-    right: 0;
-    top: calc(100% + 0.5rem);
-    z-index: 4;
-  }
-  .data-table th:has(.column-filter-button[aria-expanded='true']) {
-    z-index: 5;
-  }
-  .column-filter-fields {
-    display: grid;
-    gap: 0.65rem;
-  }
-  .column-filter-fields label {
-    display: grid;
-    gap: 0.35rem;
-  }
-  .column-filter-reset {
-    justify-self: start;
-    padding: 0.45rem 0.7rem;
-  }
-  .column-resize-handle {
-    background: var(--border);
-    border-radius: 0;
-    cursor: col-resize;
-    inset: 0 0 0 auto;
-    opacity: 0;
-    padding: 0;
-    position: absolute;
-    width: 0.4rem;
-  }
-  .data-table th:hover .column-resize-handle,
-  .column-resize-handle:focus {
-    opacity: 1;
-  }
   .table-row-actions {
     display: flex;
     gap: 0.5rem;
-  }
-  .data-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .data-table-empty {
-    color: var(--muted);
-    height: 5rem;
-    text-align: center;
-    white-space: normal;
   }
 
   @media (max-width: 760px) {
@@ -457,15 +340,6 @@
     --ui-result-negative: oklch(0.91 0.1 25);
     --ui-direction-long: oklch(0.9 0.08 245);
     --ui-direction-short: oklch(0.91 0.09 65);
-    --ui-dialog-wide-width: 52rem;
-    --ui-dialog-viewport-gap: 1rem;
-    --ui-quick-entry-control-width: 8rem;
-    --ui-quick-entry-entry-kind-width: 6.5rem;
-    --ui-quick-entry-account-width: 8.5rem;
-    --ui-quick-entry-asset-width: 12rem;
-    --ui-quick-entry-unit-width: 5.5rem;
-    --ui-quick-entry-result-width: 7rem;
-    --ui-exit-result-unit-width: 5rem;
   }
 
   :root[data-theme='dark'] {
@@ -504,14 +378,6 @@
   }
   .ui-button-primary:hover {
     background: color-mix(in oklch, var(--accent) 88%, black);
-  }
-  .ui-button-success {
-    background: var(--ui-success);
-    box-shadow: var(--ui-shadow);
-    color: white;
-  }
-  .ui-button-success:hover {
-    background: color-mix(in oklch, var(--ui-success) 88%, black);
   }
   .ui-button-secondary {
     background: var(--surface);
@@ -621,7 +487,6 @@
     width: max-content;
   }
   .trade-details-form label > .ui-select-trigger,
-  .trade-details-form .trade-exit-result > .ui-select-trigger,
   .entity-form-grid label > .ui-select-trigger,
   .entity-default-row > .ui-select-trigger {
     width: 100%;
@@ -749,8 +614,7 @@
   .ui-calendar-panel {
     gap: 0.35rem;
   }
-  .ui-calendar-actions,
-  .ui-filter-panel-actions {
+  .ui-calendar-actions {
     display: flex;
     justify-content: flex-end;
   }
@@ -958,49 +822,6 @@
   .quick-form {
     gap: 0.5rem;
   }
-  .trades-workspace {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 2.5rem);
-    min-height: 0;
-  }
-  .trades-topbar {
-    align-items: start;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--ui-radius-large);
-    box-shadow: var(--ui-shadow);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-    min-height: 3.25rem;
-    padding: 0.5rem;
-  }
-  .quick-entry-control {
-    flex: 0 1 var(--ui-quick-entry-control-width);
-    min-width: 0;
-  }
-  .quick-entry-control-entry-kind {
-    flex-basis: var(--ui-quick-entry-entry-kind-width);
-  }
-  .quick-entry-control-account {
-    flex-basis: var(--ui-quick-entry-account-width);
-  }
-  .quick-entry-control-asset {
-    flex-basis: var(--ui-quick-entry-asset-width);
-  }
-  .quick-entry-control-direction,
-  .quick-entry-control-unit {
-    flex-basis: var(--ui-quick-entry-unit-width);
-  }
-  .quick-entry-control-result {
-    flex-basis: var(--ui-quick-entry-result-width);
-  }
-  .quick-entry-control-add,
-  .quick-entry-control-details {
-    flex-basis: auto;
-  }
   .quick-converter-field {
     align-items: start;
     display: inline-grid;
@@ -1023,24 +844,6 @@
     font-size: 0.8125rem;
     margin: 0.25rem 0 0.75rem;
   }
-  .trades-entry-feedback {
-    flex: 0 0 auto;
-  }
-  .trades-table-area {
-    display: flex;
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-  .legacy-account-warning {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  .trades-topbar-spacer {
-    flex: 1;
-    min-width: 0;
-  }
   .table-selection-actions {
     align-items: center;
     display: grid;
@@ -1054,99 +857,12 @@
     font-size: 0.8125rem;
     white-space: nowrap;
   }
-  .data-table-scroll {
-    border-radius: var(--ui-radius-large);
-    box-shadow: var(--ui-shadow);
-    height: auto;
-    min-height: 0;
-    max-height: none;
-  }
-  .trades-table-area .data-table-scroll {
-    flex: 1 1 auto;
-    height: 100%;
-  }
-  .trades-table-area .data-table-scroll[data-empty='true'] {
-    flex: 0 0 auto;
-    height: auto;
-  }
-  .data-table th {
-    font-size: 0.8rem;
-  }
-  .data-table th,
-  .data-table td {
-    padding: 0.45rem 0.6rem;
-  }
-  .data-table tr:hover td {
-    background: color-mix(in oklch, var(--accent) 3%, var(--surface));
-  }
-  .trade-result {
-    border-radius: 0.375rem;
-    display: inline-flex;
-    font-variant-numeric: tabular-nums;
-    padding: 0.2rem 0.4rem;
-  }
-  .trade-result-positive {
-    background: var(--ui-result-positive);
-    color: color-mix(in oklch, var(--ui-success) 75%, var(--foreground));
-  }
-  .trade-result-negative {
-    background: var(--ui-result-negative);
-    color: var(--ui-danger);
-  }
-  .trade-result-neutral {
-    background: color-mix(in oklch, var(--border) 55%, transparent);
-  }
-  .trade-direction {
-    border-radius: 999px;
-    display: inline-flex;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 0.2rem 0.5rem;
-  }
-  .trade-direction-long {
-    background: var(--ui-direction-long);
-    color: color-mix(in oklch, var(--accent) 72%, var(--foreground));
-  }
-  .trade-direction-short {
-    background: var(--ui-direction-short);
-    color: color-mix(in oklch, oklch(0.64 0.18 55) 78%, var(--foreground));
-  }
-  .trade-direction-deposit {
-    background: var(--ui-result-positive);
-    color: color-mix(in oklch, var(--ui-success) 75%, var(--foreground));
-  }
-  .trade-direction-withdrawal {
-    background: var(--ui-result-negative);
-    color: var(--ui-danger);
-  }
   .trades-heading-row {
     align-items: start;
     display: flex;
     gap: 1rem;
     justify-content: space-between;
     min-width: 0;
-  }
-  .trade-summary {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    justify-content: flex-end;
-    margin-bottom: 0.5rem;
-  }
-  .trade-summary-header {
-    align-items: center;
-    align-self: stretch;
-    display: flex;
-    gap: 0.25rem;
-    justify-content: flex-end;
-  }
-  .trade-summary-controls {
-    align-items: center;
-    display: flex;
-    gap: 0.35rem;
-    width: 100%;
-    justify-content: flex-end;
   }
   .trade-summary-settings-form {
     display: grid;
@@ -1204,48 +920,6 @@
     display: flex;
     font-size: 0.75rem;
     gap: 0.35rem;
-  }
-  .trade-summary-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--ui-radius);
-    display: grid;
-    min-width: 5.5rem;
-    padding: 0.35rem 0.55rem;
-  }
-  .trade-summary-item span,
-  .trade-summary small {
-    color: var(--muted);
-    font-size: 0.65rem;
-  }
-  .trade-summary-item strong {
-    font-size: 0.9rem;
-    font-variant-numeric: tabular-nums;
-  }
-  .trade-summary-item-total {
-    background: color-mix(in oklch, var(--accent) 10%, var(--surface));
-    border-color: color-mix(in oklch, var(--accent) 40%, var(--border));
-  }
-  .trade-summary-item-total strong,
-  .trade-summary-item-accent strong {
-    color: var(--accent);
-  }
-  .trade-summary-item-positive {
-    background: color-mix(in oklch, var(--ui-success) 10%, var(--surface));
-    border-color: color-mix(in oklch, var(--ui-success) 35%, var(--border));
-  }
-  .trade-summary-item-positive strong {
-    color: var(--ui-success);
-  }
-  .trade-summary-item-negative {
-    background: color-mix(in oklch, var(--ui-danger) 8%, var(--surface));
-    border-color: color-mix(in oklch, var(--ui-danger) 30%, var(--border));
-  }
-  .trade-summary-item-negative strong {
-    color: var(--ui-danger);
-  }
-  .trade-summary-item-neutral {
-    background: color-mix(in oklch, var(--border) 45%, var(--surface));
   }
   .trade-settings-grid {
     display: grid;
@@ -1311,26 +985,7 @@
     font-size: 0.8rem;
     gap: 0.3rem;
   }
-  .trade-exits-heading {
-    align-items: center;
-    display: flex;
-    justify-content: space-between;
-  }
-  .trade-exit-row {
-    align-items: end;
-    display: grid;
-    gap: 0.5rem;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-  }
-  .trade-exit-result {
-    display: grid;
-    gap: 0.35rem;
-    grid-template-columns: minmax(0, 1fr) var(--ui-exit-result-unit-width);
-  }
-  .trade-exit-row > label,
-  .trade-exit-result,
-  .trade-exit-row .ui-text-field,
-  .trade-exit-row .ui-select-trigger {
+  .trade-exit-row .ui-text-field {
     min-width: 0;
     width: 100%;
   }
@@ -1353,39 +1008,9 @@
     background: var(--ui-result-positive);
     color: color-mix(in oklch, var(--ui-success) 75%, var(--foreground));
   }
-  .column-filter-button {
-    margin-left: auto;
-  }
-  .column-resize-handle {
-    background: var(--accent);
-    width: 0.25rem;
-  }
-  .data-table-scroll[data-resizing='true']::after {
-    background: var(--accent);
-    bottom: 0;
-    content: '';
-    left: var(--resize-guide-x);
-    position: absolute;
-    top: 0;
-    width: 0.125rem;
-    z-index: 10;
-  }
-
   @media (max-width: 920px) {
-    .trades-topbar-spacer {
-      display: none;
-    }
-
     .table-selection-actions {
       margin-left: auto;
-    }
-
-    .trade-exit-row {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .trade-exit-row > .ui-button {
-      justify-self: start;
     }
   }
 
@@ -1449,9 +1074,9 @@
     height: 100%;
   }
 
-  .entities-workspace .data-table-scroll {
-    flex: 1;
-    min-height: 0;
+  .entities-workspace > .data-table-scroll {
+    flex: 1 1 auto;
+    min-height: var(--table-viewport-min-height);
   }
   .entities-tabs,
   .entities-toolbar,
@@ -1551,21 +1176,9 @@
     align-items: center;
   }
 
-  .entity-table-selection-actions {
-    align-self: flex-end;
-    margin-bottom: -0.5rem;
-  }
-
   .entity-table-selection-actions .ui-icon-button {
     min-height: var(--ui-control-height);
     min-width: var(--ui-control-height);
-  }
-  .entity-table-scroll {
-    flex: 1;
-    min-height: 0;
-    overflow: auto;
-    border: 1px solid var(--border);
-    border-radius: 0.75rem;
   }
   .entity-editor {
     padding: 0.75rem;

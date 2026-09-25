@@ -5,7 +5,13 @@ import {
   type LegacyColumnDef,
   type LegacyReactTable,
 } from '@tanstack/react-table/legacy';
-import type { ColumnOrderState, RowData, RowSelectionState } from '@tanstack/react-table';
+import type {
+  ColumnOrderState,
+  OnChangeFn,
+  RowData,
+  RowSelectionState,
+  SortingState,
+} from '@tanstack/react-table';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type {
@@ -35,7 +41,9 @@ interface UseDataTableControllerOptions<TRow extends RowData> {
   readonly layoutId: TableLayoutDto['id'];
   readonly normalizeColumnOrder: (order: readonly string[] | undefined) => ColumnOrderState;
   readonly onLayoutChange: (layout: TableLayoutDto) => void;
+  readonly onSortingChange?: OnChangeFn<SortingState>;
   readonly sizeLimits: { readonly minimum: number; readonly maximum: number };
+  readonly sorting?: SortingState;
 }
 
 export interface DataTableController<TRow extends RowData> {
@@ -69,7 +77,9 @@ export const useDataTableController = <TRow extends RowData>({
   layoutId,
   normalizeColumnOrder,
   onLayoutChange,
+  onSortingChange,
   sizeLimits,
+  sorting,
 }: UseDataTableControllerOptions<TRow>): DataTableController<TRow> => {
   const normalizeWidth = useCallback(
     (width: number): number => Math.min(sizeLimits.maximum, Math.max(sizeLimits.minimum, width)),
@@ -93,7 +103,10 @@ export const useDataTableController = <TRow extends RowData>({
     toVisibility(initialColumns),
   );
   const [mode, setModeState] = useState<TableDisplayMode>(() => layout?.mode ?? defaultMode);
+  const [internalSorting, setInternalSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const sortingState = sorting ?? internalSorting;
+  const handleSortingChange: OnChangeFn<SortingState> = onSortingChange ?? setInternalSorting;
 
   useEffect(() => {
     if (layoutWasApplied.current || layout === undefined) return;
@@ -187,7 +200,8 @@ export const useDataTableController = <TRow extends RowData>({
         return next;
       }),
     onRowSelectionChange: setRowSelection,
-    state: { columnOrder, columnSizing, columnVisibility, rowSelection },
+    onSortingChange: handleSortingChange,
+    state: { columnOrder, columnSizing, columnVisibility, rowSelection, sorting: sortingState },
   });
   const columnControls = columns
     .filter((column) => column.id !== undefined && isDataColumn(column.id))

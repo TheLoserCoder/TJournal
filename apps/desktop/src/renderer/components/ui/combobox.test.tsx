@@ -49,4 +49,38 @@ describe('Combobox', () => {
 
     expect(onChange).toHaveBeenCalledWith('EURUSD');
   });
+
+  it('shows every option in the caller order when opened with a committed value', async () => {
+    render(
+      <Combobox
+        ariaLabel="Asset"
+        onChange={vi.fn()}
+        options={['MSFT', 'AAPL', 'TSLA']}
+        value="AAPL"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Asset' }));
+
+    const options = await screen.findAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual(['MSFT', 'AAPL', 'TSLA']);
+  });
+
+  it('filters options only after typing in the input', async () => {
+    render(
+      <Combobox
+        ariaLabel="Asset"
+        onChange={vi.fn()}
+        options={['MSFT', 'AAPL', 'TSLA']}
+        value="AAPL"
+      />,
+    );
+
+    const input = screen.getByRole('combobox', { name: 'Asset' }) as HTMLInputElement;
+    fireEvent.mouseDown(input);
+    fireEvent.change(input, { target: { value: 'TS' } });
+
+    const options = await screen.findAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual(['TSLA']);
+  });
 });

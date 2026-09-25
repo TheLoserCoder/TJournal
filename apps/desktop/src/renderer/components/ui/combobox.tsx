@@ -1,40 +1,87 @@
 import { Autocomplete } from '@base-ui/react/autocomplete';
-import { ChevronDown } from 'lucide-react';
-import { type ReactElement } from 'react';
+import { ChevronDown, Plus } from 'lucide-react';
+import { useEffect, useState, type ReactElement } from 'react';
 
 import { useDialogPortalContainer } from './dialog-portal-context';
 
 interface ComboboxProps {
   readonly ariaLabel: string;
   readonly className?: string;
+  /** Label of the inline "create" row, interpolated with the typed value. */
+  readonly createLabel?: (value: string) => string;
   /** Portal elevation relative to a containing dialog. */
   readonly layer?: 'base' | 'dialog';
   readonly onChange: (value: string) => void;
+  /** Commits a typed value that matches no option; the caller owns creation. */
+  readonly onCreateOption?: (value: string) => void;
   readonly options: readonly string[];
   readonly placeholder?: string;
   readonly value: string;
 }
 
+const matchesQuery = (option: string, query: string): boolean =>
+  option.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
+
+/**
+ * Free-text autocomplete. `value` is the committed selection: while the user types,
+ * the input keeps its own text so a partial query is not rejected by a parent that
+ * only accepts exact matches. An external value change re-syncs the input.
+ *
+ * The popup opens with the full option list in the order the caller passed, even
+ * when the input already holds a committed value: filtering starts only with real
+ * typing, so replacing an existing selection never requires clearing the field first.
+ */
 export const Combobox = ({
   ariaLabel,
   className,
+  createLabel,
   layer = 'base',
   onChange,
+  onCreateOption,
   options,
   placeholder,
   value,
 }: ComboboxProps): ReactElement => {
   const dialogPortalContainer = useDialogPortalContainer();
+  const [inputValue, setInputValue] = useState(value);
+  const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  const visibleOptions =
+    query === '' ? options : options.filter((option) => matchesQuery(option, query));
+  const typedValue = query.trim();
+  const showCreate =
+    onCreateOption !== undefined &&
+    createLabel !== undefined &&
+    typedValue !== '' &&
+    !options.some((option) => option.toLocaleLowerCase() === typedValue.toLocaleLowerCase());
+
+  const commitTypedValue = (): void => {
+    if (!showCreate) return;
+    setInputValue(typedValue);
+    setQuery('');
+    onCreateOption?.(typedValue);
+  };
 
   return (
     <Autocomplete.Root
       autoHighlight
+      filteredItems={visibleOptions}
       items={options}
-      onValueChange={(nextValue) => {
-        if (nextValue !== value) onChange(nextValue);
+      onOpenChange={(open, eventDetails) => {
+        // A pointer or trigger open shows every option; only typed input filters.
+        if (open && eventDetails.reason !== 'input-change') setQuery('');
+      }}
+      onValueChange={(nextValue, eventDetails) => {
+        setInputValue(nextValue);
+        setQuery(eventDetails.reason === 'input-change' ? nextValue : '');
+        onChange(nextValue);
       }}
       openOnInputClick
-      value={value}
+      value={inputValue}
     >
       <Autocomplete.InputGroup
         className={['ui-autocomplete-input-group', className].filter(Boolean).join(' ')}
@@ -66,6 +113,12 @@ export const Combobox = ({
                 </Autocomplete.Item>
               )}
             </Autocomplete.List>
+            {showCreate ? (
+              <button className="ui-autocomplete-create" onClick={commitTypedValue} type="button">
+                <Plus aria-hidden="true" />
+                {createLabel?.(typedValue)}
+              </button>
+            ) : null}
           </Autocomplete.Popup>
         </Autocomplete.Positioner>
       </Autocomplete.Portal>

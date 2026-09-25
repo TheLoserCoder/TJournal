@@ -4,10 +4,11 @@ import type { ReactElement } from 'react';
 interface TooltipProps {
   readonly children: ReactElement;
   readonly content: string;
+  readonly delayDuration?: number;
 }
 
-export const Tooltip = ({ children, content }: TooltipProps): ReactElement => (
-  <TooltipPrimitive.Provider delayDuration={300}>
+export const Tooltip = ({ children, content, delayDuration = 300 }: TooltipProps): ReactElement => (
+  <TooltipPrimitive.Provider delayDuration={delayDuration}>
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>

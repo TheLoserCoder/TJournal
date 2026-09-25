@@ -10,6 +10,7 @@ export interface SelectOption {
 interface SelectProps {
   readonly ariaLabel: string;
   readonly className?: string;
+  readonly disabled?: boolean;
   /** Portal elevation relative to a containing dialog. */
   readonly layer?: 'base' | 'dialog';
   readonly onValueChange: (value: string) => void;
@@ -21,13 +22,14 @@ interface SelectProps {
 export const Select = ({
   ariaLabel,
   className,
+  disabled = false,
   layer = 'base',
   onValueChange,
   options,
   placeholder,
   value,
 }: SelectProps): ReactElement => (
-  <SelectPrimitive.Root onValueChange={onValueChange} value={value}>
+  <SelectPrimitive.Root disabled={disabled} onValueChange={onValueChange} value={value}>
     <SelectPrimitive.Trigger
       aria-label={ariaLabel}
       className={['ui-select-trigger', className].filter(Boolean).join(' ')}

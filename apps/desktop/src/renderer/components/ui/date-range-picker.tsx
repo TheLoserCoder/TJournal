@@ -21,7 +21,6 @@ const toDateKey = (value: Date | undefined): string =>
     : `${value.getFullYear()}-${toDatePart(value.getMonth() + 1)}-${toDatePart(value.getDate())}`;
 
 interface DateRangePickerProps {
-  readonly clearLabel: string;
   readonly from: string;
   readonly onChange: (range: { readonly from: string; readonly to: string }) => void;
   readonly summary: string;
@@ -38,7 +37,7 @@ interface DatePickerProps {
 }
 
 interface CalendarPanelProps {
-  readonly clearLabel: string;
+  readonly clearLabel?: string;
   readonly mode: 'range' | 'single';
   readonly onClear: () => void;
   readonly onSelect: (value: Date | DateRange | undefined) => void;
@@ -74,7 +73,7 @@ const CalendarPanel = ({
     );
   return (
     <div className="ui-calendar-panel">
-      {clearable && (
+      {clearable && clearLabel !== undefined && (
         <div className="ui-calendar-actions">
           <Tooltip content={clearLabel}>
             <IconButton label={clearLabel} onClick={onClear}>
@@ -89,7 +88,6 @@ const CalendarPanel = ({
 };
 
 export const DateRangePickerPanel = ({
-  clearLabel,
   from,
   onChange,
   summary,
@@ -104,8 +102,7 @@ export const DateRangePickerPanel = ({
   return (
     <div className="ui-date-range-picker">
       <CalendarPanel
-        clearLabel={clearLabel}
-        clearable
+        clearable={false}
         mode="range"
         onClear={() => onChange({ from: EMPTY_DATE_KEY, to: EMPTY_DATE_KEY })}
         onSelect={(nextRange) => {

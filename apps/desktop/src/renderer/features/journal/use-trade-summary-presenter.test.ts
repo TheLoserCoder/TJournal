@@ -58,7 +58,7 @@ describe('useTradeSummaryPresenter', () => {
           assetFilterIds: emptyAssetFilters,
           dateFrom,
           dateTo: '',
-          resultFilter: 'all',
+          resultUnit: 'all',
         }),
       { initialProps: { dateFrom: '' } },
     );

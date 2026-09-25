@@ -27,8 +27,9 @@ export const DirectionToggle = ({
     <button
       aria-label={longLabel}
       aria-pressed={value === 'long'}
-      className="ui-direction-toggle-option ui-direction-toggle-long"
+      className="ui-direction-toggle-option entry-type-entry entry-type-long"
       data-active={value === 'long' ? 'true' : 'false'}
+      data-entry-type="long"
       onClick={() => onChange('long')}
       title={longLabel}
       type="button"
@@ -39,8 +40,9 @@ export const DirectionToggle = ({
     <button
       aria-label={shortLabel}
       aria-pressed={value === 'short'}
-      className="ui-direction-toggle-option ui-direction-toggle-short"
+      className="ui-direction-toggle-option entry-type-entry entry-type-short"
       data-active={value === 'short' ? 'true' : 'false'}
+      data-entry-type="short"
       onClick={() => onChange('short')}
       title={shortLabel}
       type="button"

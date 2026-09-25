@@ -1,11 +1,8 @@
-import { useMemo, useState, type ReactElement } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { useMemo, useState, type ReactElement, type ReactNode } from 'react';
 
 import { Checkbox } from './checkbox';
-import { IconButton } from './icon-button';
 import { Popover } from './popover';
 import { TextField } from './text-field';
-import { Tooltip } from './tooltip';
 
 export interface MultiSelectOption {
   readonly id: string;
@@ -13,32 +10,44 @@ export interface MultiSelectOption {
 }
 
 interface MultiSelectProps {
-  readonly clearLabel: string;
   readonly emptyMessage: string;
   readonly onSelectedIdsChange: (ids: readonly string[]) => void;
   readonly placeholder: string;
   readonly searchLabel: string;
   readonly selectedIds: readonly string[];
-  readonly summary: string;
+  readonly summary?: string;
 }
 
+interface CheckboxListProps {
+  readonly onSelectedIdsChange: (ids: readonly string[]) => void;
+  readonly options: readonly MultiSelectOption[];
+  readonly searchLabel: string;
+  readonly selectedIds: readonly string[];
+}
+
+const toSearchKey = (value: string): string => value.trim().toLocaleUpperCase();
+
+/**
+ * Searchable multi-select used by asset and account filters. Search matches the
+ * localized label case-insensitively; the feature owns which entities are
+ * listed. Clearing a column is a header action, so the panel never repeats it.
+ */
 export const MultiSelectPanel = ({
-  clearLabel,
   emptyMessage,
   onSelectedIdsChange,
   options,
   placeholder,
   searchLabel,
   selectedIds,
-  summary,
 }: MultiSelectProps & { readonly options: readonly MultiSelectOption[] }): ReactElement => {
-  void summary;
   const [query, setQuery] = useState('');
   const selected = new Set(selectedIds);
-  const visibleOptions = useMemo(
-    () => options.filter((option) => option.label.includes(query.trim().toUpperCase())),
-    [options, query],
-  );
+  const visibleOptions = useMemo(() => {
+    const key = toSearchKey(query);
+    return key === ''
+      ? options
+      : options.filter((option) => option.label.toLocaleUpperCase().includes(key));
+  }, [options, query]);
 
   const toggleOption = (id: string): void => {
     const next = selected.has(id)
@@ -71,17 +80,44 @@ export const MultiSelectPanel = ({
           ))
         )}
       </div>
-      <div className="ui-filter-panel-actions">
-        <Tooltip content={clearLabel}>
-          <IconButton
-            disabled={selectedIds.length === 0}
-            label={clearLabel}
-            onClick={() => onSelectedIdsChange([])}
-          >
-            <RotateCcw aria-hidden="true" />
-          </IconButton>
-        </Tooltip>
+    </div>
+  );
+};
+
+/**
+ * Short fixed-option list rendered without a search field, for filters such as
+ * entry type or result unit. An optional footer keeps related controls (for
+ * example "unassigned") inside the same panel.
+ */
+export const CheckboxListPanel = ({
+  footer,
+  onSelectedIdsChange,
+  options,
+  searchLabel,
+  selectedIds,
+}: CheckboxListProps & { readonly footer?: ReactNode }): ReactElement => {
+  const selected = new Set(selectedIds);
+  const toggleOption = (id: string): void => {
+    const next = selected.has(id)
+      ? selectedIds.filter((selectedId) => selectedId !== id)
+      : [...selectedIds, id];
+    onSelectedIdsChange(next);
+  };
+  return (
+    <div className="ui-checkbox-list">
+      <div className="ui-option-list" role="listbox" aria-label={searchLabel}>
+        {options.map((option) => (
+          <label className="ui-multi-select-option" key={option.id}>
+            <Checkbox
+              ariaLabel={option.label}
+              checked={selected.has(option.id)}
+              onCheckedChange={() => toggleOption(option.id)}
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
       </div>
+      {footer}
     </div>
   );
 };

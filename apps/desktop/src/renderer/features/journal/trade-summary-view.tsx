@@ -1,8 +1,21 @@
 import type { ReactElement } from 'react';
-import { Settings2 } from 'lucide-react';
+import {
+  CircleCheck,
+  CircleX,
+  Hash,
+  Minus,
+  Settings,
+  Star,
+  Target,
+  TrendingUp,
+  TriangleAlert,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { TRANSLATION_KEYS } from '../../i18n-keys';
+import { WinRateRing } from '../../components/charts/win-rate-ring';
 import { IconButton } from '../../components/ui/icon-button';
 import { Tooltip } from '../../components/ui/tooltip';
 import type { TradeSummaryPresenter } from './use-trade-summary-presenter';
@@ -12,9 +25,12 @@ type SummaryTone = 'accent' | 'negative' | 'neutral' | 'positive' | 'total';
 type SummaryEmphasis = 'hero' | 'supporting';
 
 interface SummaryMetric {
+  readonly Icon: LucideIcon;
   readonly emphasis: SummaryEmphasis;
   readonly label: string;
   readonly marker?: string;
+  /** Optional exact percentage shown as a compact win-rate donut. */
+  readonly ring?: number;
   readonly suffix?: string;
   readonly tone: SummaryTone;
   readonly tooltip?: string;
@@ -22,6 +38,7 @@ interface SummaryMetric {
 }
 
 const renderMetric = (metric: SummaryMetric, translate: (key: string) => string): ReactElement => {
+  const { Icon } = metric;
   const value = (
     <strong>
       {metric.marker !== undefined && (
@@ -46,8 +63,14 @@ const renderMetric = (metric: SummaryMetric, translate: (key: string) => string)
       key={metric.label}
       role="group"
     >
-      <span className="trade-summary-label">{translate(metric.label)}</span>
-      {metric.tooltip === undefined ? value : <Tooltip content={metric.tooltip}>{value}</Tooltip>}
+      <span className="trade-summary-label">
+        <Icon aria-hidden="true" className="trade-summary-icon" size={14} />
+        <span className="trade-summary-label-text">{translate(metric.label)}</span>
+      </span>
+      <span className="trade-summary-value">
+        {metric.tooltip === undefined ? value : <Tooltip content={metric.tooltip}>{value}</Tooltip>}
+        {metric.ring !== undefined && <WinRateRing value={metric.ring} />}
+      </span>
     </div>
   );
 };
@@ -74,6 +97,7 @@ export const TradeSummaryView = ({
   const language = i18n.language === 'en' ? 'en' : 'ru';
   const financialMetrics: readonly SummaryMetric[] = [
     {
+      Icon: TrendingUp,
       emphasis: 'hero',
       label: TRANSLATION_KEYS.statisticsTotalResult,
       marker: '$',
@@ -87,6 +111,7 @@ export const TradeSummaryView = ({
         summary.totalResult === null ? '—' : formatDecimalString(summary.totalResult, language),
     },
     {
+      Icon: Wallet,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsAccountedBalance,
       marker: '$',
@@ -99,13 +124,16 @@ export const TradeSummaryView = ({
   ];
   const performanceMetrics: readonly SummaryMetric[] = [
     {
+      Icon: Target,
       emphasis: 'hero',
       label: TRANSLATION_KEYS.statisticsWinRate,
+      ring: summary.winRate === null ? undefined : Number(summary.winRate),
       suffix: '%',
       tone: 'accent',
       value: summary.winRate === null ? '—' : formatDecimalString(summary.winRate, language),
     },
     {
+      Icon: Hash,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsTotalTrades,
       marker: '#',
@@ -113,6 +141,7 @@ export const TradeSummaryView = ({
       value: String(summary.totalTrades),
     },
     {
+      Icon: CircleCheck,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsWins,
       marker: '#',
@@ -120,6 +149,7 @@ export const TradeSummaryView = ({
       value: String(summary.winningTrades ?? '—'),
     },
     {
+      Icon: CircleX,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsLosses,
       marker: '#',
@@ -127,6 +157,7 @@ export const TradeSummaryView = ({
       value: String(summary.losingTrades ?? '—'),
     },
     {
+      Icon: Minus,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsNeutral,
       marker: '#',
@@ -136,6 +167,7 @@ export const TradeSummaryView = ({
   ];
   const assetMetrics: readonly SummaryMetric[] = [
     {
+      Icon: Star,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsBestAsset,
       tone: 'neutral',
@@ -143,6 +175,7 @@ export const TradeSummaryView = ({
       value: summary.bestInstrument ?? '—',
     },
     {
+      Icon: TriangleAlert,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsWorstAsset,
       tone: 'neutral',
@@ -182,7 +215,7 @@ export const TradeSummaryView = ({
             label={t(TRANSLATION_KEYS.statisticsSettings)}
             onClick={presenter.openSettings}
           >
-            <Settings2 aria-hidden="true" />
+            <Settings aria-hidden="true" />
           </IconButton>
         </Tooltip>
       </div>

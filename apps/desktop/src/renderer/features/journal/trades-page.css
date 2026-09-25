@@ -1,0 +1,541 @@
+/* FND-014: Trades workspace composition and container-based responsive layout. */
+
+.trades-workspace {
+  align-content: start;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--workspace-section-gap);
+  min-width: 0;
+}
+
+.trades-heading-row {
+  align-items: start;
+  display: grid;
+  gap: var(--ref-space-4);
+  min-width: 0;
+}
+
+.trades-heading-row .page-header {
+  margin-bottom: 0;
+}
+
+/* Entry and selection actions share one grid cell so switching never moves the table. */
+.trades-entry-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.trades-entry-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+  transition: opacity var(--ref-duration-fast) var(--ref-ease-standard);
+}
+
+.trades-entry-layer[data-active='false'] {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.trades-topbar {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--ref-radius-lg);
+  box-shadow: var(--ref-shadow-sm);
+  display: flex;
+  gap: var(--ref-space-2);
+  margin: 0;
+  min-height: var(--workspace-toolbar-height);
+  padding: var(--ref-space-3);
+}
+
+/* Long account or asset values truncate instead of wrapping the toolbar into extra rows. */
+.trades-topbar .quick-entry-control {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One compact row: proportioned controls keep the toolbar on a single line on wide
+   workspaces and only fall back to wrapping when the workspace is genuinely narrow.
+   Field tracks are capped so the entry kind, account, asset and result fields stay
+   compact, and the primary Add/Details actions sit right after the fields. */
+.trades-topbar-fields {
+  align-items: center;
+  display: grid;
+  flex: 1 1 auto;
+  gap: var(--ref-space-2);
+  /* entry | account | asset | direction | result | unit | tags. The trailing track
+     sizes to its content, so an empty percent/R preview never leaves a gap between
+     the unit selector and the tag picker. */
+  grid-template-columns:
+    minmax(3.6rem, 8.75rem) minmax(3.6rem, 8.75rem) minmax(4rem, 10rem)
+    minmax(4rem, 6.5rem) minmax(3.6rem, 8.75rem) minmax(3.5rem, 5rem)
+    minmax(7rem, max-content);
+  min-width: 0;
+}
+
+/* The USD conversion preview is rendered only for percent/R input, so its track is
+   added only then and the tag picker follows the unit selector otherwise. */
+.trades-topbar-fields:where([data-conversion='true']) {
+  grid-template-columns:
+    minmax(3.6rem, 8.75rem) minmax(3.6rem, 8.75rem) minmax(4rem, 10rem)
+    minmax(4rem, 6.5rem) minmax(3.6rem, 8.75rem) minmax(3.5rem, 5rem)
+    minmax(5rem, max-content) minmax(7rem, max-content);
+}
+
+/* Deposit/withdrawal keeps only entry kind, account and amount. */
+.trades-topbar-fields:where([data-entry-kind='movement']) {
+  grid-template-columns: minmax(3.6rem, 8.75rem) minmax(3.6rem, 8.75rem) minmax(4rem, 10rem);
+}
+
+/* The generic control min-widths (8–9rem) would otherwise inflate the grid tracks
+   and push the toolbar into wrapping; the grid owns the widths inside this bar. */
+.trades-topbar .ui-text-field,
+.trades-topbar .ui-select-trigger,
+.trades-topbar .ui-autocomplete-input-group {
+  min-width: 0;
+}
+
+.trades-topbar .ui-select-trigger {
+  gap: var(--ref-space-1);
+  padding-inline: var(--ref-space-2);
+}
+
+.trades-topbar-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: var(--ref-space-2);
+}
+
+.quick-entry-details-compact {
+  display: none;
+  height: 1rem;
+  width: 1rem;
+}
+
+/* Below the full-width toolbar the details label collapses to an icon-first action. */
+@container (max-width: 72rem) {
+  .quick-entry-control-details {
+    min-width: var(--ui-control-height);
+    padding-inline: var(--ref-space-2);
+  }
+
+  .quick-entry-details-compact {
+    display: inline-block;
+  }
+
+  .quick-entry-details-label {
+    display: none;
+  }
+}
+
+.trades-topbar-spacer {
+  display: none;
+}
+
+.quick-entry-control {
+  min-width: 0;
+}
+
+/* Converted USD result appears in the entry row only while a value is entered,
+   so an empty field never reserves toolbar space. */
+.quick-entry-conversion {
+  color: var(--color-accent);
+  font-family: var(--ref-font-mono);
+  font-size: var(--ref-text-base);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: var(--ui-control-height);
+  max-width: 8rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Action buttons keep their intrinsic width inside the toolbar actions row. */
+.trades-topbar-actions > .quick-entry-control {
+  flex: 0 0 auto;
+}
+
+/* Quick-entry controls share one control height so a row never looks ragged:
+   the direction toggle drops the generic button padding and the autocomplete
+   group does not add its own box on top of the inner input. */
+.trades-topbar .ui-direction-toggle,
+.trades-topbar .ui-autocomplete-input-group {
+  box-sizing: border-box;
+  height: var(--ui-control-height);
+  min-height: var(--ui-control-height);
+}
+
+.trades-topbar .ui-direction-toggle-option {
+  min-height: 0;
+  padding-block: 0;
+}
+
+.trades-entry-feedback {
+  color: var(--color-text-muted);
+  display: grid;
+  font-size: var(--ref-text-base);
+  gap: var(--ref-space-2);
+  margin: 0;
+}
+
+.trades-entry-feedback .form-help {
+  margin: 0;
+}
+
+.legacy-account-warning {
+  align-items: center;
+  background: var(--color-warning-subtle);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+  border-radius: var(--ref-radius-md);
+  color: var(--color-warning);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ref-space-3);
+  padding: var(--ref-space-3) var(--ref-space-4);
+}
+
+/* The table keeps the remaining workspace height and scrolls locally. */
+.trades-table-area {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: var(--table-viewport-min-height);
+  min-width: 0;
+}
+
+.trades-table-area > .data-table-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.selection-toolbar {
+  align-items: center;
+  background: var(--color-accent-subtle);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 32%, var(--color-border));
+  border-radius: var(--ref-radius-lg);
+  box-shadow: var(--ref-shadow-sm);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ref-space-3);
+  min-height: var(--workspace-toolbar-height);
+  padding: var(--ref-space-3);
+}
+
+.selection-toolbar-label {
+  align-items: center;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  font-size: var(--ref-text-base);
+  font-weight: 600;
+  gap: var(--ref-space-2);
+}
+
+.selection-toolbar-label::before {
+  background: var(--color-accent-fill);
+  border-radius: var(--ref-radius-pill);
+  content: '';
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+.selection-toolbar-actions {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--ref-space-2);
+}
+
+/* Summary keeps three meaning groups plus the reserved settings action. The group
+   tracks are proportional to their card counts (2 + 5 + 2), so every metric card
+   keeps the same width while the groups stay separated by thin rules. */
+.trade-summary {
+  align-items: stretch;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--ref-radius-lg);
+  box-shadow: var(--ref-shadow-sm);
+  display: grid;
+  gap: var(--ref-space-3);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 5fr) minmax(0, 2fr) auto;
+  margin: 0;
+  min-width: 0;
+  padding: var(--ref-space-3) var(--ref-space-4);
+}
+
+.trade-summary-group {
+  align-items: stretch;
+  display: grid;
+  gap: var(--ref-space-3);
+  min-width: 0;
+}
+
+.trade-summary-group + .trade-summary-group,
+.trade-summary-settings {
+  border-inline-start: 1px solid var(--color-border);
+  padding-inline-start: var(--ref-space-4);
+}
+
+.trade-summary-group-financial,
+.trade-summary-group-assets {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.trade-summary-group-performance {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.trade-summary-settings {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+  min-width: var(--ui-control-height);
+}
+
+.trade-summary-item {
+  align-content: center;
+  background: var(--metric-background);
+  border: 1px solid var(--metric-border);
+  border-left-width: 0.1875rem;
+  border-radius: var(--ref-radius-md);
+  display: grid;
+  gap: var(--ref-space-1);
+  min-width: 0;
+  padding: var(--ref-space-2);
+}
+
+/* Icon plus an up-to-two-line localized label. The fixed two-line height keeps
+   the value rows of every card aligned while long names stay readable. */
+.trade-summary-label {
+  align-items: start;
+  color: var(--metric-label-foreground);
+  column-gap: var(--ref-space-1);
+  display: grid;
+  font-size: var(--ref-text-xs);
+  grid-template-columns: auto minmax(0, 1fr);
+  line-height: 1.25;
+  min-height: 2.5em;
+  min-width: 0;
+}
+
+.trade-summary-label-text {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.trade-summary-icon {
+  color: var(--icon-muted-foreground);
+  flex: 0 0 auto;
+}
+
+/* Exact value plus its optional compact visual share one row. */
+.trade-summary-value {
+  align-items: center;
+  display: flex;
+  gap: var(--ref-space-2);
+  min-width: 0;
+}
+
+.trade-summary-item strong {
+  color: var(--color-text-primary);
+  font-family: var(--ref-font-mono);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trade-summary-marker,
+.trade-summary-suffix {
+  color: var(--color-text-muted);
+  font-size: 0.7em;
+  font-weight: 600;
+  margin-inline: 0.15em;
+  vertical-align: 0.1em;
+}
+
+.trade-summary-item-positive {
+  border-left-color: var(--color-positive);
+}
+
+.trade-summary-item-positive strong,
+.trade-result-positive {
+  color: var(--color-positive-strong);
+}
+
+.trade-summary-item-negative {
+  border-left-color: var(--color-negative);
+}
+
+.trade-summary-item-negative strong,
+.trade-result-negative {
+  color: var(--color-negative-strong);
+}
+
+.trade-summary-item-neutral,
+.trade-result-neutral,
+.trade-result-unavailable {
+  color: var(--color-text-secondary);
+}
+
+.trade-summary-item-total {
+  border-left-color: var(--color-accent);
+}
+
+.trade-summary-item-total strong {
+  color: var(--color-accent);
+}
+
+.trade-summary-item-accent {
+  border-left-color: var(--color-accent-fill);
+}
+
+.trade-summary-item-accent strong {
+  color: var(--color-accent);
+}
+
+.trade-result {
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: var(--ref-radius-md);
+  display: inline-flex;
+  font-family: var(--ref-font-mono);
+  font-size: var(--ref-text-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: var(--ref-space-1) var(--ref-space-2);
+}
+
+.trade-result-positive {
+  background: var(--color-positive-subtle);
+}
+.trade-result-negative {
+  background: var(--color-negative-subtle);
+}
+.trade-result-neutral,
+.trade-result-unavailable {
+  background: var(--color-surface-subtle);
+}
+/* Entry type chips reuse the shared palette; direction and cash flow stay distinct. */
+.trade-direction {
+  background: var(--entry-type-subtle);
+  border: 1px solid color-mix(in srgb, var(--entry-type-strong) 32%, transparent);
+  border-radius: var(--ref-radius-md);
+  color: var(--entry-type-strong);
+  display: inline-flex;
+  font-size: var(--ref-text-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: var(--ref-space-1) var(--ref-space-2);
+  text-transform: uppercase;
+}
+
+/* Compact workspace: the assets group takes a full row instead of squeezing the
+   numeric tiles. The toolbar stays on one line while the fields can still fit. */
+@container (max-width: 72rem) {
+  .trade-summary {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 5fr) auto;
+  }
+
+  .trade-summary-group-assets {
+    border-inline-start: 0;
+    border-top: 1px solid var(--color-border);
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 13rem));
+    justify-content: start;
+    padding-inline-start: 0;
+    padding-top: var(--ref-space-3);
+  }
+
+  .trade-summary-settings {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+/* Only when the six fields genuinely cannot fit (below the supported desktop
+   width) the fields wrap on a three-column grid and actions move to their own row. */
+@container (max-width: 56rem) {
+  .trades-topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--ref-space-3);
+  }
+
+  .trades-topbar-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .trades-topbar-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* Narrow prototype: single-column forms, stacked KPI groups and a fluid toolbar.
+   This tier prepares the future mobile shell and is exercised by zoom or devtools. */
+@container (max-width: 45rem) {
+  .trade-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trade-summary-group,
+  .trade-summary-group-assets,
+  .trade-summary-group-performance {
+    border-inline-start: 0;
+    border-top: 1px solid var(--color-border);
+    grid-column: auto;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    padding-inline-start: 0;
+    padding-top: var(--ref-space-3);
+  }
+
+  .trade-summary-group:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .trade-summary-settings {
+    border-inline-start: 0;
+    border-top: 1px solid var(--color-border);
+    grid-column: auto;
+    grid-row: auto;
+    justify-content: flex-end;
+    padding-inline-start: 0;
+    padding-top: var(--ref-space-3);
+  }
+
+  .trades-topbar-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trades-topbar-actions {
+    justify-content: stretch;
+  }
+
+  .trades-topbar-actions > .quick-entry-control {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trades-entry-layer {
+    transition: none;
+  }
+}
