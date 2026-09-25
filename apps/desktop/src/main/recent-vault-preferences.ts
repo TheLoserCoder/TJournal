@@ -12,6 +12,7 @@ interface PreferencesDocument {
   readonly tableLayouts?: ApplicationSettingsDto['tableLayouts'];
   readonly themeMode?: ApplicationSettingsDto['themeMode'];
   readonly tradeSummary?: ApplicationSettingsDto['tradeSummary'];
+  readonly statisticsView?: ApplicationSettingsDto['statisticsView'];
 }
 
 export type ApplicationSettings = ApplicationSettingsDto;
@@ -33,6 +34,10 @@ export class RecentVaultPreferences {
       tradeSummary: {
         ...DEFAULT_APPLICATION_SETTINGS.tradeSummary,
         ...document.tradeSummary,
+      },
+      statisticsView: {
+        ...DEFAULT_APPLICATION_SETTINGS.statisticsView,
+        ...document.statisticsView,
       },
     });
     return parsed.success ? parsed.data : DEFAULT_APPLICATION_SETTINGS;

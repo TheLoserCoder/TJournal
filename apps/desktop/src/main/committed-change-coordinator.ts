@@ -13,7 +13,9 @@ type DatabaseResource =
   | 'cash-movements'
   | 'instruments'
   | 'instrument-profiles'
+  | 'tags'
   | 'trade-preferences'
+  | 'trade-tags'
   | 'trades';
 
 const DATABASE_RESOURCE_TO_PUBLIC_RESOURCE: Readonly<Record<DatabaseResource, DataResource>> = {
@@ -22,7 +24,9 @@ const DATABASE_RESOURCE_TO_PUBLIC_RESOURCE: Readonly<Record<DatabaseResource, Da
   'cash-movements': DATA_RESOURCES.cashMovements,
   instruments: DATA_RESOURCES.instruments,
   'instrument-profiles': DATA_RESOURCES.instrumentProfiles,
+  tags: DATA_RESOURCES.tags,
   'trade-preferences': DATA_RESOURCES.tradePreferences,
+  'trade-tags': DATA_RESOURCES.tradeTags,
   trades: DATA_RESOURCES.trades,
 };
 
@@ -49,7 +53,9 @@ export class CommittedChangeCoordinator {
         DATA_RESOURCES.history,
         DATA_RESOURCES.instrumentProfiles,
         DATA_RESOURCES.instruments,
+        DATA_RESOURCES.tags,
         DATA_RESOURCES.tradePreferences,
+        DATA_RESOURCES.tradeTags,
         DATA_RESOURCES.trades,
       ],
       revisions: this.toPublicRevisions(this.revisions),

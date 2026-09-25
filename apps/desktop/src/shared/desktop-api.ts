@@ -1,8 +1,13 @@
+import type { TagColorId } from '@tjournal/tag';
+
+export type { TagColorId };
+
 export type ThemeMode = 'auto' | 'dark' | 'light';
 export type LanguageMode = 'en' | 'ru' | 'system';
 export const TABLE_IDENTIFIERS = {
   accounts: 'accounts',
   assets: 'assets',
+  tags: 'tags',
   trades: 'trades',
 } as const;
 export type TableIdentifier = (typeof TABLE_IDENTIFIERS)[keyof typeof TABLE_IDENTIFIERS];
@@ -15,11 +20,20 @@ export type TradeResultKind = 'cash' | 'percent' | 'r';
 export type CashMovementKind = 'deposit' | 'withdrawal';
 export type SummaryPeriod =
   'all' | 'current-day' | 'current-month' | 'current-quarter' | 'current-week' | 'current-year';
+export type AnalyticsTimeGrain = 'auto' | 'day' | 'hour' | 'week' | 'month';
+export type AnalyticsEffectiveTimeGrain = Exclude<AnalyticsTimeGrain, 'auto'> | 'year';
+export type AnalyticsBreakdownDimension = 'account' | 'category' | 'instrument';
+export type AnalyticsBreakdownMetric = 'net-result' | 'trade-count' | 'win-rate';
+export type StatisticsChartType = 'bar' | 'line';
+export type StatisticsChartMetric = 'cumulative-net-result' | 'drawdown' | 'period-net-result';
 
 export interface SafeErrorDto {
   readonly code:
+    | 'backup-failed'
+    | 'backup-invalid'
     | 'configuration-invalid'
     | 'storage-integrity-failed'
+    | 'restore-failed'
     | 'validation-invalid'
     | 'unexpected'
     | 'vault-already-initialized'
@@ -48,10 +62,89 @@ export interface VaultDto {
   readonly path: string;
 }
 
+export interface VaultBackupDto {
+  readonly id: string;
+  readonly kind: 'automatic' | 'manual';
+  readonly createdAt: string;
+  readonly sourceVaultId: string;
+  readonly databaseBytes: number;
+}
+
+export interface VaultBackupPageDto {
+  readonly backups: readonly VaultBackupDto[];
+  readonly nextCursor: string | null;
+}
+
+export type JournalPageSortField = 'account' | 'asset' | 'date' | 'result' | 'type';
+export type JournalPageEntryKind = 'deposit' | 'long' | 'short' | 'withdrawal';
+export type JournalPageBoundMode = 'between' | 'equals' | 'greaterThan' | 'lessThan';
+
+export interface JournalPageResultBoundsDto {
+  readonly maximum: string | null;
+  readonly minimum: string | null;
+  readonly mode: JournalPageBoundMode;
+}
+
+export interface JournalPageFiltersDto {
+  readonly accountIds: readonly string[];
+  readonly categories: readonly InstrumentCategory[];
+  readonly closedFromDate: string | null;
+  readonly closedToDate: string | null;
+  readonly entryKinds: readonly JournalPageEntryKind[];
+  readonly includeUntagged: boolean;
+  readonly includeUnassigned: boolean;
+  readonly instrumentIds: readonly string[];
+  readonly occurredFrom: string | null;
+  readonly occurredTo: string | null;
+  readonly resultBounds: JournalPageResultBoundsDto | null;
+  readonly resultUnits: readonly TradeResultKind[];
+  readonly tagIds: readonly string[];
+  readonly textQuery: string | null;
+}
+
+export interface JournalPageRequestDto {
+  readonly cursor: string | null;
+  readonly filters: JournalPageFiltersDto;
+  readonly includeCashMovements: boolean;
+  readonly limit: number;
+  readonly sort: {
+    readonly direction: 'asc' | 'desc';
+    readonly field: JournalPageSortField;
+  };
+}
+
+export type JournalPageTradeDto = Omit<
+  TradeDto,
+  'entryNote' | 'execution' | 'reviewNote' | 'reviewStatus'
+>;
+
+export type JournalPageRowDto =
+  | {
+      readonly id: string;
+      readonly kind: 'trade';
+      readonly occurredAt: string;
+      readonly trade: JournalPageTradeDto;
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'deposit' | 'withdrawal';
+      readonly movement: CashMovementDto;
+      readonly occurredAt: string;
+    };
+
+export interface JournalPageDto {
+  readonly nextCursor: string | null;
+  readonly previousCursor: string | null;
+  readonly rows: readonly JournalPageRowDto[];
+  readonly totalEntryCount: number;
+  readonly unassignedTradeCount: number;
+}
+
 export interface TradeDto {
   readonly account?: AccountAttributionSnapshotDto | null;
   readonly closedAt: string;
   readonly direction: TradeDirection | null;
+  readonly entryNote: string | null;
   readonly execution: TradeExecutionDto | null;
   readonly id: string;
   readonly inputResultKind?: TradeResultKind;
@@ -62,7 +155,32 @@ export interface TradeDto {
   readonly resultKind: TradeResultKind;
   readonly resultSource: 'calculated' | 'manual';
   readonly resultValue: string;
+  readonly reviewNote: string | null;
+  readonly reviewStatus: 'unreviewed' | 'reviewed';
   readonly riskBindingSnapshot: RiskBindingSnapshotDto | null;
+  readonly tagIds: readonly string[];
+}
+
+export interface TagDto {
+  readonly color: TagColorId;
+  readonly createdAt: string;
+  readonly description: string;
+  readonly id: string;
+  readonly name: string;
+  readonly updatedAt: string;
+}
+
+export interface CreateTagDto {
+  readonly color?: TagColorId;
+  readonly description?: string;
+  readonly name: string;
+}
+
+export interface UpdateTagDto {
+  readonly color: TagColorId;
+  readonly description: string;
+  readonly id: string;
+  readonly name: string;
 }
 
 export interface AccountAttributionSnapshotDto {
@@ -99,6 +217,7 @@ export interface AccountInstrumentDefaultsDto {
 export interface CreateAccountDto {
   readonly name: string;
   readonly openingBalanceUsd: string;
+  readonly defaultRiskUsd?: string | null;
   readonly defaults: readonly Omit<AccountInstrumentDefaultsDto, 'accountId' | 'updatedAt'>[];
 }
 
@@ -109,12 +228,16 @@ export interface UpdateAccountDto extends CreateAccountDto {
 export interface CreateTradeDto {
   readonly closedAt: string;
   readonly direction: TradeDirection;
+  readonly entryNote?: string | null;
   readonly execution: TradeExecutionInputDto | null;
   readonly instrumentId: string;
+  readonly reviewNote?: string | null;
+  readonly reviewStatus?: 'unreviewed' | 'reviewed';
   readonly resultKind: TradeResultKind;
   readonly resultValue: string;
   readonly accountId: string;
   readonly riskUsd?: string;
+  readonly tagIds?: readonly string[];
 }
 
 export interface CashMovementDto {
@@ -200,6 +323,19 @@ export interface TradeSummaryFilterDto {
   readonly resultKinds: readonly TradeResultKind[] | null;
   readonly accountIds?: readonly string[] | null;
   readonly includeUnassigned?: boolean;
+  /** Trade-level kinds derived from the entry type filter: trades, deposits or withdrawals. */
+  readonly entryKinds?: readonly SummaryEntryKind[] | null;
+  /** Inclusive bounds on the authoritative USD result. */
+  readonly netResultBounds?: TradeSummaryNumericBoundsDto | null;
+  /** Original quick-entry units (`cash`, `percent`, `r`). */
+  readonly resultUnits?: readonly TradeResultKind[] | null;
+  /** Case-insensitive substring match on the trade identifier. */
+  readonly textQuery?: string | null;
+}
+export type SummaryEntryKind = 'trade' | 'deposit' | 'withdrawal';
+export interface TradeSummaryNumericBoundsDto {
+  readonly maximum: string | null;
+  readonly minimum: string | null;
 }
 export interface TradeSummaryRequestDto {
   readonly filters: TradeSummaryFilterDto | null;
@@ -217,6 +353,87 @@ export interface TradeSummaryDto {
   readonly winningTrades: number | null;
   readonly worstInstrument: string | null;
   readonly accountedBalanceUsd?: string;
+}
+
+export interface AnalyticsReportRequestDto {
+  readonly breakdown: {
+    readonly dimension: AnalyticsBreakdownDimension;
+    readonly limit: number;
+    readonly metric: AnalyticsBreakdownMetric;
+  };
+  readonly filters: {
+    readonly accountIds: readonly string[];
+    readonly categories: readonly InstrumentCategory[];
+    readonly directions: readonly TradeDirection[];
+    readonly includeUnassigned: boolean;
+    readonly instrumentIds: readonly string[];
+  };
+  readonly range: {
+    readonly fromInclusive: string | null;
+    readonly toExclusive: string | null;
+  };
+  readonly timeGrain: AnalyticsTimeGrain;
+}
+
+export interface AnalyticsBreakdownRowDto {
+  readonly averageTradeUsd: string | null;
+  readonly coveredTrades: number;
+  readonly id: string;
+  readonly label: string;
+  readonly losingTrades: number;
+  readonly maxDrawdownUsd: string | null;
+  readonly netResultUsd: string;
+  readonly neutralTrades: number;
+  readonly profitFactor: string | null;
+  readonly totalTrades: number;
+  readonly winRatePercent: string | null;
+  readonly winningTrades: number;
+}
+
+export interface AnalyticsSeriesPointDto {
+  readonly bucketEnd: string;
+  readonly bucketStart: string;
+  readonly coveredTrades: number;
+  readonly cumulativeNetResultUsd: string;
+  readonly drawdownUsd: string;
+  readonly netResultUsd: string;
+}
+
+export interface AnalyticsReportDto {
+  readonly breakdown: {
+    readonly dimension: AnalyticsBreakdownDimension;
+    readonly metric: AnalyticsBreakdownMetric;
+    readonly omittedGroupCount: number;
+    readonly rows: readonly AnalyticsBreakdownRowDto[];
+    readonly totalGroupCount: number;
+  };
+  readonly coverage: {
+    readonly coveredTrades: number;
+    readonly excludedTrades: number;
+    readonly totalTrades: number;
+  };
+  readonly effectiveRange: {
+    readonly fromInclusive: string | null;
+    readonly grain: AnalyticsEffectiveTimeGrain;
+    readonly toExclusive: string | null;
+  };
+  readonly highlights: {
+    readonly bestInstrument: AnalyticsBreakdownRowDto | null;
+    readonly worstInstrument: AnalyticsBreakdownRowDto | null;
+  };
+  readonly kpis: {
+    readonly averageTradeUsd: string | null;
+    readonly grossLossMagnitudeUsd: string | null;
+    readonly grossProfitUsd: string | null;
+    readonly losingTrades: number;
+    readonly maxDrawdownUsd: string | null;
+    readonly netResultUsd: string | null;
+    readonly neutralTrades: number;
+    readonly profitFactor: string | null;
+    readonly winRatePercent: string | null;
+    readonly winningTrades: number;
+  };
+  readonly series: readonly AnalyticsSeriesPointDto[];
 }
 
 export interface InstrumentDto {
@@ -248,6 +465,15 @@ export interface ApplicationSettingsDto {
   readonly tableLayouts: readonly TableLayoutDto[];
   readonly themeMode: ThemeMode;
   readonly tradeSummary: TradeSummaryPreferencesDto;
+  readonly statisticsView: StatisticsViewPreferencesDto;
+}
+
+export interface StatisticsViewPreferencesDto {
+  readonly breakdownDimension: AnalyticsBreakdownDimension;
+  readonly breakdownMetric: AnalyticsBreakdownMetric;
+  readonly chartMetric: StatisticsChartMetric;
+  readonly chartType: StatisticsChartType;
+  readonly timeGrain: AnalyticsTimeGrain;
 }
 
 export interface TableColumnLayoutDto {
@@ -278,8 +504,10 @@ export const DATA_RESOURCES = {
   history: 'history',
   instrumentProfiles: 'instrument-profiles',
   instruments: 'instruments',
+  tags: 'tags',
   tradePreferences: 'trade-preferences',
   trades: 'trades',
+  tradeTags: 'trade-tags',
 } as const;
 export type DataResource = (typeof DATA_RESOURCES)[keyof typeof DATA_RESOURCES];
 
@@ -331,8 +559,16 @@ export interface DesktopApi {
     create(input: CreateTradeDto): Promise<IpcResult<TradeDto>>;
     delete(id: string): Promise<IpcResult<TradeDto>>;
     deleteMany(ids: readonly string[]): Promise<IpcResult<readonly TradeDto[]>>;
-    list(): Promise<IpcResult<readonly TradeDto[]>>;
+    get(id: string): Promise<IpcResult<TradeDto | null>>;
+    page(input: JournalPageRequestDto): Promise<IpcResult<JournalPageDto>>;
     update(input: TradeDto): Promise<IpcResult<TradeDto>>;
+  };
+  readonly tags: {
+    counts(): Promise<IpcResult<Readonly<Record<string, number>>>>;
+    create(input: CreateTagDto): Promise<IpcResult<TagDto>>;
+    deleteMany(ids: readonly string[]): Promise<IpcResult<readonly TagDto[]>>;
+    list(): Promise<IpcResult<readonly TagDto[]>>;
+    update(input: UpdateTagDto): Promise<IpcResult<TagDto>>;
   };
   readonly tradePreferences: {
     get(): Promise<IpcResult<TradePreferencesDto>>;
@@ -345,10 +581,17 @@ export interface DesktopApi {
     ): Promise<IpcResult<InstrumentCalculationProfileDto>>;
   };
   readonly analytics: {
+    report(input: AnalyticsReportRequestDto): Promise<IpcResult<AnalyticsReportDto | null>>;
     summary(input: TradeSummaryRequestDto): Promise<IpcResult<TradeSummaryDto | null>>;
   };
   readonly vault: {
+    backup(): Promise<IpcResult<VaultBackupDto>>;
+    backups(beforeId?: string | null): Promise<IpcResult<VaultBackupPageDto>>;
+    verifyBackup(id: string): Promise<IpcResult<VaultBackupDto>>;
+    restoreBackup(id: string): Promise<IpcResult<VaultDto | null>>;
     create(): Promise<IpcResult<VaultDto | null>>;
     open(): Promise<IpcResult<VaultDto | null>>;
+    revealInFolder(): Promise<IpcResult<VaultDto>>;
+    validate(): Promise<IpcResult<VaultDto>>;
   };
 }

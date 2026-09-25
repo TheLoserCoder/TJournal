@@ -7,9 +7,16 @@ export const DEFAULT_APPLICATION_SETTINGS: ApplicationSettingsDto = {
   tableLayouts: [],
   themeMode: 'auto',
   tradeSummary: { followTableFilters: false, metric: 'cash', period: 'all' },
+  statisticsView: {
+    breakdownDimension: 'instrument',
+    breakdownMetric: 'net-result',
+    chartMetric: 'cumulative-net-result',
+    chartType: 'line',
+    timeGrain: 'auto',
+  },
 };
 
-const tableIdentifierSchema = z.enum(['trades', 'accounts', 'assets']);
+const tableIdentifierSchema = z.enum(['trades', 'accounts', 'assets', 'tags']);
 const tableDisplayModeSchema = z.enum(['advanced', 'compact']);
 const tableColumnLayoutSchema = z.object({
   id: z.string().min(1),
@@ -39,5 +46,12 @@ export const applicationSettingsSchema = z.object({
       'current-week',
       'current-year',
     ]),
+  }),
+  statisticsView: z.object({
+    breakdownDimension: z.enum(['account', 'category', 'instrument']),
+    breakdownMetric: z.enum(['net-result', 'trade-count', 'win-rate']),
+    chartMetric: z.enum(['cumulative-net-result', 'drawdown', 'period-net-result']),
+    chartType: z.enum(['bar', 'line']),
+    timeGrain: z.enum(['auto', 'day', 'hour', 'week', 'month']),
   }),
 });

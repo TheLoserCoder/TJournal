@@ -1,10 +1,19 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
+import { toSafeAppError } from '@tjournal/platform-errors';
 
 import { createDesktopContainer } from './desktop-container';
 import type { DesktopDependencies } from './desktop-container';
+import { getE2EEnvironmentValue } from './e2e-environment';
 import { registerIpcHandlers } from './register-ipc-handlers';
 import { createWindowOptions } from './window-options';
+
+const applyE2EEnvironment = (): void => {
+  const userDataDirectory = getE2EEnvironmentValue('TJOURNAL_E2E_USER_DATA_DIR');
+  if (userDataDirectory !== null) app.setPath('userData', userDataDirectory);
+};
+
+applyE2EEnvironment();
 
 const createMainWindow = (): BrowserWindow => {
   const preloadPath = join(__dirname, '../preload/index.js');
@@ -23,7 +32,7 @@ const createMainWindow = (): BrowserWindow => {
 
 let desktopDependencies: DesktopDependencies | null = null;
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   const container = createDesktopContainer(app);
   const dependencies = container.cradle;
   desktopDependencies = dependencies;
@@ -33,12 +42,12 @@ app.whenReady().then(() => {
 
   if (lastVaultPath !== null) {
     try {
-      dependencies.openVaultUseCase.execute(lastVaultPath);
+      await dependencies.openVaultUseCase.execute(lastVaultPath);
       dependencies.checkVaultIntegrityUseCase.execute();
       dependencies.committedChangeCoordinator.resetForVault();
       dependencies.logger.info('vault.restored');
-    } catch {
-      dependencies.logger.warn('vault.restore-failed', { code: 'vault-not-accessible' });
+    } catch (error) {
+      dependencies.logger.warn('vault.restore-failed', { code: toSafeAppError(error).code });
     }
   }
 

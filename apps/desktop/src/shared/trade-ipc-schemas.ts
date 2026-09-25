@@ -1,12 +1,29 @@
 import { z } from 'zod';
+import {
+  isTradeNoteWithinLimit,
+  normalizeTradeNotes,
+  TRADE_REVIEW_STATUSES,
+  TRADE_VALIDATION_CODES,
+} from '@tjournal/trade';
+
+import { tagIdsSchema } from './tag-ipc-schemas';
 
 const decimalSchema = z.string().trim().min(1);
 const nonNegativeDecimalSchema = z
   .string()
   .trim()
   .regex(/^\d+(?:\.\d+)?$/);
+const isZeroDecimalString = (value: string): boolean => /^0+(?:\.0+)?$/.test(value);
 const directionSchema = z.enum(['long', 'short']);
 const resultKindSchema = z.enum(['cash', 'percent', 'r']);
+const reviewStatusSchema = z.enum([
+  TRADE_REVIEW_STATUSES.unreviewed,
+  TRADE_REVIEW_STATUSES.reviewed,
+]);
+const tradeNoteSchema = z.string().refine((note) => {
+  const normalized = normalizeTradeNotes({ entryNote: note }).entryNote;
+  return normalized === null || isTradeNoteWithinLimit(normalized);
+}, TRADE_VALIDATION_CODES.noteTooLong);
 export const instrumentIdSchema = z.string().min(1);
 export const accountIdSchema = z.string().min(1);
 export const tradeIdSchema = z.string().min(1);
@@ -14,17 +31,20 @@ export const tradeIdsSchema = z
   .array(tradeIdSchema)
   .min(1)
   .refine((ids) => new Set(ids).size === ids.length);
+const calculationProfileValuesSchema = z
+  .object({ tickSize: nonNegativeDecimalSchema, tickValueUsdPerLot: nonNegativeDecimalSchema })
+  .refine(
+    ({ tickSize, tickValueUsdPerLot }) =>
+      !isZeroDecimalString(tickSize) && !isZeroDecimalString(tickValueUsdPerLot),
+    {
+      path: ['calculationProfile'],
+      message: 'Tick values must be positive.',
+    },
+  );
 export const createInstrumentSchema = z.object({
   category: z.enum(['crypto', 'energy', 'equity', 'etf', 'forex', 'index', 'metal']),
   symbol: z.string().trim().min(1),
-  calculationProfile: z
-    .object({ tickSize: nonNegativeDecimalSchema, tickValueUsdPerLot: nonNegativeDecimalSchema })
-    .refine(({ tickSize, tickValueUsdPerLot }) => tickSize !== '0' && tickValueUsdPerLot !== '0', {
-      path: ['calculationProfile'],
-      message: 'Tick values must be positive.',
-    })
-    .nullable()
-    .optional(),
+  calculationProfile: calculationProfileValuesSchema.nullable().optional(),
 });
 export const updateInstrumentSchema = createInstrumentSchema.extend({ id: instrumentIdSchema });
 const accountDefaultSchema = z.object({
@@ -36,6 +56,7 @@ export const createAccountSchema = z
   .object({
     name: z.string().trim().min(1),
     openingBalanceUsd: nonNegativeDecimalSchema,
+    defaultRiskUsd: decimalSchema.nullable().optional(),
     defaults: z.array(accountDefaultSchema),
   })
   .refine(
@@ -68,12 +89,16 @@ const executionSchema = executionInputSchema.extend({
 export const createTradeSchema = z.object({
   closedAt: z.string().datetime(),
   direction: directionSchema,
+  entryNote: tradeNoteSchema.nullable().optional(),
   execution: executionInputSchema.nullable(),
   instrumentId: instrumentIdSchema,
+  reviewNote: tradeNoteSchema.nullable().optional(),
+  reviewStatus: reviewStatusSchema.optional(),
   resultKind: resultKindSchema,
   resultValue: decimalSchema,
   accountId: accountIdSchema,
   riskUsd: decimalSchema.optional(),
+  tagIds: tagIdsSchema.optional(),
 });
 
 export const cashMovementSchema = z.object({
@@ -91,13 +116,17 @@ export const updateTradeSchema = z.object({
   accountId: accountIdSchema.optional(),
   direction: directionSchema,
   execution: executionSchema.nullable(),
+  entryNote: tradeNoteSchema.nullable(),
   id: z.string().min(1),
   instrumentSymbol: z.string().min(1),
   resultSource: z.enum(['calculated', 'manual']),
+  reviewNote: tradeNoteSchema.nullable(),
+  reviewStatus: reviewStatusSchema,
   riskBindingSnapshot: riskBindingSchema.extend({ source: z.literal('vault-default') }).nullable(),
   inputResultKind: resultKindSchema.optional(),
   inputResultValue: decimalSchema.optional(),
   netResultUsd: decimalSchema.optional(),
+  tagIds: tagIdsSchema,
   account: z
     .object({
       accountId: accountIdSchema,
@@ -132,10 +161,8 @@ export const updateTradePreferencesSchema = z.object({
   preferences: tradePreferencesSchema,
   rebindHistorical: z.boolean(),
 });
-export const instrumentProfileSchema = z.object({
+export const instrumentProfileSchema = calculationProfileValuesSchema.extend({
   instrumentId: z.string().min(1),
-  tickSize: decimalSchema,
-  tickValueUsdPerLot: decimalSchema,
   updatedAt: z.string().datetime(),
 });
 export const summaryPreferencesSchema = z.object({
@@ -147,6 +174,16 @@ export const summaryPreferencesSchema = z.object({
       resultKinds: z.array(resultKindSchema).nullable(),
       accountIds: z.array(accountIdSchema).nullable().optional(),
       includeUnassigned: z.boolean().optional(),
+      entryKinds: z
+        .array(z.enum(['trade', 'deposit', 'withdrawal']))
+        .nullable()
+        .optional(),
+      netResultBounds: z
+        .object({ maximum: decimalSchema.nullable(), minimum: decimalSchema.nullable() })
+        .nullable()
+        .optional(),
+      resultUnits: z.array(resultKindSchema).nullable().optional(),
+      textQuery: z.string().nullable().optional(),
     })
     .nullable(),
   metric: resultKindSchema,

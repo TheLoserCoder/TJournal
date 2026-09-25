@@ -16,6 +16,7 @@
     { "path": "../../modules/instrument" },
     { "path": "../../modules/analytics" },
     { "path": "../../modules/journal" },
+    { "path": "../../modules/tag" },
     { "path": "../../modules/trade" },
     { "path": "../../platform/configuration" },
     { "path": "../../platform/database" },

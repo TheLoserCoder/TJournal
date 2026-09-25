@@ -14,4 +14,11 @@ describe('createWindowOptions', () => {
       sandbox: true,
     });
   });
+
+  it('keeps the documented desktop minimum window width', () => {
+    const options = createWindowOptions('test-preload.js');
+
+    expect(options.minWidth).toBe(960);
+    expect(options.minHeight).toBe(640);
+  });
 });

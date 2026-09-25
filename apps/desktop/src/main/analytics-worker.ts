@@ -1,10 +1,14 @@
-import { calculateTradeSummary } from '@tjournal/analytics';
-import { SqliteTradeStore, SqliteVaultDatabase } from '@tjournal/platform-database';
+import { calculateTradeSummary, GetAnalyticsReportUseCase } from '@tjournal/analytics';
+import {
+  SqliteAnalyticsFactSource,
+  SqliteTradeStore,
+  SqliteVaultDatabase,
+} from '@tjournal/platform-database';
 import { DATA_RESOURCES, type DataResource } from '../shared/desktop-api';
 import {
-  parseTradeSummaryJob,
-  type TradeSummaryJob,
-  type TradeSummaryJobResult,
+  parseAnalyticsJob,
+  type AnalyticsJob,
+  type AnalyticsJobResult,
 } from './analytics-worker-contract';
 
 const toPublicRevisions = (
@@ -18,14 +22,27 @@ const toPublicRevisions = (
   [DATA_RESOURCES.trades]: revisions.trades ?? 0,
 });
 
-const run = (rawJob: TradeSummaryJob): TradeSummaryJobResult => {
-  const job = parseTradeSummaryJob(rawJob);
+const run = (rawJob: AnalyticsJob): AnalyticsJobResult => {
+  const job = parseAnalyticsJob(rawJob);
   const startedAt = Date.now();
   const database = new SqliteVaultDatabase();
   try {
     database.openReadOnly(job.databasePath);
     const tradeStore = new SqliteTradeStore(database);
     const preferences = tradeStore.getTradePreferences();
+    if (job.kind === 'report') {
+      const report = new GetAnalyticsReportUseCase(new SqliteAnalyticsFactSource(database)).execute(
+        { ...job.query, neutralRange: preferences.neutralRanges.cash },
+      );
+      return {
+        durationMs: Date.now() - startedAt,
+        kind: 'report',
+        report,
+        requestId: job.requestId,
+        revisions: toPublicRevisions(database.getDataRevisions()),
+        vaultGeneration: job.vaultGeneration,
+      };
+    }
     const summary = calculateTradeSummary(tradeStore.listTrades(), {
       filters: job.query.filters,
       metric: job.query.metric,
@@ -36,6 +53,7 @@ const run = (rawJob: TradeSummaryJob): TradeSummaryJobResult => {
     });
     return {
       durationMs: Date.now() - startedAt,
+      kind: 'summary',
       requestId: job.requestId,
       revisions: toPublicRevisions(database.getDataRevisions()),
       summary,

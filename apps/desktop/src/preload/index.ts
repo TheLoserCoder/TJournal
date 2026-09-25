@@ -15,6 +15,7 @@ const desktopApi: DesktopApi = {
     },
   },
   analytics: {
+    report: (input) => ipcRenderer.invoke(IPC_CHANNELS.analyticsReport, input),
     summary: (input) => ipcRenderer.invoke(IPC_CHANNELS.analyticsSummary, input),
   },
   diagnostics: {
@@ -54,11 +55,19 @@ const desktopApi: DesktopApi = {
     get: () => ipcRenderer.invoke(IPC_CHANNELS.settingsGet),
     update: (input) => ipcRenderer.invoke(IPC_CHANNELS.settingsUpdate, input),
   },
+  tags: {
+    counts: () => ipcRenderer.invoke(IPC_CHANNELS.tagsCounts),
+    create: (input) => ipcRenderer.invoke(IPC_CHANNELS.tagsCreate, input),
+    deleteMany: (ids) => ipcRenderer.invoke(IPC_CHANNELS.tagsDeleteMany, ids),
+    list: () => ipcRenderer.invoke(IPC_CHANNELS.tagsList),
+    update: (input) => ipcRenderer.invoke(IPC_CHANNELS.tagsUpdate, input),
+  },
   trades: {
     create: (input) => ipcRenderer.invoke(IPC_CHANNELS.tradesCreate, input),
     delete: (id) => ipcRenderer.invoke(IPC_CHANNELS.tradesDelete, id),
     deleteMany: (ids) => ipcRenderer.invoke(IPC_CHANNELS.tradesDeleteMany, ids),
-    list: () => ipcRenderer.invoke(IPC_CHANNELS.tradesList),
+    get: (id) => ipcRenderer.invoke(IPC_CHANNELS.tradesGet, id),
+    page: (input) => ipcRenderer.invoke(IPC_CHANNELS.tradesPage, input),
     update: (input) => ipcRenderer.invoke(IPC_CHANNELS.tradesUpdate, input),
   },
   tradePreferences: {
@@ -66,8 +75,14 @@ const desktopApi: DesktopApi = {
     update: (input) => ipcRenderer.invoke(IPC_CHANNELS.tradePreferencesUpdate, input),
   },
   vault: {
+    backup: () => ipcRenderer.invoke(IPC_CHANNELS.vaultBackup),
+    backups: (beforeId) => ipcRenderer.invoke(IPC_CHANNELS.vaultBackups, beforeId),
+    verifyBackup: (id) => ipcRenderer.invoke(IPC_CHANNELS.vaultBackupVerify, id),
+    restoreBackup: (id) => ipcRenderer.invoke(IPC_CHANNELS.vaultBackupRestore, id),
     create: () => ipcRenderer.invoke(IPC_CHANNELS.vaultCreate),
     open: () => ipcRenderer.invoke(IPC_CHANNELS.vaultOpen),
+    revealInFolder: () => ipcRenderer.invoke(IPC_CHANNELS.vaultRevealInFolder),
+    validate: () => ipcRenderer.invoke(IPC_CHANNELS.vaultValidate),
   },
 };
 
