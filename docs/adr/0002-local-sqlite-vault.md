@@ -10,9 +10,9 @@ The desktop journal must work without a server, keep attachments next to the use
 
 ## Decision
 
-Each journal is one user-selected vault folder. Its marker, SQLite file, attachments and backups stay together. The main process owns filesystem access and SQLite. The journal module exposes vault/instrument `JournalStorage`; the trade module owns `TradeStore`. Their domains have no Electron, SQLite, Drizzle or filesystem imports.
+Each journal is one user-selected vault folder. Its marker, SQLite file, attachments and backups stay together. The main process owns filesystem access and SQLite. The journal module exposes the vault lifecycle through `JournalStorage`; the instrument module owns the instrument catalog and its calculation profiles, and the trade module owns `TradeStore`. Their domains have no Electron, SQLite, Drizzle or filesystem imports.
 
-`node:sqlite` provides the embedded database. Drizzle is restricted to the database adapter. Migrations execute inside an SQLite transaction and are recorded in `tjournal_migrations`.
+`node:sqlite` provides the embedded database. Persistence uses parameterized SQL in the `platform/database` adapters without an ORM. Migrations execute inside an SQLite transaction and are recorded in `tjournal_migrations`.
 
 ## Consequences
 

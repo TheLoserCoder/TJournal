@@ -9,13 +9,24 @@
 
 ## Skills
 
-Load and apply these skills through the `skill` tool during development:
+Load and apply skills through the `skill` tool during development. Select only the skills relevant to the task; do not apply all of them mechanically.
+
+Always relevant:
 
 - `clean-code` — when writing, refactoring, or reviewing code quality.
 - `clean-architecture` — when designing or reviewing layers, module boundaries, ports, and dependency direction.
 - `web-design-guidelines` — when building or reviewing renderer UI.
 
-The skills are guidance. This constitution, the ADRs, and the architecture documents take precedence whenever they conflict.
+Task-specific:
+
+- Architecture or performance overhaul of an existing area — `architecture-optimization`: measure before optimizing, pin behaviour before restructuring, keep an optimization ledger.
+- React components in general — `vercel-react-best-practices`, `vercel-composition-patterns`; add `react-component-performance` when profiling render cost or re-render thrash.
+- Measured performance work across frontend, backend, or queries — `performance-optimization`.
+- Instrumentation, logging, metrics, tracing, alerting — `observability-and-instrumentation`: adapt to the existing `platform/observability` Logger port and JSONL sink; do not add OpenTelemetry, Prometheus, or Redis without an ADR.
+- Schema, indexing, migrations, query plans — `database-design`, `sql-optimization-patterns`: adapt examples to `node:sqlite` + Drizzle. PostgreSQL-only features (`pg_stat_statements`, `GIN`/`BRIN`, `CREATE INDEX CONCURRENTLY`, partitioning) are not available.
+- Product/user measurement design (event taxonomy, KPI hierarchy) — `analytics-strategy`: this is not the `modules/analytics` trade-statistics domain; use it only when planning telemetry about app usage.
+
+The skills are guidance. This constitution, the ADRs, and the architecture documents take precedence whenever they conflict. Skill examples target Node/Next.js/PostgreSQL; translate them to this repository's Electron, React 19, Vite, `node:sqlite`, Drizzle, and Decimal stack, and never copy them verbatim.
 
 ## Model roles and handoff
 
@@ -79,6 +90,13 @@ Do not automatically accept a request that duplicates behaviour, breaks an invar
 - Finance calculations have one source of truth and tests. Do not use JavaScript floating-point arithmetic for monetary results.
 - Do not swallow errors. Production code must use the Logger port, not `console.log`.
 - Comments explain why, not what. TODOs require a task reference.
+
+## Performance and large data
+
+- Profile or identify the actual bottleneck before optimizing. Keep only changes that beat a recorded baseline; revert neutral ones.
+- Never load an unbounded dataset into the client or memory. Use keyset pagination over deep offset, aggregate at the data layer, batch work, and virtualize long renderer lists.
+- Prefer the simplest fix first — algorithm, query plan, index, batching — before adding a cache or new infrastructure. Do not introduce Redis, queues, microservices, or other infrastructure without a concrete measured need and an ADR.
+- React changes must avoid unnecessary re-renders, oversized components, and global state without need, and must keep heavy synchronous work off the main thread.
 
 ## Testing and documentation
 

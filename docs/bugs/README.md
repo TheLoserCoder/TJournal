@@ -42,6 +42,46 @@
 - Status: Fixed in FND-014 renderer pass. Filter state теперь задаётся явно через `setActiveFilter`, overlay primitives используют общую exit policy, а control focus оформлен через `:focus-visible`.
 - Regression: `apps/desktop/src/renderer/App.test.tsx` проверяет open → close → open для date filter; полный Vitest suite, typecheck и production build проходят. Ручная проверка в видимом Electron окне остаётся обязательной.
 
+## UI-009 — Список активов в фильтре выходил за пределы экрана
+
+- Серьёзность: Medium
+- Окружение: Electron desktop, фильтр колонки «Актив» в таблице сделок, длинный список инструментов.
+- Воспроизведение: открыть панель фильтра активов при большом каталоге инструментов или у нижнего края окна.
+- Actual: панель фильтра использовала высоту содержимого без ограничения, поэтому список мог выходить за пределы viewport и обрезался окном.
+- Expected: панель и выпадающие списки не выходят за экран, а длинный список прокручивается внутри панели.
+- Status: Fixed in FND-015. `Select`, `Combobox` и панели фильтров ограничены доступной высотой Radix-поппера (`--radix-popper-available-height`, `--radix-select-content-available-height`, `--available-height`) с внутренней прокруткой и `overscroll-behavior: contain`.
+- Regression: `styles/design-system.test.ts` проверяет наличие ограничений высоты и прокрутки; панель MultiSelect прокручивается внутри `.ui-option-list`.
+
+## UI-007 — Ввод в виджете выбора актива возвращался к прежнему значению
+
+- Серьёзность: Medium
+- Окружение: Electron desktop, диалог «Детали сделки» и quick-entry, поле «Актив».
+- Воспроизведение: открыть детали сделки, кликнуть в поле актива и начать вводить другой символ.
+- Actual: `Combobox` передавал в `value` выбранный символ и вызывал `onChange` на каждый ввод. Родитель принимал значение только при точном совпадении с существующим инструментом, поэтому неполный запрос отклонялся, а контролируемое значение возвращало прежний текст — ввод выглядел нерабочим.
+- Expected: набранный текст остаётся в поле, список фильтруется, а сохранённый символ меняется только при выборе подходящего инструмента.
+- Status: Fixed. `Combobox` держит внутренний текст ввода и синхронизирует его только при внешнем изменении `value`; выбор опции по-прежнему коммитит символ.
+- Regression: `components/ui/combobox-typing.test.tsx` проверяет частичный ввод при отклоняющем родителе, ввод внутри dialog и подстановку выбранной опции.
+
+## UI-008 — Блок «Выходы» читался плохо, а единица ручного результата была лишней
+
+- Серьёзность: Low
+- Окружение: Electron desktop, диалог «Детали сделки», включённое исполнение.
+- Воспроизведение: раскрыть «Исполнение», добавить выход и заполнить цену, объём и ручной результат.
+- Actual: поля выхода шли без общих заголовков, поэтому колонки не читались; селектор единицы ручного результата (USD/%) визуально конкурировал с полем и не влиял на расчёт; подпись «Объём» дублировалась.
+- Expected: выходы выглядят как мини-таблица с заголовками колонок, единица объёма выбирается один раз в заголовке блока, ручной результат — одно поле.
+- Status: Fixed. `trade-exit-editor` использует общий шаблон колонок для заголовка и строк, глобальный селектор объёма перенесён в заголовок «Выходы», селектор единицы ручного результата удалён (домен сохраняет `reportedResultKind`).
+- Regression: `pnpm typecheck`, рендер-тесты и измерение сетки выходов в Electron на собранном CSS.
+
+## UI-006 — Адаптивная разметка Trades скрывала таблицу и тулбар
+
+- Серьёзность: High
+- Окружение: Electron desktop, окно 1280×800 (значение по умолчанию) и уже, Light/Dark.
+- Воспроизведение: открыть журнал сделок и уменьшить ширину окна; переключить таблицу в Compact/Advanced и раскрыть фильтр у правой границы; выделить строки.
+- Actual: `.trades-entry-bar` сохранял фиксированную высоту `4.25rem`, а `.trades-topbar` переносился на вторую строку, которая накладывалась на таблицу; скрытая часть колонок не получала горизонтальную прокрутку, потому что ширина `<table>` не была связана с `table.getTotalSize()`; статистика перестраивалась по viewport-breakpoint `960px`, хотя рабочая область уже окна из-за sidebar и внутренних отступов; часть правил Trades и DataTable дублировалась между `styles.css` и `design-system.css` и перекрывала друг друга.
+- Expected: тулбар не выходит за границы поверхности, последняя колонка доступна через локальную горизонтальную прокрутку, KPI-группы переносятся целиком, выбор строк не сдвигает таблицу, статистика не съезжает на минимально допустимой ширине окна.
+- Status: Fixed in the FND-014 responsive pass. `.page-content` стал контейнером адаптации (`container-type: inline-size`), Trades перешли на container queries `72rem`/`56rem`/`45rem`; quick-entry и selection toolbar занимают одну grid-область и деактивируются через `inert`/`aria-hidden`; DataTable получает ширину из `table.getTotalSize()`, получил фокусируемый scroll-регион и tokenized scrollbar; стили разделены между `styles/data-table.css` и `features/journal/trades-page.css`, а legacy-дубликаты удалены. Отдельно выровнена высота `DirectionToggle` и autocomplete по общему `--ui-control-height`, а тулбар на широкой рабочей области снова занимает одну компактную строку.
+- Regression: `components/data-table.test.tsx` проверяет ширину таблицы и scroll-регион, `features/journal/trades-page-view.test.tsx` — двухслойный тулбар, `styles/design-system.test.ts` — владельцев CSS и container queries, `main/window-options.test.ts` фиксирует минимальный размер окна `960×640`. Ручной Electron smoke на 1280×800, 1100×800 и 960×640 остаётся обязательным.
+
 ## ANA-001 — Отрицательная сделка не обновляет худший актив
 
 - Серьёзность: High
@@ -61,3 +101,223 @@
 - Expected: триггер валидирует именно вставляемую или обновляемую строку, а любая ошибка операции сохраняет в локальный лог безопасный код, диагностическое описание и пути полей валидации.
 - Status: Fixed. Миграция теперь пересоздаёт оба триггера с `NEW.` при каждом открытии vault, поэтому уже существующие vault исправляются без потери данных.
 - Regression: `platform/database/src/sqlite-journal-storage.test.ts` проверяет создание сделки со счётом, USD-снимок и обновление производного баланса.
+
+## UI-005 — Рабочее место открывалось без vault, а онбординг счёта можно было обойти
+
+- Серьёзность: High
+- Окружение: Electron desktop, первый запуск без восстановленного `lastVaultPath`.
+- Воспроизведение: запустить приложение, дождаться диалога счёта, заполнить имя и нажать «Создать счёт».
+- Actual: основной интерфейс открывался без vault; диалог счёта можно было закрыть (крестик, Escape, «Продолжить без записей»); создание счёта падало с `configuration-invalid` («Некорректная конфигурация»), потому что `SqliteAccountStore.createAccount` маскировал `vault-not-accessible` как «Account already exists or is invalid».
+- Expected: до создания или открытия vault основной интерфейс не показывается; сначала появляется блокирующий диалог vault; диалог счёта нельзя закрыть, пока не создан хотя бы один активный счёт; ошибки vault показываются явно.
+- Status: Fixed. `App.tsx` показывает `VaultOnboardingView`, пока vault не разрешён и не открыт; `components/ui/dialog.tsx` получил режим `dismissible={false}`; диалог счёта обязателен при `accountsLoaded` без активного счёта; `createAccount` сохраняет код `AppError` вместо маскировки.
+- Regression: `apps/desktop/src/renderer/App.test.tsx` проверяет блокировку рабочего места без vault и недисмиссибл-диалог счёта; `platform/database/src/sqlite-journal-storage.test.ts` проверяет, что создание счёта без открытого vault возвращает `vault-not-accessible`.
+
+## UI-010 — График статистики за день показывал одну точку, а подсказка сливалась с фоном
+
+- Серьёзность: Low
+- Окружение: Electron desktop, страница «Статистика», Light/Dark.
+- Воспроизведение: выбрать период «День» (или диапазон в пределах суток) и открыть карточку «Результативность»; навести курсор на столбец; сравнить высоту селекта периода и кнопки сброса с кнопками фильтров.
+- Actual: за день строилась одна дневная точка; при коротком ряде столбцы растягивались на всю ширину; значение в tooltip использовало цвет серии на светлом фоне Recharts и было нечитаемым в тёмной теме; селект периода и кнопка сброса были выше мультиселектов, а кнопка сброса показывалась всегда.
+- Expected: детализация за день — по часам и со всеми 24 часами, включая часы без сделок; столбцы ограничены по толщине; tooltip использует семантические токены темы; контролы панели фильтров одной высоты; кнопка сброса видна только при активном фильтре.
+- Status: Fixed. Добавлена детализация `hour` (режим `auto` выбирает её для диапазона до двух суток), предзаполнение всех buckets ограниченного диапазона (день показывает 24 часа), `maxBarSize` у обеих диаграмм, themed tooltip через `components/charts/chart-tooltip-styles.ts`, общий токен `--ui-control-height-compact` для панели фильтров и `hasActiveFilters` в презентере.
+- Regression: `modules/analytics/src/domain/analytics-time-buckets.test.ts` проверяет часовые бакеты, предзаполнение дня и укрупнение, `get-analytics-report-use-case.test.ts` — непрерывную часовую ось, `use-statistics-presenter.test.ts` — видимость сброса; полный Vitest suite, typecheck, lint, architecture и format check проходят. Визуальный smoke в Electron остаётся ручным.
+
+## UI-011 — 1R в настройках таблицы сбрасывался, а иконки настроек расходились
+
+- Серьёзность: Low
+- Окружение: Electron desktop, страница сделок, настройки вида таблицы и карточка быстрой статистики; sidebar.
+- Воспроизведение: задать 1R в настройках вида таблицы, применить, перезапустить приложение или переключить счёт; сравнить иконку настроек в навигации и в быстрой статистике; посмотреть на расположение Undo/Redo и названия приложения.
+- Actual: значение 1R из настроек вида таблицы жило только в session-состоянии и сохранялось на счёте лишь при создании R-сделки, поэтому после перезапуска или смены счёта обнулялось; быстрая статистика использовала `Settings2`, а остальные места — `Settings`; кнопки Undo/Redo стояли отдельной строкой под названием приложения.
+- Expected: 1R из настроек таблицы запоминается на счёте и не сбрасывается; иконка настроек везде одинаковая; Undo/Redo стоят в одной строке с названием приложения.
+- Status: Fixed. `applyTableLayout` через `account-risk-update.ts` сохраняет 1R в `defaultRiskUsd` счёта (`updateAccount`, с сохранением настроек активов и поддержкой undo); быстрая статистика использует `Settings`; sidebar получил `.sidebar-header` с брендом и историей в одной строке (компактный `TJ` на узкой ширине).
+- Regression: `account-risk-update.test.ts` проверяет сборку обновления и пропуск пустого/неизменённого значения, `trade-ipc-schemas.test.ts` — приём `defaultRiskUsd` в IPC-схеме; полный Vitest suite, typecheck, lint, architecture, format check и build проходят. Визуальный smoke в Electron остаётся ручным.
+
+## UI-013 — Страница статистики съезжала вниз, а селект периода был выше фильтров
+
+- Серьёзность: Medium
+- Окружение: Electron desktop, страница «Статистика» без сделок и с небольшим отчётом, Light/Dark.
+- Воспроизведение: открыть «Статистику» при пустом отчёте; сравнить высоту селекта периода «Всё время» с мультиселектами «Счета/Активы/Категории/Направления»; посмотреть на отступы внутри островка фильтров.
+- Actual: `.statistics-page` был grid без `align-content: start`, но с `flex: 1 1 auto` от `.page-content > section`. Свободная высота распределялась между строками грида: заголовок «Статистика» уезжал вниз (`align-items: end`), островок фильтров растягивался на сотни пикселей, а пустое состояние уходило к низу экрана. Селект периода использовал `--ui-control-height`, потому что правило `.statistics-filter-bar .ui-select-trigger` жило в `@layer components` и проигрывало unlayered `.ui-select-trigger` из `styles/design-system.css`; мультиселекты используют компактный `.ui-filter-trigger` и были ниже на 0.25rem.
+- Expected: заголовок страницы прижат к верху, строки грида не растягиваются, островок фильтров компактный, а селект периода, мультиселекты и кнопка сброса одной высоты (`--ui-control-height-compact`).
+- Status: Fixed. `.statistics-page` получил `align-content: start` (как `trades-workspace`, `entities-workspace`, `settings-page`); селект и кнопка сброса используют primitive-модификатор `ui-control-compact` из `styles/design-system.css` (unlayered, поэтому выигрывает у базового `.ui-select-trigger`), feature-CSS больше не переопределяет высоту примитива; паддинг островка вынесен в токен `--statistics-filter-bar-padding` и приведён к компактному интервалу тулбара.
+- Regression: `features/statistics/statistics-filter-bar-view.test.tsx` проверяет классы `ui-control-compact` у селекта периода и кнопки сброса, `styles/design-system.test.ts` фиксирует `align-content: start` у страницы, модификатор в `design-system.css` и отсутствие мёртвого переопределения в feature-CSS.
+
+## DB-002 — Undo/Redo восстанавливал команды другого vault
+
+- Серьёзность: High
+- Окружение: Electron desktop, смена vault через онбординг или настройки.
+- Воспроизведение: создать сделку в vault A, открыть vault B, нажать Undo (Ctrl+Z) или Redo.
+- Actual: `UndoRedoHistory` не очищался при успешной активации vault, поэтому команда старого vault могла выполниться над новой базой.
+- Expected: успешное создание или открытие vault начинает новую сессию истории; отменённый или отклонённый кандидат не затрагивает текущую историю.
+- Status: Fixed. `UndoRedoHistory.reset()` очищает оба стека, а `VaultSessionCoordinator` выполняет активацию vault как одну операцию: проверка кандидата, сброс ревизий, сброс истории и запоминание пути.
+- Regression: `apps/desktop/src/main/vault-session-coordinator.test.ts`, `apps/desktop/src/main/history/undo-redo-history.test.ts`.
+
+## DB-003 — Сделка сохранялась до записи 1R счёта
+
+- Серьёзность: High
+- Окружение: Electron desktop, R-сделка, R-правка или архивный счёт.
+- Воспроизведение: изменить сделку так, что вместе с ней обновляется `defaultRiskUsd` счёта, при ошибке второй записи (например, счёт заархивирован).
+- Actual: сделка записывалась в отдельной транзакции; ошибка записи риска возвращала failed IPC, но сделка оставалась изменённой, а команда не попадала в Undo.
+- Expected: сделка и запомненный 1R счёта коммитятся или откатываются вместе.
+- Status: Fixed. Порт `TradeUnitOfWork` и адаптер `SqliteTradeUnitOfWork`; `CreateTradeUseCase` и `UpdateTradeUseCase` выполняют обе записи в одной транзакции, вложенные транзакции используют savepoints.
+- Regression: `platform/database/src/sqlite-trade-unit-of-work.test.ts`, `platform/database/src/sqlite-vault-database.test.ts`.
+
+## DB-004 — Неудачная миграция кандидата заменяла активный vault
+
+- Серьёзность: High
+- Окружение: Electron desktop, открытие vault с повреждённой базой.
+- Воспроизведение: открыть vault, затем выбрать папку с корректным маркером, но нечитаемым `journal.sqlite`.
+- Actual: `SqliteJournalStorage.openVault` закрывал активную сессию до миграции кандидата, поэтому ошибка оставляла приложение без активного vault.
+- Expected: ошибка кандидата не меняет активный vault и его сессию.
+- Status: Fixed. Кандидат открывается и мигрирует на отдельном соединении; активная сессия активируется только после успешной проверки.
+- Regression: `platform/database/src/sqlite-vault-activation.test.ts`.
+
+## DB-005 — Правка результата в диалоге не пересчитывала USD
+
+- Серьёзность: High
+- Окружение: Electron desktop, диалог «Детали сделки», существующая сделка.
+- Воспроизведение: изменить результат или единицу в деталях сделки и сохранить.
+- Actual: `UpdateTradeUseCase` вычислял `financialInputChanged`, сравнивая значения incoming DTO сами с собой, поэтому правка считалась metadata-edit: `resultValue` сохранялся, а `netResultUsd`, баланс счёта и статистика оставались прежними.
+- Expected: явное изменение финансового ввода или счёта пересчитывает authoritative USD-результат (ADR-0007); metadata-правка сохраняет прежний пересчёт.
+- Status: Fixed. `resolveResultInput` сравнивает incoming результат с сохранённой сделкой и различает правку канонического результата и quick-entry единицы.
+- Regression: `platform/database/src/sqlite-trade-update.test.ts`.
+
+## DB-006 — Числовой фильтр таблицы терял Decimal-функцию после смены vault
+
+- Серьёзность: High
+- Окружение: Electron desktop, смена vault и числовой фильтр результата.
+- Воспроизведение: применить фильтр результата в vault A, открыть vault B и применить числовой фильтр снова.
+- Actual: `SqliteJournalTableReader` запоминал регистрацию `tjournal_decimal_cmp` булевым флагом, хотя SQLite-функция принадлежит конкретному соединению; новое соединение отвечало `no such function: tjournal_decimal_cmp`.
+- Expected: точный Decimal-фильтр регистрируется для каждого активного SQLite-соединения.
+- Status: Fixed. Reader запоминает объект соединения, а не глобальный флаг, и повторно регистрирует comparator после активации другого vault.
+- Regression: `platform/database/src/journal-table-reader.test.ts` переключает два vault на одном reader и повторяет точный result filter.
+
+## UI-015 — Изменение сделки оставляло баланс счёта устаревшим
+
+- Серьёзность: High
+- Окружение: Electron renderer, quick-entry и таблица счетов.
+- Воспроизведение: создать, изменить, удалить или отменить сделку со счётом и использовать текущий баланс в следующем процентном вводе.
+- Actual: ресурс `trades` перезагружал bounded-таблицу через `dataVersion`, но не инвалидировал account projection, хотя баланс счёта зависит от сохранённых trade impacts.
+- Expected: любое committed-изменение сделок обновляет account projection до следующего пользовательского ввода.
+- Status: Fixed. Матрица ресурсов отображает `trades` в группу `accounts`; scheduler по-прежнему коалесцирует одновременные события.
+- Regression: `refresh-resources.test.ts` и `use-journal-presenter.test.ts` требуют один account refresh на событие сделки.
+
+## DB-007 — Фильтр «выбранные теги или без тегов» пропускал все сделки
+
+- Серьёзность: Medium
+- Окружение: Trades table, фильтр тегов с выбранным тегом и опцией «Без тегов».
+- Воспроизведение: создать сделки с тегами A и B и без тегов; выбрать A вместе с «Без тегов».
+- Actual: adapter снимал SQL-условие целиком и возвращал также сделку с тегом B.
+- Expected: возвращаются сделки с выбранным тегом либо без единого тега.
+- Status: Fixed. SQL использует `EXISTS(selected) OR NOT EXISTS(any)`; движения денег сохраняют семантику нетегированной строки.
+- Regression: `platform/database/src/journal-table-reader.test.ts` содержит отдельную сделку с посторонним тегом.
+
+## DB-008 — Ошибка финализации транзакции повреждала локальную глубину
+
+- Серьёзность: High
+- Окружение: SQLite transaction/savepoint boundary и активация vault.
+- Воспроизведение: получить ошибку `COMMIT`/`RELEASE` либо ошибку открытия replacement-соединения после уже открытого vault.
+- Actual: transaction depth уменьшался до финализации и повторно в `catch`, а `open()` закрывал активное соединение до проверки replacement connection.
+- Expected: depth восстанавливается к точному входному значению; неоткрываемый replacement не закрывает активный vault.
+- Status: Fixed. Transaction хранит `parentDepth`, replacement соединение полностью открывается и конфигурируется до закрытия активного; ошибка сохранения recent-path логируется и не превращает успешную активацию в failed IPC.
+- Regression: `platform/database/src/sqlite-vault-database.test.ts`, `apps/desktop/src/main/vault-session-coordinator.test.ts`.
+
+## UI-016 — Виртуализированная таблица безлимитно удерживала загруженные страницы
+
+- Серьёзность: Medium
+- Окружение: Trades table, длительная прокрутка большого журнала.
+- Воспроизведение: последовательно прокрутить сотни journal pages вниз.
+- Actual: DOM оставался виртуализированным, но presenter добавлял каждую страницу в один массив, поэтому renderer heap рос вместе со всем просмотренным журналом.
+- Expected: число retained rows ограничено, возврат к соседней выгруженной странице не ломает позицию прокрутки.
+- Status: Fixed. Renderer хранит максимум три страницы; reader выдаёт `previousCursor` и `nextCursor`, а абсолютный virtual row offset сохраняет scroll geometry при вытеснении дальней страницы.
+- Regression: `journal-page-window.test.ts`, `data-table.test.tsx` и bidirectional pagination scenario в `platform/database/src/journal-table-reader.test.ts`.
+
+## UI-014 — Потеря фокуса, безымянная icon-кнопка и контраст текста
+
+- Серьёзность: Medium
+- Окружение: Electron desktop, light theme, узкая рабочая область, диалоги.
+- Воспроизведение: axe-сканирование Trades, диалога деталей, каталога, статистики и настроек; закрыть диалог клавишей Escape; переключиться на активный пункт навигации.
+- Actual: icon-only кнопка «With details» не имела доступного имени; после закрытия любого диалога фокус уходил в `body`, а не на элемент, открывший диалог; `.table-muted` («No tags yet.») давал контраст 4.29:1 на выбранной строке, активный пункт навигации — 4.17:1.
+- Expected: icon-only кнопки имеют локализованное имя; фокус возвращается на trigger; текст соответствует WCAG AA 4.5:1.
+- Status: Fixed. `aria-label` на кнопке деталей; примитив `Dialog` запоминает trigger и восстанавливает фокус при закрытии/размонтировании; `--navigation-active-foreground` использует `accent-hover`; `.table-muted` использует вторичный текстовый токен.
+- Regression: `test/e2e/accessibility.spec.ts` (axe по онбордингу, сделкам, диалогу деталей, каталогу, статистике и настройкам, keyboard-проверки и возврат фокуса).
+
+## DB-009 — Частично применённая инверсия Undo оставалась неповторяемой
+
+- Серьёзность: High
+- Окружение: Undo/Redo application-команды, многошаговые инверсии (восстановление актива вместе с account defaults, снимка счёта с defaults, удалённых тегов со связями).
+- Воспроизведение: вызвать ошибку на втором шаге инверсии (например, восстановление defaults после пересоздания актива).
+- Actual: первый шаг уже фиксировался в SQLite, команда оставалась в undo-стеке, а повторный Undo падал на конфликте идентификаторов.
+- Expected: инверсия применяется целиком или не применяется вовсе; неудачная команда остаётся повторяемой.
+- Status: Fixed. `CommandHistory` выполняет `execute`/`undo`/`redo` внутри application-порта `CommandTransaction` (транзакция активного vault), поэтому частичные записи откатываются, а команда переносится между стеками только после успеха (ADR-0014).
+- Regression: `apps/desktop/src/main/history/undo-redo-history.test.ts` (откат частичной инверсии и повторный успешный Undo).
+
+## DB-010 — Отказ нативного picker возвращал raw rejection из vault IPC
+
+- Серьёзность: Medium
+- Окружение: `vault:create`/`vault:open` и нативный диалог выбора папки.
+- Воспроизведение: отклонить Promise `pickDirectory()` (недоступный диск, отозванное разрешение).
+- Actual: вызов picker стоял до `asResult`, поэтому ошибка уходила из IPC как raw rejection без safe DTO и без записи в Logger.
+- Expected: любой отказ канала превращается в safe result и логируется, как у остальных registrar-ов.
+- Status: Fixed. Оба обработчика целиком обёрнуты в `asAsyncResult`; добавлен тест на rejected picker.
+- Regression: `apps/desktop/src/main/register-vault-ipc-handlers.test.ts`.
+
+## DB-011 — Профиль расчёта имел двух писателей с разной нормализацией
+
+- Серьёзность: Medium
+- Окружение: `instrument_calculation_profiles`, каналы `instrument-profiles:*`, редактор актива и trade use case.
+- Воспроизведение: сохранить профиль через IPC-канал и через instrument create/update с эквивалентными значениями (`0.2500` и `0.25`).
+- Actual: `SqliteTradeStore` и `SqliteInstrumentStore` независимо писали одну таблицу, валидация и нормализация различались (научная нотация проходила только через trade-путь), а владельцем профиля одновременно считались `modules/trade` и `modules/instrument`.
+- Expected: каталог и профили расчёта пишет только `modules/instrument`, значения канонизируются одинаково, trade читает профиль через instrument-порт.
+- Status: Fixed. `GetInstrumentProfileUseCase`/`SaveInstrumentProfileUseCase` живут в `modules/instrument`, `SqliteInstrumentStore` — единственный writer, `instrument-profiles:*` регистрирует instrument-registrar, `CreateTradeUseCase` получает профиль через instrument-порт (ADR-0014).
+- Regression: `modules/instrument/src/application/save-instrument-profile-use-case.test.ts`, `apps/desktop/src/main/register-instrument-ipc-handlers.test.ts`, `platform/database/src/sqlite-journal-storage.test.ts`.
+
+## UI-017 — Настройки счёта могли быть стёрты до или после неудачной загрузки
+
+- Серьёзность: High
+- Окружение: Electron desktop, редактор счёта («Счета, активы и теги») и настройки вида таблицы («1R, USD»).
+- Воспроизведение: открыть редактор существующего счёта с сохранёнными профилями комиссий/спреда при ошибке чтения `accounts:defaults` либо сохранить до завершения загрузки; повторить для 1R из настроек вида.
+- Actual: `listAccountDefaults` возвращал `[]` при ошибке, форма отправляла пустой список, а `updateAccount` заменяет профили целиком, поэтому сохранённые комиссии и спред исчезали; сохранение во время загрузки давало тот же эффект, а запоздалый ответ другого счёта мог попасть в новый черновик.
+- Expected: ошибка чтения не равна намеренно пустому списку; сохранение существующего счёта заблокировано до успешного чтения профилей; результат запоздалого запроса не применяется; осознанно пустой список по-прежнему можно сохранить.
+- Status: Fixed. `JournalPresenter.listAccountDefaults` возвращает `null` при отказе; `useCatalogPresenter` владеет черновиком счёта и статусом `loading/ready/error` с локальным Retry и sequence guard; `planAccountRiskPersistence` запрещает запись 1R при недоступных профилях.
+- Regression: `apps/desktop/src/renderer/features/journal/use-catalog-presenter.test.ts`, `account-risk-update.test.ts`, `use-journal-workspace-presenter.test.tsx`, `account-asset-editor-dialogs.test.tsx`.
+
+## UI-018 — Отказ записи закрывал редактор и терял введённые данные
+
+- Серьёзность: High
+- Окружение: Electron desktop, быстрый ввод и диалоги сделки, движения денег, счёта, актива и тега.
+- Воспроизведение: получить safe error при create/update (например, отклонённый вывод сверх баланса) и посмотреть на форму.
+- Actual: `saveAccount`/`saveAsset`/`saveTag` закрывали редактор независимо от результата; quick-entry очищала результат и теги даже при отказе; редактор сделки закрывался после неуспешного `updateTrade`; повторное подтверждение создания актива могло создать актив заново.
+- Expected: отказ сохраняет диалог и весь ввод; очистка и закрытие происходят только после подтверждённого успеха; retry переиспользует уже созданный актив.
+- Status: Fixed. Renderer result-политика (`executeWithStatus`, boolean-контракты), presenter-owned черновики, `submitAccountDraft`, `QuickEntryOutcome` и ref-guard против повторного submit.
+- Regression: `cash-movement-dialog-view.test.tsx`, `use-catalog-presenter.test.ts`, `use-trade-editor-presenter.test.ts`, `use-journal-workspace-presenter.test.tsx`.
+
+## UI-020 — Подпись кнопки тегов сжималась в колонке конверсии
+
+- Серьёзность: Medium
+- Окружение: Electron desktop, окно 1280×800, страница сделок, пустой результат перевода в USD.
+- Воспроизведение: открыть сделки без заполненного `%`/`R`-результата и посмотреть на кнопку тегов в тулбаре быстрого ввода.
+- Actual: без элемента конверсии кнопка тегов автоматически вставала в его колонку `minmax(0, max-content)` шириной ~50 px, поэтому подпись «Select tags» обрезалась, а трек тегов оставался пустым. С заполненной конверсией число обрезалось по той же причине.
+- Expected: кнопка тегов и число конверсии занимают свои колонки независимо от наличия результата; подпись тегов не обрезается, число видно полностью.
+- Status: Fixed (уточнено в FND-031). Трек конверсии добавляется только при непустом `%`/`R`-превью (`data-conversion="true"`), поэтому тег-пикер следует сразу за выбором единицы и пустой калькулятор процентов/риска не резервирует колонку; фиксированный `grid-column: 8` удалён. В режиме пополнения/вывода остаются три поля (`data-entry-kind="movement"`).
+- Regression: `styles/design-system.test.ts` («adds the conversion track only while a percent/R preview exists»), `trades-page-view.test.tsx` (`data-conversion`/`data-entry-kind`).
+
+## UI-019 — Черновики прежнего vault переживали смену vault
+
+- Серьёзность: Medium
+- Окружение: Electron desktop, смена vault при заполненном быстром вводе или открытом редакторе.
+- Воспроизведение: ввести результат в быстрый ввод, перейти в настройки, сменить vault и вернуться к сделкам.
+- Actual: workspace presenter не размонтировался, поэтому быстрый ввод, подтверждения и настройки оставались от прежнего vault; запоздалые ответы могли продолжить запись в новую сессию.
+- Expected: успешная активация vault начинает новую сессию рабочего места без чужих черновиков; отменённый кандидат ничего не сбрасывает; запоздалый ответ не запускает новую запись.
+- Status: Fixed. `JournalPresenter.vaultSessionId` инкрементируется только при успешной активации; `App.tsx` монтирует workspace с ключом `vaultPath:vaultSessionId`; presenter-ы проверяют unmount перед продолжением цепочек.
+- Regression: `apps/desktop/src/renderer/App.test.tsx` («resets session drafts when another vault is opened»), `use-journal-workspace-presenter.test.tsx`.
+
+## UI-021 — В компактном sidebar навигация оставалась без доступного имени
+
+- Серьёзность: Medium
+- Окружение: Electron desktop, ширина окна ≤960 px (icon-first sidebar), клавиатура и screen reader.
+- Воспроизведение: сузить окно до минимальных 960 px, сфокусировать пункт навигации и найти его по доступному имени (`getByRole('button', { name: 'Trades' })`).
+- Actual: подписи пунктов скрывались через `display: none`, а `aria-label` у навигационных кнопок не было, поэтому доступное имя становилось пустым; при этом `docs/architecture/design-system.md` требует сохранять локализованные `aria-label` и tooltip в компактном режиме.
+- Expected: пункт навигации сохраняет локализованное доступное имя и tooltip на любой ширине окна.
+- Status: Fixed. Навигационные кнопки получили `aria-label` и `title` из `TRANSLATION_KEYS`, поэтому имя и подсказка не зависят от CSS.
+- Regression: `test/e2e/accessibility.spec.ts` («keeps the accessible name of icon-first navigation at the minimum window size») сужает окно до 960×640 и проверяет доступные имена всех четырёх пунктов.
