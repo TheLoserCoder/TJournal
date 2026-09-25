@@ -1,0 +1,6 @@
+.agents/
+.pnpm-store/
+apps/desktop/out/
+apps/desktop/release/
+**/.tsbuild/
+**/*.tsbuildinfo

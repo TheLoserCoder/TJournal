@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "skills": {
+    "analytics-strategy": {
+      "source": "rampstackco/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/analytics-strategy/SKILL.md",
+      "computedHash": "7a9db2c483748a368deb3c87360d75adb43bb08688aa835e22fc40bebe4b00ad"
+    },
+    "architecture-optimization": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "architecture-optimization/SKILL.md",
+      "computedHash": "1156e3be041a7e5b0a7ed9e6eb253dd161edbb7d7d061c14ffb2e796bb57d187"
+    },
+    "clean-architecture": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "clean-architecture/SKILL.md",
+      "computedHash": "41bc54cd69d52698ca747529a148d971e23587cc872db58f715b59de95ef51e6"
+    },
+    "database-design": {
+      "source": "vudovn/ag-kit",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/database-design/SKILL.md",
+      "computedHash": "8f9cd529ca3ad7043561ecdf730d199d4f3f19fc97f2ed1a6737b23176a0588d"
+    },
+    "observability-and-instrumentation": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/observability-and-instrumentation/SKILL.md",
+      "computedHash": "e5eba32f952a29d20c0383728a9505d0ca2a90f1d8d075603e53804b441b2dd2"
+    },
+    "performance-optimization": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/performance-optimization/SKILL.md",
+      "computedHash": "f0a8e3bdb9b7d199434c2a5dd7cbb7d3cf69d802029cde1ef5daa07bffa27efc"
+    },
+    "react-component-performance": {
+      "source": "dimillian/skills",
+      "sourceType": "github",
+      "skillPath": "react-component-performance/SKILL.md",
+      "computedHash": "6cb83a04cf770839b5da2385a7153cc2267c36c5573adfc38cf80934a24a6041"
+    },
+    "sql-optimization-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/developer-essentials/skills/sql-optimization-patterns/SKILL.md",
+      "computedHash": "6f9779817c6f1b077347687c2b16e884506a519d0c2a3eaa2c320709bf273139"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/composition-patterns/SKILL.md",
+      "computedHash": "10eb4ec94577b79ae98c63ce3e7f35f8a6a06436a4011bff083b397de6960eeb"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "6b526d013e28073246a36f99b529bc43745d30832ecfa8217b359c34f260ca6b"
+    }
+  }
+}

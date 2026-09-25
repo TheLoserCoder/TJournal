@@ -1,0 +1,18 @@
+# The repository stores LF and checks out LF on every platform; `.editorconfig`
+# requires it. Without this file `core.autocrlf` rewrites the working copy and
+# every touched file reports an end-of-line change.
+* text=auto eol=lf
+
+*.gif binary
+*.ico binary
+*.icns binary
+*.jpeg binary
+*.jpg binary
+*.node binary
+*.pdf binary
+*.png binary
+*.ttf binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip binary
