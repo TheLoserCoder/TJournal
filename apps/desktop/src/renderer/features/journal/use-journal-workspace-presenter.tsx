@@ -6,7 +6,11 @@ import {
   type InstrumentCategory,
   type TradeDto,
 } from '../../../shared/desktop-api';
-import { convertTradeResult } from '@tjournal/trade/calculations';
+import {
+  convertTradeResult,
+  isPositiveDecimalInput,
+  normalizeDecimalInput,
+} from '@tjournal/trade/calculations';
 import type { JournalPresenter } from './use-journal-presenter';
 import { DEFAULT_INSTRUMENT_CATEGORY } from './entity-table.config';
 import { useTradeEditorPresenter, type TradeEditorPresenter } from './use-trade-editor-presenter';
@@ -62,6 +66,7 @@ export interface JournalWorkspacePresenter extends TradeEditorPresenter {
   readonly resultPreviewUsd: string | null;
   readonly percentBaseUsd: string | null;
   readonly riskUsd: string;
+  readonly riskPromptInvalid: boolean;
   readonly riskPromptOpen: boolean;
   readonly symbol: string;
   readonly accountId: string | null;
@@ -82,6 +87,7 @@ export interface JournalWorkspacePresenter extends TradeEditorPresenter {
   readonly vaultSettings: VaultSettingsPresenter;
   applyTableLayout(): void;
   cancelRiskPrompt(): void;
+  clearRiskPromptError(): void;
   closeConfirmation(): void;
   confirmAssetAndCreateTrade(): Promise<boolean>;
   confirmDeleteEntries(): Promise<void>;
@@ -131,6 +137,7 @@ export const useJournalWorkspacePresenter = (
   const [tableLayoutShowCashMovements, setTableLayoutShowCashMovements] = useState(true);
   const [tableLayoutRiskUsd, setTableLayoutRiskUsd] = useState('');
   const [riskPromptOpen, setRiskPromptOpen] = useState(false);
+  const [riskPromptInvalid, setRiskPromptInvalid] = useState(false);
   const [tagIds, setTagIds] = useState<readonly string[]>([]);
   // A created asset may outlive a failed trade save; the retry reuses its id
   // instead of creating a second asset for the same symbol.
@@ -316,6 +323,7 @@ export const useJournalWorkspacePresenter = (
       if (resultKind === 'r') {
         const effective = (riskOverride ?? effectiveRiskUsd()).trim();
         if (effective === '') {
+          setRiskPromptInvalid(false);
           setRiskPromptOpen(true);
           return 'risk-required';
         }
@@ -338,12 +346,15 @@ export const useJournalWorkspacePresenter = (
   };
 
   const submitRiskPrompt = async (value: string): Promise<void> => {
-    const normalized = value.trim().replace(',', '.');
-    if (normalized === '') return;
-    const outcome = await createTrade(value);
+    if (!isPositiveDecimalInput(value)) {
+      setRiskPromptInvalid(true);
+      return;
+    }
+    setRiskPromptInvalid(false);
+    const outcome = await createTrade(normalizeDecimalInput(value));
     // Keep the prompt and its value when the trade was not acknowledged.
     if (outcome === 'failed' || outcome === 'ignored') return;
-    setRiskUsd(value);
+    setRiskUsd(normalizeDecimalInput(value));
     setRiskPromptOpen(false);
   };
 
@@ -405,7 +416,9 @@ export const useJournalWorkspacePresenter = (
     applyTableLayout,
     cancelRiskPrompt: () => {
       setRiskPromptOpen(false);
+      setRiskPromptInvalid(false);
     },
+    clearRiskPromptError: () => setRiskPromptInvalid(false),
     closeConfirmation: () => {
       setConfirmSymbol(null);
       setCreatedInstrumentId(null);
@@ -480,6 +493,7 @@ export const useJournalWorkspacePresenter = (
         ? selectedAccount.currentKnownBalanceUsd
         : null,
     riskUsd,
+    riskPromptInvalid,
     riskPromptOpen,
     setConfirmAssetCategory,
     setDeletingTradeIds,

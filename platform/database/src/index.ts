@@ -8,3 +8,4 @@ export { SqliteJournalTableReader } from './sqlite-journal-table-reader';
 export { SqliteTradeUnitOfWork } from './sqlite-trade-unit-of-work';
 export { SqliteVaultDatabase } from './sqlite-vault-database';
 export { SqliteAnalyticsFactSource } from './sqlite-analytics-fact-source';
+export { SqliteTradeSummaryFactSource } from './sqlite-trade-summary-fact-source';

@@ -63,7 +63,6 @@ import {
   DeleteTradesUseCase,
   GetTradePreferencesUseCase,
   GetTradeByIdUseCase,
-  ListTradesUseCase,
   RestoreTradesUseCase,
   RestoreTradeUseCase,
   RestoreTradePreferencesUseCase,
@@ -157,7 +156,6 @@ export interface DesktopDependencies {
   readonly verifyVaultBackupUseCase: VerifyVaultBackupUseCase;
   readonly restoreVaultBackupUseCase: RestoreVaultBackupUseCase;
   readonly journalTableReader: SqliteJournalTableReader;
-  readonly listTradesUseCase: ListTradesUseCase;
   readonly logger: Logger;
   readonly openVaultUseCase: OpenVaultUseCase;
   readonly recentVaultPreferences: RecentVaultPreferences;
@@ -246,7 +244,6 @@ export const createDesktopContainer = (electronApp: App): AwilixContainer<Deskto
     listCatalogInstrumentsUseCase: asClass(ListCatalogInstrumentsUseCase).singleton(),
     listAccountsUseCase: asClass(ListAccountsUseCase).singleton(),
     listCashMovementsUseCase: asClass(ListCashMovementsUseCase).singleton(),
-    listTradesUseCase: asClass(ListTradesUseCase).singleton(),
     logger: asFunction(() =>
       createPinoFileLogger({
         logsDirectory: applicationPaths.logsDirectory,

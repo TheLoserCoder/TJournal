@@ -32,19 +32,10 @@ const asset = (
     readonly archivedAt?: string | null;
     readonly category?: string;
     readonly symbol?: string;
-    readonly tickSize?: string;
-    readonly tickValueUsdPerLot?: string;
   } = {},
 ) => ({
   archivedAt: null,
   category: 'forex',
-  calculationProfile:
-    overrides.tickSize === undefined && overrides.tickValueUsdPerLot === undefined
-      ? null
-      : {
-          tickSize: overrides.tickSize ?? '0.0001',
-          tickValueUsdPerLot: overrides.tickValueUsdPerLot ?? '10',
-        },
   symbol: 'EURUSD',
   ...overrides,
 });
@@ -56,7 +47,7 @@ const bounds = (
 ): NumberFilterState => ({ maximum, minimum, mode });
 
 const ACCOUNT_COLUMNS = { balance: 'balance', opening: 'opening', text: ['Main'] as const };
-const ASSET_COLUMNS = { text: ['EURUSD'] as const, tickSize: 'tickSize', tickValue: 'tickValue' };
+const ASSET_COLUMNS = { text: ['EURUSD'] as const };
 
 describe('entity table filters', () => {
   it('keeps the active-status default invisible and reports any other state', () => {
@@ -123,14 +114,14 @@ describe('entity table filters', () => {
 
   it('drops rows without a value once a numeric filter is active', () => {
     const state = createEntityTableFilterState(['active']);
-    const withProfileBounds = {
+    const withBounds = {
       ...state,
-      numberBounds: { tickSize: bounds(NUMBER_FILTER_MODES.lessThan, '', '0.001') },
+      numberBounds: { opening: bounds(NUMBER_FILTER_MODES.lessThan, '', '0.001') },
     };
 
-    expect(matchesEntityFilters(asset(), withProfileBounds, ASSET_COLUMNS)).toBe(false);
+    expect(matchesEntityFilters({ archivedAt: null }, withBounds, ACCOUNT_COLUMNS)).toBe(false);
     expect(
-      matchesEntityFilters(asset({ tickSize: '0.0001' }), withProfileBounds, ASSET_COLUMNS),
+      matchesEntityFilters(account({ openingBalanceUsd: '0.0001' }), withBounds, ACCOUNT_COLUMNS),
     ).toBe(true);
     expect(matchesEntityFilters(asset(), state, ASSET_COLUMNS)).toBe(true);
   });
@@ -145,7 +136,7 @@ describe('entity table filters', () => {
   });
 
   it('hydrates missing bounds lazily for a column without a stored filter', () => {
-    expect(getEntityNumberBounds(createEntityTableFilterState(['active']), 'tickSize')).toEqual({
+    expect(getEntityNumberBounds(createEntityTableFilterState(['active']), 'opening')).toEqual({
       maximum: '',
       minimum: '',
       mode: NUMBER_FILTER_MODES.greaterThan,
@@ -157,7 +148,7 @@ describe('entity table filters', () => {
 
     expect(isEntityColumnFilterActive(state, 'name', 'text', 'status')).toBe(false);
     expect(isEntityColumnFilterActive(state, 'status', 'multi-select', 'status')).toBe(false);
-    expect(isEntityColumnFilterActive(state, 'tickSize', 'number', 'status')).toBe(false);
+    expect(isEntityColumnFilterActive(state, 'opening', 'number', 'status')).toBe(false);
 
     expect(
       isEntityColumnFilterActive({ ...state, textQuery: 'mai' }, 'name', 'text', 'status'),
@@ -180,8 +171,8 @@ describe('entity table filters', () => {
     ).toBe(true);
     expect(
       isEntityColumnFilterActive(
-        { ...state, numberBounds: { tickSize: bounds(NUMBER_FILTER_MODES.lessThan, '', '1') } },
-        'tickSize',
+        { ...state, numberBounds: { opening: bounds(NUMBER_FILTER_MODES.lessThan, '', '1') } },
+        'opening',
         'number',
         'status',
       ),

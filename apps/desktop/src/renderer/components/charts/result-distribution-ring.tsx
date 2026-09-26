@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 
+import { buildResultShareGradient } from './result-share-gradient';
+
 interface ResultDistributionRingProps {
   /** Accessible description of the whole figure. */
   readonly label: string;
@@ -13,13 +15,6 @@ interface ResultDistributionRingProps {
   readonly winningLabel: string;
   readonly winningTrades: number;
 }
-
-const EMPTY_TOTAL = 0;
-
-const percentOf = (part: number, total: number): number =>
-  total === EMPTY_TOTAL ? EMPTY_TOTAL : (part / total) * 100;
-
-const stop = (value: number): string => `${value.toFixed(2)}%`;
 
 /**
  * Win/loss/break-even split as a conic-gradient ring. The exact win rate stays
@@ -37,13 +32,7 @@ export const ResultDistributionRing = ({
   winningLabel,
   winningTrades,
 }: ResultDistributionRingProps): ReactElement => {
-  const total = winningTrades + losingTrades + neutralTrades;
-  const winningShare = percentOf(winningTrades, total);
-  const losingShare = winningShare + percentOf(losingTrades, total);
-  const ringGradient =
-    total === EMPTY_TOTAL
-      ? 'conic-gradient(var(--meter-track-background) 0 100%)'
-      : `conic-gradient(from -90deg, var(--color-positive) 0 ${stop(winningShare)}, var(--color-negative) ${stop(winningShare)} ${stop(losingShare)}, var(--color-border-strong) ${stop(losingShare)} 100%)`;
+  const ringGradient = buildResultShareGradient(winningTrades, losingTrades, neutralTrades);
 
   const legend = [
     { label: winningLabel, tone: 'positive', value: winningTrades },

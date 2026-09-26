@@ -17,4 +17,5 @@ An explicit historical R rebind may update only unbound trades and trades bound 
 - USD, percent and R inputs are never summed as if they shared a unit: USD statistics use `netResultUsd`, while percent/R views use their original input only when the relevant saved value exists.
 - New trades require a non-archived account. Legacy accountless entries remain readable and are excluded from complete account balances until explicitly assigned/resolved.
 - Legacy trades retain their result and may have `direction = null`; every new or edited trade requires a direction.
+- The inverse of a historical rebind restores only the risk-binding columns of the trades the rebind rewrote, captured before the update. It is not a full-journal trade snapshot: its cost is proportional to the rewritten rows, not to the journal, it cannot revert unrelated later edits to those trades, and a preference-only change does not invalidate trade-derived views.
 - Renderer Views display validation codes and field paths but never receive SQLite messages or stack traces.

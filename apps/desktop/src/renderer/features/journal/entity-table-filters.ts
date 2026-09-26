@@ -65,18 +65,12 @@ export const matchesEntityFilters = (
     readonly openingBalanceUsd?: string;
     readonly currentKnownBalanceUsd?: string;
     readonly symbol?: string;
-    readonly calculationProfile?: {
-      readonly tickSize: string;
-      readonly tickValueUsdPerLot: string;
-    } | null;
   },
   state: EntityTableFilterState,
   columns: {
     readonly balance?: string;
     readonly opening?: string;
     readonly text?: readonly string[];
-    readonly tickSize?: string;
-    readonly tickValue?: string;
   },
 ): boolean => {
   if (state.textQuery.trim() !== '') {
@@ -95,8 +89,6 @@ export const matchesEntityFilters = (
   const numericColumns: readonly (readonly [string | undefined, string | undefined])[] = [
     [columns.opening, row.openingBalanceUsd],
     [columns.balance, row.currentKnownBalanceUsd],
-    [columns.tickSize, row.calculationProfile?.tickSize],
-    [columns.tickValue, row.calculationProfile?.tickValueUsdPerLot],
   ];
   for (const [columnId, value] of numericColumns) {
     if (columnId === undefined) continue;

@@ -41,20 +41,26 @@
 
   /* One tone edge per KPI keeps the financial meaning visible without filling
      the whole tile with a status colour. */
+  /* KPI cards share the metric-card vocabulary of the Trades summary:
+     same radius, padding, label grid and value scale. */
   .statistics-kpi {
     border-left-width: 0.1875rem;
+    border-radius: var(--ref-radius-md);
     display: grid;
-    gap: var(--ref-space-2);
+    gap: var(--ref-space-1);
     min-width: 0;
-    padding: var(--statistics-card-padding);
+    padding: var(--ref-space-2);
   }
 
   .statistics-kpi-label {
-    align-items: center;
+    align-items: start;
     color: var(--metric-label-foreground);
-    display: flex;
+    column-gap: var(--ref-space-1);
+    display: grid;
     font-size: var(--ref-text-xs);
-    gap: var(--ref-space-1);
+    grid-template-columns: auto minmax(0, 1fr);
+    line-height: 1.25;
+    min-height: 2.5em;
     min-width: 0;
   }
 
@@ -64,23 +70,28 @@
   }
 
   .statistics-kpi-label-text {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+  }
+
+  .statistics-kpi-value {
+    align-items: center;
+    display: flex;
+    gap: var(--ref-space-2);
+    min-width: 0;
   }
 
   .statistics-kpi strong {
     color: var(--color-text-primary);
-    font-size: 1.125rem;
+    font-size: 1rem;
     font-variant-numeric: tabular-nums;
     line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .statistics-kpi-meter {
-    max-width: 100%;
   }
 
   .statistics-kpi-positive {
@@ -339,8 +350,7 @@
     color: var(--color-text-secondary);
     font-size: var(--ref-text-xs);
     font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    letter-spacing: normal;
   }
 
   .statistics-table-region tbody tr:hover,

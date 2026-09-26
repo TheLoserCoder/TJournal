@@ -169,7 +169,8 @@
    the direction toggle drops the generic button padding and the autocomplete
    group does not add its own box on top of the inner input. */
 .trades-topbar .ui-direction-toggle,
-.trades-topbar .ui-autocomplete-input-group {
+.trades-topbar .ui-autocomplete-input-group,
+.trades-topbar .ui-filter-trigger {
   box-sizing: border-box;
   height: var(--ui-control-height);
   min-height: var(--ui-control-height);
@@ -442,9 +443,15 @@
   font-size: var(--ref-text-sm);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  gap: var(--ref-space-1);
+  letter-spacing: normal;
   padding: var(--ref-space-1) var(--ref-space-2);
-  text-transform: uppercase;
+}
+
+.trade-direction svg {
+  flex: 0 0 auto;
+  height: 0.875rem;
+  width: 0.875rem;
 }
 
 /* Compact workspace: the assets group takes a full row instead of squeezing the

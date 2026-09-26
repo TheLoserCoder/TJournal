@@ -7,15 +7,105 @@ import { DateRangePickerPanel } from '../../components/ui/date-range-picker';
 import { DateTimeRangePanel } from '../../components/ui/datetime-range-panel';
 import { CheckboxListPanel, MultiSelectPanel } from '../../components/ui/multi-select';
 import { NumberFilterPanel } from '../../components/ui/number-filter-panel';
+import { createEmptyNumberFilterState } from '../../components/ui/number-filter-state';
+import { createEmptyDateTimeRangeFilterState } from '../../components/ui/datetime-range-filter-state';
 import type { SelectOption } from '../../components/ui/select';
 import { TextFilterPanel } from '../../components/ui/text-filter-panel';
+import { TRANSLATION_KEYS } from '../../i18n-keys';
 import {
   TRADE_TAG_UNTAGGED_FILTER_ID,
   type TradeEntryFilter,
   type TradeResultUnitFilter,
+  type TradeReviewStatusFilter,
 } from './trade-table-filters';
-import { TRADE_RESULT_FILTERS } from './trade-table.config';
-import type { TradesTablePresenter } from './use-trades-table-presenter';
+import {
+  TRADE_DETAIL_COLUMN_FIELDS,
+  TRADE_RESULT_FILTERS,
+  TRADE_TABLE_COLUMN_IDS,
+  type TradeNotePresence,
+  type TradeTableColumnId,
+} from './trade-table.config';
+import type {
+  TradeTableFiltersPresenter,
+  TradesTablePresenter,
+} from './use-trades-table-presenter';
+
+/** Column id to its localized header key; shared by the table and its filters. */
+export const TRADE_COLUMN_LABEL_KEYS: Readonly<Record<string, string>> = {
+  [TRADE_TABLE_COLUMN_IDS.account]: TRANSLATION_KEYS.fieldAccount,
+  [TRADE_TABLE_COLUMN_IDS.asset]: TRANSLATION_KEYS.fieldAsset,
+  [TRADE_TABLE_COLUMN_IDS.assetCategory]: TRANSLATION_KEYS.fieldAssetType,
+  [TRADE_TABLE_COLUMN_IDS.closedAt]: TRANSLATION_KEYS.fieldDate,
+  [TRADE_TABLE_COLUMN_IDS.closedAtTime]: TRANSLATION_KEYS.fieldDateTime,
+  [TRADE_TABLE_COLUMN_IDS.commissionUsd]: TRANSLATION_KEYS.fieldCommission,
+  [TRADE_TABLE_COLUMN_IDS.direction]: TRANSLATION_KEYS.fieldType,
+  [TRADE_TABLE_COLUMN_IDS.entryPrice]: TRANSLATION_KEYS.fieldEntryPrice,
+  [TRADE_TABLE_COLUMN_IDS.exitCount]: TRANSLATION_KEYS.fieldExitCount,
+  [TRADE_TABLE_COLUMN_IDS.id]: TRANSLATION_KEYS.tableFilterIdentifierAndNotes,
+  [TRADE_TABLE_COLUMN_IDS.notes]: TRANSLATION_KEYS.fieldNotes,
+  [TRADE_TABLE_COLUMN_IDS.quantityLots]: TRANSLATION_KEYS.fieldQuantityLots,
+  [TRADE_TABLE_COLUMN_IDS.result]: TRANSLATION_KEYS.fieldResult,
+  [TRADE_TABLE_COLUMN_IDS.resultKind]: TRANSLATION_KEYS.fieldUnit,
+  [TRADE_TABLE_COLUMN_IDS.reviewStatus]: TRANSLATION_KEYS.tradeReviewStatus,
+  [TRADE_TABLE_COLUMN_IDS.spreadTicks]: TRANSLATION_KEYS.fieldSpreadTicks,
+  [TRADE_TABLE_COLUMN_IDS.stopLoss]: TRANSLATION_KEYS.fieldStopLoss,
+  [TRADE_TABLE_COLUMN_IDS.tags]: TRANSLATION_KEYS.fieldTag,
+};
+
+/** Clears exactly one column's filter, leaving every other filter untouched. */
+export const resetTradeColumnFilter = (
+  filters: TradeTableFiltersPresenter,
+  columnId: string,
+): void => {
+  const detailField = TRADE_DETAIL_COLUMN_FIELDS[columnId as TradeTableColumnId];
+  if (detailField !== undefined) {
+    filters.setDetailBounds(detailField, undefined);
+    return;
+  }
+  switch (columnId) {
+    case TRADE_TABLE_COLUMN_IDS.account:
+      filters.setAccountFilterIds([]);
+      filters.setAccountIncludeUnassigned(false);
+      break;
+    case TRADE_TABLE_COLUMN_IDS.asset:
+      filters.setAssetFilterIds([]);
+      break;
+    case TRADE_TABLE_COLUMN_IDS.assetCategory:
+      filters.setAssetCategoryFilters([]);
+      break;
+    case TRADE_TABLE_COLUMN_IDS.closedAt:
+      filters.setDateFrom('');
+      filters.setDateTo('');
+      break;
+    case TRADE_TABLE_COLUMN_IDS.closedAtTime:
+      filters.setDateTimeRange(createEmptyDateTimeRangeFilterState());
+      break;
+    case TRADE_TABLE_COLUMN_IDS.direction:
+      filters.setEntryFilters([]);
+      break;
+    case TRADE_TABLE_COLUMN_IDS.id:
+      filters.setTextQuery('');
+      break;
+    case TRADE_TABLE_COLUMN_IDS.result:
+      filters.setResultBounds(createEmptyNumberFilterState());
+      break;
+    case TRADE_TABLE_COLUMN_IDS.resultKind:
+      filters.setResultUnit(TRADE_RESULT_FILTERS.all);
+      break;
+    case TRADE_TABLE_COLUMN_IDS.reviewStatus:
+      filters.setReviewStatuses([]);
+      break;
+    case TRADE_TABLE_COLUMN_IDS.notes:
+      filters.setNotePresence([]);
+      break;
+    case TRADE_TABLE_COLUMN_IDS.tags:
+      filters.setTagFilterIds([]);
+      filters.setTagIncludeUntagged(false);
+      break;
+    default:
+      break;
+  }
+};
 
 interface FilterPanelMessages {
   readonly accountUnassigned: string;
@@ -35,8 +125,10 @@ export interface FilterPanelContext {
   readonly columnLabel: (columnId: string) => string;
   readonly entryOptions: readonly { readonly label: string; readonly value: TradeEntryFilter }[];
   readonly messages: FilterPanelMessages;
+  readonly noteOptions: readonly { readonly id: string; readonly label: string }[];
   readonly presenter: TradesTablePresenter;
   readonly resultUnitLabel: string;
+  readonly reviewStatusOptions: readonly { readonly id: string; readonly label: string }[];
   readonly tagOptions: readonly { readonly id: string; readonly label: string }[];
   readonly unitOptions: readonly SelectOption[];
 }
@@ -49,12 +141,50 @@ const renderTextPanel = (columnId: string, context: FilterPanelContext): ReactEl
   />
 );
 
-const renderNumberPanel = (columnId: string, context: FilterPanelContext): ReactElement => (
-  <NumberFilterPanel
-    label={context.columnLabel(columnId)}
-    onChange={(state) => context.presenter.filters.setResultBounds(state)}
-    state={context.presenter.filters.resultBounds}
-    unit={context.resultUnitLabel}
+const renderNumberPanel = (columnId: string, context: FilterPanelContext): ReactElement => {
+  const filters = context.presenter.filters;
+  const detailField = TRADE_DETAIL_COLUMN_FIELDS[columnId as TradeTableColumnId];
+  if (detailField !== undefined) {
+    return (
+      <NumberFilterPanel
+        label={context.columnLabel(columnId)}
+        onChange={(state) => filters.setDetailBounds(detailField, state)}
+        state={filters.detailBounds[detailField] ?? createEmptyNumberFilterState()}
+        unit={
+          columnId === TRADE_TABLE_COLUMN_IDS.commissionUsd ? context.resultUnitLabel : undefined
+        }
+      />
+    );
+  }
+  return (
+    <NumberFilterPanel
+      label={context.columnLabel(columnId)}
+      onChange={(state) => filters.setResultBounds(state)}
+      state={filters.resultBounds}
+      unit={context.resultUnitLabel}
+    />
+  );
+};
+
+const renderReviewStatusPanel = (columnId: string, context: FilterPanelContext): ReactElement => (
+  <CheckboxListPanel
+    onSelectedIdsChange={(ids) =>
+      context.presenter.filters.setReviewStatuses(ids as readonly TradeReviewStatusFilter[])
+    }
+    options={context.reviewStatusOptions}
+    searchLabel={context.columnLabel(columnId)}
+    selectedIds={context.presenter.filters.reviewStatuses}
+  />
+);
+
+const renderNotesPanel = (columnId: string, context: FilterPanelContext): ReactElement => (
+  <CheckboxListPanel
+    onSelectedIdsChange={(ids) =>
+      context.presenter.filters.setNotePresence(ids as readonly TradeNotePresence[])
+    }
+    options={context.noteOptions}
+    searchLabel={context.columnLabel(columnId)}
+    selectedIds={context.presenter.filters.notePresence}
   />
 );
 
@@ -194,12 +324,21 @@ export const renderTradeFilterPanel = (
         />
       );
     case 'multi-select':
-      if (columnId === 'account') return renderAccountPanel(context);
-      if (columnId === 'asset') return renderAssetPanel(context);
-      if (columnId === 'assetCategory') return renderAssetCategoryPanel(columnId, context);
-      if (columnId === 'direction') return renderEntryTypePanel(columnId, context);
-      if (columnId === 'resultKind') return renderResultUnitPanel(columnId, context);
-      if (columnId === 'tags') return renderTagPanel(columnId, context);
+      if (columnId === TRADE_TABLE_COLUMN_IDS.account) return renderAccountPanel(context);
+      if (columnId === TRADE_TABLE_COLUMN_IDS.asset) return renderAssetPanel(context);
+      if (columnId === TRADE_TABLE_COLUMN_IDS.assetCategory) {
+        return renderAssetCategoryPanel(columnId, context);
+      }
+      if (columnId === TRADE_TABLE_COLUMN_IDS.direction)
+        return renderEntryTypePanel(columnId, context);
+      if (columnId === TRADE_TABLE_COLUMN_IDS.resultKind) {
+        return renderResultUnitPanel(columnId, context);
+      }
+      if (columnId === TRADE_TABLE_COLUMN_IDS.reviewStatus) {
+        return renderReviewStatusPanel(columnId, context);
+      }
+      if (columnId === TRADE_TABLE_COLUMN_IDS.notes) return renderNotesPanel(columnId, context);
+      if (columnId === TRADE_TABLE_COLUMN_IDS.tags) return renderTagPanel(columnId, context);
       return null;
     case 'none':
       return null;

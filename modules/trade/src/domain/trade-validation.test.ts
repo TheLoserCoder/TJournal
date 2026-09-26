@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { EXIT_ALLOCATION_KINDS, TRADE_DIRECTIONS, TRADE_RESULT_KINDS } from './trade';
 import {
+  isPositiveDecimalInput,
   isTradeNoteWithinLimit,
   MAX_TRADE_NOTE_CODE_POINTS,
+  normalizeDecimalInput,
   normalizeTradeNotes,
   TRADE_VALIDATION_CODES,
   TradeValidationError,
@@ -95,5 +97,39 @@ describe('validateTradeInput', () => {
         resultValue: '10',
       }),
     ).toThrow(TradeValidationError);
+  });
+
+  it('rejects zero where the value must be strictly positive', () => {
+    expect(() =>
+      validateTradeInput({
+        ...validInput,
+        resultKind: TRADE_RESULT_KINDS.r,
+        resultValue: '1',
+        riskUsd: '0',
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        issues: [{ code: TRADE_VALIDATION_CODES.mustBePositive, path: 'riskUsd' }],
+      }),
+    );
+  });
+});
+
+describe('isPositiveDecimalInput', () => {
+  it('accepts only a fully parsed positive decimal', () => {
+    expect(isPositiveDecimalInput('150')).toBe(true);
+    expect(isPositiveDecimalInput(' 1,5 ')).toBe(true);
+    expect(isPositiveDecimalInput('0.0000001')).toBe(true);
+    expect(isPositiveDecimalInput('12abc')).toBe(false);
+    expect(isPositiveDecimalInput('1e3junk')).toBe(false);
+    expect(isPositiveDecimalInput('0')).toBe(false);
+    expect(isPositiveDecimalInput('-5')).toBe(false);
+    expect(isPositiveDecimalInput('')).toBe(false);
+    expect(isPositiveDecimalInput('abc')).toBe(false);
+  });
+
+  it('normalises the comma separator and surrounding whitespace', () => {
+    expect(normalizeDecimalInput(' 1,5 ')).toBe('1.5');
+    expect(normalizeDecimalInput('150')).toBe('150');
   });
 });

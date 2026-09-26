@@ -39,7 +39,7 @@ describe('useTradeSummaryPresenter', () => {
         languageMode: 'en' as const,
         tableLayouts: [],
         themeMode: 'light' as const,
-        tradeSummary: { followTableFilters: true, metric: 'cash' as const, period: 'all' as const },
+        tradeSummary: { followTableFilters: true, period: 'all' as const },
       },
       tradePreferences: {
         neutralCostSettings: { includeCommission: false, includeSpread: false },

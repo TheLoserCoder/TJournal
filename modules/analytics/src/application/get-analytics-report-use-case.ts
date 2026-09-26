@@ -63,6 +63,7 @@ export class GetAnalyticsReportUseCase {
             query.neutralRange,
           );
     const coverage = overall.coverage;
+    const highlights = reconcileHighlights(instruments.best, instruments.worst);
     return {
       breakdown: {
         dimension: query.breakdown.dimension,
@@ -77,7 +78,7 @@ export class GetAnalyticsReportUseCase {
         totalTrades: coverage.totalTrades,
       },
       effectiveRange: { ...query.range, grain: timeline.effectiveGrain },
-      highlights: { bestInstrument: instruments.best, worstInstrument: instruments.worst },
+      highlights: { bestInstrument: highlights.best, worstInstrument: highlights.worst },
       kpis: overall.toKpis(),
       series: timeline.toSeries(),
     };
@@ -212,4 +213,24 @@ const chooseWorst = (
   return result < 0 || (result === 0 && compareIdentity(candidate, current) < 0)
     ? candidate
     : current;
+};
+
+/**
+ * A single covered group is both the maximum and the minimum, so it would be
+ * shown as the best and the worst asset at the same time. When both highlights
+ * resolve to the same group, only the sign-appropriate one survives: a
+ * positive group is the best, a negative group is the worst and a neutral group
+ * yields no highlight at all. Distinct groups keep the existing max/min.
+ */
+const reconcileHighlights = (
+  best: AnalyticsBreakdownRow | null,
+  worst: AnalyticsBreakdownRow | null,
+): {
+  readonly best: AnalyticsBreakdownRow | null;
+  readonly worst: AnalyticsBreakdownRow | null;
+} => {
+  if (best === null || worst === null || best.id !== worst.id) return { best, worst };
+  const value = new Decimal(best.netResultUsd);
+  if (value.isZero()) return { best: null, worst: null };
+  return value.isNegative() ? { best: null, worst } : { best, worst: null };
 };

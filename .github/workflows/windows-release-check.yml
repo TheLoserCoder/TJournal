@@ -1,0 +1,44 @@
+name: Windows release verification
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm clean
+      - run: pnpm typecheck
+      - run: pnpm check
+      - run: pnpm format:check
+      - run: pnpm test:e2e
+      - run: pnpm make
+      - name: Record installer checksum
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem 'apps/desktop/release/TJournal Setup *.exe' | Select-Object -First 1
+          if ($null -eq $installer) { throw 'NSIS installer was not produced.' }
+          $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($installer.Name)" | Set-Content -Encoding ascii 'apps/desktop/release/SHA256SUMS.txt'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tjournal-windows-nsis
+          path: |
+            apps/desktop/release/TJournal Setup *.exe
+            apps/desktop/release/SHA256SUMS.txt
+          if-no-files-found: error

@@ -13,11 +13,9 @@ const createPresenter = (
 ): TradeSummaryPresenter => ({
   closeSettings: vi.fn(),
   followTableFilters: false,
-  metric: 'cash',
   openSettings: vi.fn(),
   period: 'all',
   setFollowTableFilters: vi.fn(),
-  setMetric: vi.fn(),
   setPeriod: vi.fn(),
   settingsOpen: false,
   summary: {
@@ -105,18 +103,45 @@ describe('TradeSummaryView', () => {
     ).toHaveTextContent('100%');
   });
 
-  it('renders the win rate as an exact value with a decorative donut', () => {
+  it('renders the win rate with a red-green win/loss/break-even donut', () => {
     renderSummary(createPresenter());
 
     const winRate = screen.getByRole('group', {
       name: `${i18n.t(TRANSLATION_KEYS.statisticsWinRate)}: 100`,
     });
-    const ring = winRate.querySelector('.ui-win-rate-ring');
+    const ring = winRate.querySelector('.ui-result-share-ring');
 
     expect(winRate.querySelector('strong')).toHaveTextContent('100%');
     expect(ring).not.toBeNull();
     expect(ring).toHaveAttribute('aria-hidden', 'true');
-    expect(ring?.getAttribute('style')).toContain('100%');
+    const gradient = ring?.getAttribute('style') ?? '';
+    expect(gradient).toContain('var(--color-positive)');
+    expect(gradient).toContain('var(--color-negative)');
+    expect(gradient).toContain('100.00%');
+  });
+
+  it('orders the donut segments as wins then losses then break-even', () => {
+    renderSummary(
+      createPresenter({
+        summary: {
+          accountedBalanceUsd: '1000',
+          bestInstrument: null,
+          coveredTrades: 4,
+          losingTrades: 1,
+          neutralTrades: 1,
+          totalResult: '100',
+          totalTrades: 4,
+          winRate: '50',
+          winningTrades: 2,
+          worstInstrument: null,
+        },
+      }),
+    );
+
+    const gradient = document.querySelector('.ui-result-share-ring')?.getAttribute('style') ?? '';
+    expect(gradient).toContain('var(--color-positive) 0 50.00%');
+    expect(gradient).toContain('var(--color-negative) 50.00% 75.00%');
+    expect(gradient).toContain('var(--color-border-strong) 75.00% 100%');
   });
 
   it('omits the donut when the win rate is unavailable', () => {
@@ -137,7 +162,7 @@ describe('TradeSummaryView', () => {
       }),
     );
 
-    expect(document.querySelector('.ui-win-rate-ring')).toBeNull();
+    expect(document.querySelector('.ui-result-share-ring')).toBeNull();
   });
 
   it('preserves negative, unavailable and refreshing states', () => {

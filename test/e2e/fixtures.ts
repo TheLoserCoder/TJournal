@@ -174,6 +174,39 @@ export const createUsdTradeThroughQuickEntry = async (
 };
 
 /**
+ * Creates a trade through the real quick-entry toolbar, optionally choosing the
+ * direction and the result unit first. Only USD and percent units are accepted:
+ * an R trade opens the 1R prompt and needs its own scenario.
+ */
+export const createTradeThroughQuickEntry = async (
+  application: TestApplication,
+  options: {
+    readonly asset: string;
+    readonly direction?: 'long' | 'short';
+    readonly result: string;
+    readonly unit?: 'percent' | 'usd';
+  },
+): Promise<void> => {
+  const { page } = application;
+  if (options.direction === 'short') {
+    await page.getByRole('button', { name: APP_TEXT.trade.directionShort }).click();
+  }
+  if (options.unit === 'percent') {
+    await page.getByRole('combobox', { name: APP_TEXT.field.unit }).click();
+    await page.getByRole('option', { name: APP_TEXT.trade.unitPercent, exact: true }).click();
+  }
+  const assetInput = page.getByRole('combobox', { name: APP_TEXT.field.asset });
+  await assetInput.click();
+  await assetInput.fill(options.asset);
+  await page.getByRole('option', { name: options.asset, exact: true }).click();
+  await page
+    .getByRole('textbox', { name: APP_TEXT.field.result, exact: true })
+    .fill(options.result);
+  await page.getByRole('button', { name: APP_TEXT.action.add }).click();
+  await expect(page.getByRole('cell', { name: options.asset, exact: true })).toBeVisible();
+};
+
+/**
  * Creates a real vault through a throwaway application instance so it can be
  * opened later by the main test application. The throwaway instance owns its
  * own user data, so recent-vault state of the test application is unaffected.

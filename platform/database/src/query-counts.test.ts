@@ -24,14 +24,17 @@ const EMPTY_JOURNAL_FILTERS: JournalTableFilters = {
   categories: [],
   closedFromDate: null,
   closedToDate: null,
+  detailBounds: null,
   entryKinds: [],
   includeUntagged: false,
   includeUnassigned: false,
   instrumentIds: [],
+  notePresence: [],
   occurredFrom: null,
   occurredTo: null,
   resultBounds: null,
   resultUnits: [],
+  reviewStatuses: [],
   tagIds: [],
   textQuery: null,
 };
@@ -227,7 +230,9 @@ describe('bounded read query counts', () => {
       expect(firstPage.nextCursor).not.toBeNull();
       expect(grownPage.rows).toHaveLength(10);
       expect(grownCount).toBe(firstCount);
-      expect(grownCount).toBe(5);
+      // Page scan, trade batch, tag batch and the exit-count batch: bounded by
+      // the page, not by the journal size.
+      expect(grownCount).toBe(6);
     } finally {
       counter.restore();
       storage.close();

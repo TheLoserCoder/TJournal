@@ -47,11 +47,30 @@ export const createInstrumentSchema = z.object({
   calculationProfile: calculationProfileValuesSchema.nullable().optional(),
 });
 export const updateInstrumentSchema = createInstrumentSchema.extend({ id: instrumentIdSchema });
-const accountDefaultSchema = z.object({
-  instrumentId: instrumentIdSchema,
-  commissionUsd: nonNegativeDecimalSchema,
-  spreadTicks: nonNegativeDecimalSchema,
-});
+const accountDefaultSchema = z
+  .object({
+    instrumentId: instrumentIdSchema,
+    commissionUsd: nonNegativeDecimalSchema,
+    spreadTicks: nonNegativeDecimalSchema,
+    tickSize: nonNegativeDecimalSchema.nullable().optional(),
+    tickValueUsdPerLot: nonNegativeDecimalSchema.nullable().optional(),
+  })
+  .refine(
+    ({ tickSize, tickValueUsdPerLot }) => {
+      const hasSize = tickSize !== null && tickSize !== undefined;
+      const hasValue = tickValueUsdPerLot !== null && tickValueUsdPerLot !== undefined;
+      return hasSize === hasValue;
+    },
+    { path: ['tickSize'], message: 'Tick size and tick value must be configured together.' },
+  )
+  .refine(
+    ({ tickSize, tickValueUsdPerLot }) =>
+      (tickSize === null || tickSize === undefined || !isZeroDecimalString(tickSize)) &&
+      (tickValueUsdPerLot === null ||
+        tickValueUsdPerLot === undefined ||
+        !isZeroDecimalString(tickValueUsdPerLot)),
+    { path: ['tickSize'], message: 'Tick values must be positive.' },
+  );
 export const createAccountSchema = z
   .object({
     name: z.string().trim().min(1),

@@ -8,6 +8,7 @@ export {
   type TradeResultTone,
 } from './assess-trade-result';
 export { calculatePercentageRemainder } from './rebalance-percentage-exits';
+export { isPositiveDecimalInput, normalizeDecimalInput } from './trade-validation';
 export {
   convertTradeResult,
   TRADE_RESULT_CONVERSIONS,

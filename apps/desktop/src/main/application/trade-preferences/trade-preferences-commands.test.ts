@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ClosedTrade, TradePreferences } from '@tjournal/trade';
+import type {
+  SavedTradePreferences,
+  TradePreferences,
+  TradeRiskBindingSnapshot,
+} from '@tjournal/trade';
 
 import { DATA_RESOURCES } from '../../../shared/desktop-api';
 import { UndoRedoHistory } from '../../history/undo-redo-history';
@@ -14,51 +18,37 @@ const makePreferences = (overrides: Partial<TradePreferences> = {}): TradePrefer
   ...overrides,
 });
 
-const makeTrade = (id: string): ClosedTrade => ({
-  account: null,
-  closedAt: '2026-01-01T00:00:00.000Z',
-  direction: 'long',
-  entryNote: null,
-  execution: null,
-  id,
-  instrumentId: 'instrument-1',
-  instrumentSymbol: 'ES',
-  netResultUsd: '100',
-  resultKind: 'cash',
-  resultSource: 'manual',
-  resultValue: '100',
-  reviewNote: null,
-  reviewStatus: 'unreviewed',
-  riskBindingSnapshot: null,
-  tagIds: [],
-});
+const REBOUND: readonly TradeRiskBindingSnapshot[] = [
+  {
+    riskBindingSnapshot: { kind: 'cash', source: 'vault-default', value: '100' },
+    tradeId: 'trade-1',
+  },
+];
 
-const createHarness = () => {
+const createHarness = (reboundRiskBindings: readonly TradeRiskBindingSnapshot[] = []) => {
   const history = new UndoRedoHistory();
   const getTradePreferencesUseCase = {
     execute: vi.fn((): TradePreferences => makePreferences()),
   };
   const saveTradePreferencesUseCase = {
     execute: vi.fn(
-      (preferences: TradePreferences, _rebindHistorical = false): TradePreferences => preferences,
+      (preferences: TradePreferences, _rebindHistorical = false): SavedTradePreferences => ({
+        preferences,
+        reboundRiskBindings,
+      }),
     ),
   };
   const restoreTradePreferencesUseCase = { execute: vi.fn() };
-  const listTradesUseCase = {
-    execute: vi.fn((): readonly ClosedTrade[] => [makeTrade('trade-1')]),
-  };
   const commands = new TradePreferencesCommands(
     history,
     getTradePreferencesUseCase,
     saveTradePreferencesUseCase,
     restoreTradePreferencesUseCase,
-    listTradesUseCase,
   );
   return {
     commands,
     getTradePreferencesUseCase,
     history,
-    listTradesUseCase,
     restoreTradePreferencesUseCase,
     saveTradePreferencesUseCase,
   };
@@ -66,7 +56,7 @@ const createHarness = () => {
 
 describe('TradePreferencesCommands', () => {
   it('saves preferences with the rebind flag and invalidates preferences and trades', () => {
-    const { commands, history, saveTradePreferencesUseCase } = createHarness();
+    const { commands, history, saveTradePreferencesUseCase } = createHarness(REBOUND);
     const preferences = makePreferences({ riskPromptDismissed: true });
 
     const outcome = commands.update({ preferences, rebindHistorical: true });
@@ -81,9 +71,19 @@ describe('TradePreferencesCommands', () => {
     expect(history.getState().canUndo).toBe(true);
   });
 
-  it('restores the previous preferences and the trades they rewrote on undo', () => {
-    const { commands, history, listTradesUseCase, restoreTradePreferencesUseCase } =
-      createHarness();
+  it('omits the trade invalidation when no trade binding was rewritten', () => {
+    const { commands } = createHarness([]);
+
+    const outcome = commands.update({ preferences: makePreferences(), rebindHistorical: false });
+
+    expect(outcome.changedResources).toEqual([
+      DATA_RESOURCES.history,
+      DATA_RESOURCES.tradePreferences,
+    ]);
+  });
+
+  it('restores the previous preferences and the rewritten bindings on undo', () => {
+    const { commands, history, restoreTradePreferencesUseCase } = createHarness(REBOUND);
 
     commands.update({
       preferences: makePreferences({ riskPromptDismissed: true }),
@@ -91,10 +91,7 @@ describe('TradePreferencesCommands', () => {
     });
     history.undo();
 
-    expect(listTradesUseCase.execute).toHaveBeenCalledTimes(1);
-    expect(restoreTradePreferencesUseCase.execute).toHaveBeenCalledWith(makePreferences(), [
-      makeTrade('trade-1'),
-    ]);
+    expect(restoreTradePreferencesUseCase.execute).toHaveBeenCalledWith(makePreferences(), REBOUND);
   });
 
   it('does not record a failed save in history', () => {

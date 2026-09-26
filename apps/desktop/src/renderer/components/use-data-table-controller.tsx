@@ -85,13 +85,25 @@ export const useDataTableController = <TRow extends RowData>({
     (width: number): number => Math.min(sizeLimits.maximum, Math.max(sizeLimits.minimum, width)),
     [sizeLimits.maximum, sizeLimits.minimum],
   );
+  // A saved layout predates columns added later, so the defaults fill the gaps:
+  // a new column keeps its configured default visibility and width instead of
+  // becoming visible (or zero-sized) because the stored map has no entry.
   const toSizing = useCallback(
-    (items: readonly TableColumnLayoutDto[]): TableSizing =>
-      Object.fromEntries(items.map((column) => [column.id, normalizeWidth(column.width)])),
-    [normalizeWidth],
+    (items: readonly TableColumnLayoutDto[]): TableSizing => ({
+      ...Object.fromEntries(
+        defaultColumns.map((column) => [column.id, normalizeWidth(column.width)]),
+      ),
+      ...Object.fromEntries(items.map((column) => [column.id, normalizeWidth(column.width)])),
+    }),
+    [defaultColumns, normalizeWidth],
   );
-  const toVisibility = (items: readonly TableColumnLayoutDto[]): TableVisibility =>
-    Object.fromEntries(items.map((column) => [column.id, column.visible]));
+  const toVisibility = useCallback(
+    (items: readonly TableColumnLayoutDto[]): TableVisibility => ({
+      ...Object.fromEntries(defaultColumns.map((column) => [column.id, column.visible])),
+      ...Object.fromEntries(items.map((column) => [column.id, column.visible])),
+    }),
+    [defaultColumns],
+  );
   const initialColumns = layout?.columns ?? defaultColumns;
   const layoutWasApplied = useRef(false);
   const [activeFilterColumnId, setActiveFilterColumnId] = useState<string | null>(null);
@@ -115,7 +127,7 @@ export const useDataTableController = <TRow extends RowData>({
     setColumnOrder(normalizeColumnOrder(layout.order));
     setColumnVisibility(toVisibility(layout.columns));
     setModeState(layout.mode);
-  }, [layout, normalizeColumnOrder, toSizing]);
+  }, [layout, normalizeColumnOrder, toSizing, toVisibility]);
 
   useEffect(() => {
     setRowSelection((current) => (Object.keys(current).length === 0 ? current : {}));

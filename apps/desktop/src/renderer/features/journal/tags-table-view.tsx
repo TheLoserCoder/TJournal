@@ -99,7 +99,11 @@ export const TagsTable = ({
       {
         accessorFn: (row) => row.name,
         cell: ({ row }) => (
-          <TagChip color={row.original.color} label={row.original.name} title={row.original.name} />
+          <TagChip
+            color={row.original.color}
+            label={row.original.name}
+            title={row.original.description.trim() === '' ? undefined : row.original.description}
+          />
         ),
         header: t(TRANSLATION_KEYS.fieldTag),
         id: TAG_COLUMN_IDS.name,

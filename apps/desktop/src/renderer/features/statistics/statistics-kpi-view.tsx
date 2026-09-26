@@ -11,6 +11,7 @@ import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { AnalyticsReportDto } from '../../../shared/desktop-api';
+import { WinRateRing } from '../../components/charts/win-rate-ring';
 import { formatDecimalString } from '../../components/format-decimal';
 import { TRANSLATION_KEYS } from '../../i18n-keys';
 
@@ -23,14 +24,11 @@ type KpiTone = 'accent' | 'negative' | 'neutral' | 'positive';
 interface KpiItem {
   readonly Icon: LucideIcon;
   readonly label: string;
-  /** Exact percentage rendered as a compact meter next to the value. */
-  readonly meter?: number;
+  /** Exact percentage rendered as the compact win-rate donut next to the value. */
+  readonly ring?: number;
   readonly tone: KpiTone;
   readonly value: string;
 }
-
-const clampPercent = (value: number): number =>
-  Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
 
 /** Sign of a Decimal string drives the financial tone; absent data stays neutral. */
 const signTone = (raw: string | null): KpiTone => {
@@ -58,7 +56,7 @@ export const StatisticsKpiView = ({ report }: StatisticsKpiViewProps): ReactElem
     {
       Icon: Target,
       label: t(TRANSLATION_KEYS.statisticsWinRate),
-      meter: report.kpis.winRatePercent === null ? undefined : Number(report.kpis.winRatePercent),
+      ring: report.kpis.winRatePercent === null ? undefined : Number(report.kpis.winRatePercent),
       tone: 'accent',
       value: value(report.kpis.winRatePercent, '%'),
     },
@@ -89,7 +87,7 @@ export const StatisticsKpiView = ({ report }: StatisticsKpiViewProps): ReactElem
   ];
   return (
     <div className="statistics-kpis">
-      {items.map(({ Icon, label, meter, tone, value: metricValue }) => (
+      {items.map(({ Icon, label, ring, tone, value: metricValue }) => (
         <div
           aria-label={`${label}: ${metricValue}`}
           className={`statistics-kpi statistics-kpi-${tone}`}
@@ -100,16 +98,10 @@ export const StatisticsKpiView = ({ report }: StatisticsKpiViewProps): ReactElem
             <Icon aria-hidden="true" className="statistics-kpi-icon" size={14} />
             <span className="statistics-kpi-label-text">{label}</span>
           </span>
-          <strong className="ui-numeric">{metricValue}</strong>
-          {meter !== undefined && (
-            <span aria-hidden="true" className="ui-meter statistics-kpi-meter">
-              <span
-                className="ui-meter-fill"
-                data-tone="accent"
-                style={{ width: `${clampPercent(meter)}%` }}
-              />
-            </span>
-          )}
+          <span className="statistics-kpi-value">
+            <strong className="ui-numeric">{metricValue}</strong>
+            {ring !== undefined && <WinRateRing value={ring} />}
+          </span>
         </div>
       ))}
     </div>

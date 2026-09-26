@@ -16,6 +16,11 @@ interface TradeSummarySettingsDialogViewProps {
   readonly summaryPresenter: TradeSummaryPresenter;
 }
 
+/**
+ * Quick-summary settings. Every metric is reported in the authoritative USD
+ * result, so the metric choice and the percent/R break-even boundaries are gone;
+ * only the USD break-even band and the optional cost inclusion remain.
+ */
 export const TradeSummarySettingsDialogView = ({
   settingsPresenter,
   summaryPresenter,
@@ -25,11 +30,7 @@ export const TradeSummarySettingsDialogView = ({
     settingsPresenter.resetDraft();
     summaryPresenter.closeSettings();
   };
-  const metrics = [
-    ['cash', t(TRANSLATION_KEYS.tradeUnitCash)],
-    ['percent', t(TRANSLATION_KEYS.tradeUnitPercent)],
-    ['r', t(TRANSLATION_KEYS.tradeUnitR)],
-  ] as const;
+  const cashRange = settingsPresenter.ranges.cash;
 
   return (
     <Dialog
@@ -40,19 +41,6 @@ export const TradeSummarySettingsDialogView = ({
     >
       <div className="trade-summary-settings-form">
         <div className="trade-summary-settings-grid">
-          <label>
-            {t(TRANSLATION_KEYS.statisticsMetric)}
-            <Select
-              ariaLabel={t(TRANSLATION_KEYS.statisticsMetric)}
-              layer="dialog"
-              onValueChange={(value) =>
-                summaryPresenter.setMetric(value as typeof summaryPresenter.metric)
-              }
-              options={metrics.map(([value, label]) => ({ label, value }))}
-              placeholder={t(TRANSLATION_KEYS.statisticsMetric)}
-              value={summaryPresenter.metric}
-            />
-          </label>
           <label>
             {t(TRANSLATION_KEYS.statisticsPeriod)}
             <Select
@@ -85,31 +73,31 @@ export const TradeSummarySettingsDialogView = ({
         <fieldset className="neutral-ranges">
           <legend>{t(TRANSLATION_KEYS.settingsNeutralRanges)}</legend>
           <p className="settings-help">{t(TRANSLATION_KEYS.settingsNeutralRangesHint)}</p>
-          {metrics.map(([kind, label]) => (
-            <div className="neutral-range" key={kind}>
-              <strong>{label}</strong>
-              <label>
-                {t(TRANSLATION_KEYS.settingsNeutralLower)}
-                <TextField
-                  inputMode="decimal"
-                  value={settingsPresenter.ranges[kind].lower}
-                  onChange={(event) =>
-                    settingsPresenter.setRange(kind, 'lower', event.target.value)
-                  }
-                />
-              </label>
-              <label>
-                {t(TRANSLATION_KEYS.settingsNeutralUpper)}
-                <TextField
-                  inputMode="decimal"
-                  value={settingsPresenter.ranges[kind].upper}
-                  onChange={(event) =>
-                    settingsPresenter.setRange(kind, 'upper', event.target.value)
-                  }
-                />
-              </label>
-            </div>
-          ))}
+          <div className="neutral-range">
+            <strong>{t(TRANSLATION_KEYS.tradeUnitCash)}</strong>
+            <label>
+              {t(TRANSLATION_KEYS.settingsNeutralLower)}
+              <TextField
+                aria-label={t(TRANSLATION_KEYS.settingsNeutralLower)}
+                inputMode="decimal"
+                value={cashRange.lower}
+                onChange={(event) =>
+                  settingsPresenter.setRange('cash', 'lower', event.target.value)
+                }
+              />
+            </label>
+            <label>
+              {t(TRANSLATION_KEYS.settingsNeutralUpper)}
+              <TextField
+                aria-label={t(TRANSLATION_KEYS.settingsNeutralUpper)}
+                inputMode="decimal"
+                value={cashRange.upper}
+                onChange={(event) =>
+                  settingsPresenter.setRange('cash', 'upper', event.target.value)
+                }
+              />
+            </label>
+          </div>
         </fieldset>
         <fieldset className="statistics-cost-settings">
           <legend>{t(TRANSLATION_KEYS.settingsNeutralCosts)}</legend>

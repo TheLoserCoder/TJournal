@@ -48,7 +48,15 @@ const AAPL: InstrumentDto = {
 const TEST_ASSETS: readonly InstrumentDto[] = [MSFT, AAPL];
 
 const READY_ACCOUNT_DRAFT: CatalogPresenter['accountDraft'] = {
-  defaults: [{ commissionUsd: '1', instrumentId: 'asset-aapl', spreadTicks: '2' }],
+  defaults: [
+    {
+      commissionUsd: '1',
+      instrumentId: 'asset-aapl',
+      spreadTicks: '2',
+      tickSize: '',
+      tickValueUsdPerLot: '',
+    },
+  ],
   name: TEST_ACCOUNT.name,
   openingBalanceUsd: TEST_ACCOUNT.openingBalanceUsd,
 };
@@ -57,6 +65,7 @@ const createPresenter = (overrides: Partial<CatalogPresenter> = {}): CatalogPres
   accountDefaultsStatus: 'ready',
   accountDraft: READY_ACCOUNT_DRAFT,
   accountEditorOpen: true,
+  accountError: null,
   accountSaving: false,
   accountsLayout: undefined,
   addAccountDefault: vi.fn(),
@@ -127,6 +136,28 @@ describe('AccountAssetEditorDialogs cost profiles', () => {
     Element.prototype.scrollIntoView = () => {};
   });
 
+  it('shows account validation beside the form without trade-specific copy', async () => {
+    const presenter = createPresenter({
+      accountError: {
+        code: 'validation-invalid',
+        issues: [{ code: 'invalid_format', path: 'openingBalanceUsd' }],
+        retryable: false,
+      },
+    });
+    renderDialogs(presenter);
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.querySelector('[role="alert"]')).toHaveTextContent(
+      i18n.t(TRANSLATION_KEYS.accountValidationFailed),
+    );
+    expect(dialog.querySelector('[role="alert"]')).toHaveTextContent(
+      i18n.t(TRANSLATION_KEYS.fieldAccountOpening),
+    );
+    expect(dialog.querySelector('[role="alert"]')).toHaveTextContent(
+      i18n.t(TRANSLATION_KEYS.accountInvalidOpeningBalance),
+    );
+  });
+
   it('opens the asset picker with every asset and keeps the recent-use order', async () => {
     renderDialogs(createPresenter());
     const input = await readAssetInput();
@@ -178,7 +209,15 @@ describe('AccountAssetEditorDialogs cost profiles', () => {
     const presenter = createPresenter({
       accountDraft: {
         ...READY_ACCOUNT_DRAFT,
-        defaults: [{ commissionUsd: '1', instrumentId: archivedAsset.id, spreadTicks: '2' }],
+        defaults: [
+          {
+            commissionUsd: '1',
+            instrumentId: archivedAsset.id,
+            spreadTicks: '2',
+            tickSize: '',
+            tickValueUsdPerLot: '',
+          },
+        ],
       },
     });
     render(

@@ -49,19 +49,23 @@ export class TradeValidationError extends Error {
   }
 }
 
+const tryParseDecimal = (value: string): Decimal | null => {
+  try {
+    const decimal = new Decimal(value);
+    return decimal.isFinite() ? decimal : null;
+  } catch {
+    return null;
+  }
+};
+
 const parseDecimal = (
   value: string,
   path: string,
   issues: TradeValidationIssue[],
 ): Decimal | null => {
-  try {
-    const decimal = new Decimal(value);
-    if (!decimal.isFinite()) throw new Error();
-    return decimal;
-  } catch {
-    issues.push({ code: TRADE_VALIDATION_CODES.invalidDecimal, path });
-    return null;
-  }
+  const decimal = tryParseDecimal(value);
+  if (decimal === null) issues.push({ code: TRADE_VALIDATION_CODES.invalidDecimal, path });
+  return decimal;
 };
 
 const requirePositive = (
@@ -70,7 +74,7 @@ const requirePositive = (
   issues: TradeValidationIssue[],
 ): Decimal | null => {
   const decimal = parseDecimal(value, path, issues);
-  if (decimal !== null && !decimal.isPositive()) {
+  if (decimal !== null && !decimal.greaterThan(0)) {
     issues.push({ code: TRADE_VALIDATION_CODES.mustBePositive, path });
   }
   return decimal;
@@ -81,6 +85,21 @@ const requireNonNegative = (value: string, path: string, issues: TradeValidation
   if (decimal !== null && decimal.isNegative()) {
     issues.push({ code: TRADE_VALIDATION_CODES.mustBeNonNegative, path });
   }
+};
+
+/**
+ * Normalises a user-entered decimal: surrounding whitespace is dropped and a
+ * comma separator becomes a dot. The result is parsed as a whole, so a partial
+ * numeric prefix like `12abc` is never accepted.
+ */
+export const normalizeDecimalInput = (value: string): string => value.trim().replace(',', '.');
+
+/** True when the whole input is a finite Decimal strictly greater than zero. */
+export const isPositiveDecimalInput = (value: string): boolean => {
+  const normalized = normalizeDecimalInput(value);
+  if (normalized === '') return false;
+  const decimal = tryParseDecimal(normalized);
+  return decimal !== null && decimal.greaterThan(0);
 };
 
 export const validateTradeInput = (input: {

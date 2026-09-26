@@ -1,6 +1,7 @@
 import type {
   AccountBalance,
   AccountInstrumentDefaults,
+  AccountInstrumentDefaultWrite,
   CashMovement,
   CreateCashMovementInput,
   CreateTradingAccountInput,
@@ -30,6 +31,6 @@ export interface AccountStore {
   updateAccount(input: UpdateTradingAccountInput): TradingAccount;
   archiveAccount(id: string): TradingAccount;
   restoreArchivedAccount(id: string): TradingAccount;
-  saveDefaults(accountId: string, defaults: readonly AccountInstrumentDefaults[]): void;
+  saveDefaults(accountId: string, defaults: readonly AccountInstrumentDefaultWrite[]): void;
   updateCashMovement(input: UpdateCashMovementInput): CashMovement;
 }

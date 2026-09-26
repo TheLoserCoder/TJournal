@@ -6,7 +6,7 @@ export const DEFAULT_APPLICATION_SETTINGS: ApplicationSettingsDto = {
   languageMode: 'system',
   tableLayouts: [],
   themeMode: 'auto',
-  tradeSummary: { followTableFilters: false, metric: 'cash', period: 'all' },
+  tradeSummary: { followTableFilters: false, period: 'all' },
   statisticsView: {
     breakdownDimension: 'instrument',
     breakdownMetric: 'net-result',
@@ -37,7 +37,6 @@ export const applicationSettingsSchema = z.object({
   themeMode: z.enum(['auto', 'dark', 'light']),
   tradeSummary: z.object({
     followTableFilters: z.boolean(),
-    metric: z.enum(['cash', 'percent', 'r']),
     period: z.enum([
       'all',
       'current-day',

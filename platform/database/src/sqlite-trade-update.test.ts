@@ -113,6 +113,79 @@ describe('trade result rebinding', () => {
     }
   });
 
+  it('takes the calculation ticks from the account cost profile', () => {
+    const parentDirectory = createTemporaryDirectory();
+    const database = new SqliteVaultDatabase();
+    const storage = new SqliteJournalStorage(database);
+    const accounts = new SqliteAccountStore(database);
+    const trades = new SqliteTradeStore(database);
+    const tradeUnitOfWork = new SqliteTradeUnitOfWork(database);
+    const createTrade = new CreateTradeUseCase(
+      trades,
+      tradeUnitOfWork,
+      accounts,
+      undefined,
+      new SqliteInstrumentStore(database),
+    );
+
+    try {
+      storage.createVault(join(parentDirectory, 'journal'));
+      const instrument = new SqliteInstrumentStore(database).listInstruments()[0];
+      if (instrument === undefined) throw new Error('Seed instrument is missing.');
+      accounts.createAccount({
+        defaults: [
+          {
+            commissionUsd: '1',
+            instrumentId: instrument.id,
+            spreadTicks: '2',
+            tickSize: '0.25',
+            tickValueUsdPerLot: '12.5',
+          },
+        ],
+        id: 'tick-account',
+        name: 'Tick account',
+        openingBalanceUsd: '1000',
+      });
+
+      const created = createTrade.execute({
+        accountId: 'tick-account',
+        closedAt: TEST_CLOSED_AT,
+        direction: TRADE_DIRECTIONS.long,
+        execution: {
+          commissionUsd: '1',
+          entryPrice: '100',
+          exits: [
+            {
+              allocationKind: 'percent',
+              allocationValue: '100',
+              exitPrice: '101.25',
+              id: 'tick-exit',
+              order: 0,
+              reportedResultKind: null,
+              reportedResultValue: null,
+            },
+          ],
+          quantityLots: '1',
+          spreadTicks: '2',
+          stopLossPrice: null,
+        },
+        instrumentId: instrument.id,
+        resultKind: TRADE_RESULT_KINDS.cash,
+        resultValue: '0',
+      });
+
+      expect(created.execution?.instrumentSnapshot).toEqual({
+        tickSize: '0.25',
+        tickValueUsdPerLot: '12.5',
+      });
+      // 5 ticks * 12.5 USD gross, minus 2 ticks of spread * 12.5 and commission.
+      expect(created.netResultUsd).toBe('36.5');
+    } finally {
+      storage.close();
+      rmSync(parentDirectory, { force: true, recursive: true });
+    }
+  });
+
   it('persists normalized notes and explicit review status without rebasing finance snapshots', () => {
     const parentDirectory = createTemporaryDirectory();
     const vaultPath = join(parentDirectory, 'journal');

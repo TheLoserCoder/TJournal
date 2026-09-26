@@ -106,7 +106,9 @@ p {
   gap: var(--ref-space-1);
 }
 
-.navigation-item {
+/* Scoped to `.sidebar` so the base button rule (which centers its content)
+   cannot win the cascade over the left-aligned navigation row. */
+.sidebar .navigation-item {
   align-items: center;
   background: transparent;
   border-radius: var(--ref-radius-md);
@@ -126,24 +128,24 @@ p {
   width: 100%;
 }
 
-.navigation-item span {
+.sidebar .navigation-item span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.navigation-item svg {
+.sidebar .navigation-item svg {
   flex: 0 0 auto;
   height: 1.05rem;
   width: 1.05rem;
 }
 
-.navigation-item:hover {
+.sidebar .navigation-item:hover {
   background: var(--navigation-item-hover-background);
   color: var(--color-text-primary);
 }
 
-.navigation-item.active {
+.sidebar .navigation-item.active {
   background: var(--navigation-active-background);
   box-shadow: inset 0.125rem 0 0 0 var(--navigation-active-indicator);
   color: var(--navigation-active-foreground);
@@ -1229,9 +1231,11 @@ html[data-theme='dark'] input[type='time'].ui-text-field {
   background: var(--meter-neutral-background);
 }
 
-/* Win-rate donut: the compact circular readout of one exact percentage. The
-   matching exact value and label are always rendered next to it. */
-.ui-win-rate-ring {
+/* Compact donut readouts. The win-rate donut shows one exact percentage; the
+   result-share donut shows the same win/loss/break-even split as the statistics
+   page. Both keep their exact value and label rendered next to them. */
+.ui-win-rate-ring,
+.ui-result-share-ring {
   background-color: var(--meter-track-background);
   border-radius: 50%;
   display: inline-grid;
@@ -1242,7 +1246,8 @@ html[data-theme='dark'] input[type='time'].ui-text-field {
   width: 1.75rem;
 }
 
-.ui-win-rate-ring::after {
+.ui-win-rate-ring::after,
+.ui-result-share-ring::after {
   background: var(--metric-background);
   border-radius: 50%;
   content: '';
@@ -1504,10 +1509,12 @@ html[data-theme='dark'] input[type='time'].ui-text-field {
 
 .entity-default-row,
 .entity-defaults-columns {
+  --entity-default-columns: minmax(9rem, 1.2fr) minmax(6rem, 0.7fr) minmax(6rem, 0.7fr)
+    minmax(6rem, 0.7fr) minmax(7rem, 0.8fr) auto;
   align-items: end;
   display: grid;
   gap: var(--ref-space-2);
-  grid-template-columns: minmax(9rem, 1fr) minmax(6.5rem, 0.7fr) minmax(6.5rem, 0.7fr) auto;
+  grid-template-columns: var(--entity-default-columns);
 }
 
 /* The row owns its column widths: no control may push its neighbour. */
@@ -1528,9 +1535,8 @@ html[data-theme='dark'] input[type='time'].ui-text-field {
   font-size: 0.72rem;
   font-weight: 700;
   gap: var(--ref-space-2);
-  grid-template-columns: minmax(9rem, 1fr) minmax(6.5rem, 0.7fr) minmax(6.5rem, 0.7fr) auto;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  grid-template-columns: var(--entity-default-columns);
+  letter-spacing: normal;
 }
 
 .trade-execution-toggle,
@@ -1587,9 +1593,8 @@ html[data-theme='dark'] input[type='time'].ui-text-field {
   font-weight: 700;
   gap: var(--ref-space-2);
   grid-template-columns: var(--trade-exit-columns);
-  letter-spacing: 0.02em;
+  letter-spacing: normal;
   padding-inline: var(--ref-space-1);
-  text-transform: uppercase;
 }
 
 .trade-exit-rows {
@@ -1647,10 +1652,10 @@ html[data-theme='dark'] input[type='time'].ui-text-field {
   width: min(38rem, calc(100vw - 2 * var(--ref-space-4)));
 }
 
-/* The cost-profile editor needs four columns: asset, commission, spread, remove. */
+/* The cost-profile editor needs six columns: asset, commission, spread, tick size, tick value, remove. */
 .account-editor-dialog {
-  max-width: min(46rem, calc(100vw - 2 * var(--ref-space-4)));
-  width: min(46rem, calc(100vw - 2 * var(--ref-space-4)));
+  max-width: min(58rem, calc(100vw - 2 * var(--ref-space-4)));
+  width: min(58rem, calc(100vw - 2 * var(--ref-space-4)));
 }
 
 .asset-editor-dialog {
@@ -1713,12 +1718,12 @@ html[data-theme='dark'] input[type='time'].ui-text-field {
     display: inline;
   }
 
-  .navigation-item {
+  .sidebar .navigation-item {
     justify-content: center;
     padding-inline: var(--ref-space-2);
   }
 
-  .navigation-item span {
+  .sidebar .navigation-item span {
     display: none;
   }
 
@@ -2089,7 +2094,10 @@ html[data-theme='dark'] input[type='time'].ui-text-field {
   width: 0.75rem;
 }
 
+/* The tag picker is a form field, not a compact filter control: match the text
+   field and select height inside the trade details dialog. */
 .trade-tags-picker {
+  min-height: var(--ui-control-height);
   width: 100%;
 }
 

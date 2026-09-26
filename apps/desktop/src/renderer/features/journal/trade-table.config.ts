@@ -13,15 +13,53 @@ export const TRADE_TABLE_COLUMN_IDS = {
   assetCategory: 'assetCategory',
   closedAt: 'closedAt',
   closedAtTime: 'closedAtTime',
+  commissionUsd: 'commissionUsd',
   direction: 'direction',
+  entryPrice: 'entryPrice',
+  exitCount: 'exitCount',
   id: 'id',
+  notes: 'notes',
+  quantityLots: 'quantityLots',
   result: 'result',
   resultKind: 'resultKind',
+  reviewStatus: 'reviewStatus',
   selection: 'selection',
+  spreadTicks: 'spreadTicks',
+  stopLoss: 'stopLoss',
   tags: 'tags',
 } as const;
 export type TradeTableColumnId =
   (typeof TRADE_TABLE_COLUMN_IDS)[keyof typeof TRADE_TABLE_COLUMN_IDS];
+
+/**
+ * Renderer-owned names of the numeric detail filters. They mirror the module
+ * contract one-to-one and are validated by the IPC request schema.
+ */
+export const TRADE_DETAIL_NUMERIC_FIELDS = {
+  commission: 'commission',
+  entryPrice: 'entryPrice',
+  exitCount: 'exitCount',
+  quantity: 'quantity',
+  spread: 'spread',
+  stopLoss: 'stopLoss',
+} as const;
+export type TradeDetailNumericField =
+  (typeof TRADE_DETAIL_NUMERIC_FIELDS)[keyof typeof TRADE_DETAIL_NUMERIC_FIELDS];
+
+/** Which detail numeric bound a table column edits; absent for other columns. */
+export const TRADE_DETAIL_COLUMN_FIELDS: Readonly<
+  Partial<Record<TradeTableColumnId, TradeDetailNumericField>>
+> = {
+  [TRADE_TABLE_COLUMN_IDS.commissionUsd]: TRADE_DETAIL_NUMERIC_FIELDS.commission,
+  [TRADE_TABLE_COLUMN_IDS.entryPrice]: TRADE_DETAIL_NUMERIC_FIELDS.entryPrice,
+  [TRADE_TABLE_COLUMN_IDS.exitCount]: TRADE_DETAIL_NUMERIC_FIELDS.exitCount,
+  [TRADE_TABLE_COLUMN_IDS.quantityLots]: TRADE_DETAIL_NUMERIC_FIELDS.quantity,
+  [TRADE_TABLE_COLUMN_IDS.spreadTicks]: TRADE_DETAIL_NUMERIC_FIELDS.spread,
+  [TRADE_TABLE_COLUMN_IDS.stopLoss]: TRADE_DETAIL_NUMERIC_FIELDS.stopLoss,
+};
+
+export const TRADE_NOTE_PRESENCE = { entry: 'entry', review: 'review' } as const;
+export type TradeNotePresence = (typeof TRADE_NOTE_PRESENCE)[keyof typeof TRADE_NOTE_PRESENCE];
 
 export const TRADE_RESULT_FILTERS = {
   all: 'all',
@@ -43,10 +81,18 @@ export const TRADE_TABLE_FILTER_SCHEMAS: Readonly<
   [TRADE_TABLE_COLUMN_IDS.assetCategory]: { kind: 'multi-select' },
   [TRADE_TABLE_COLUMN_IDS.closedAt]: { kind: 'date-range' },
   [TRADE_TABLE_COLUMN_IDS.closedAtTime]: { kind: 'datetime-range' },
+  [TRADE_TABLE_COLUMN_IDS.commissionUsd]: { kind: 'number', unitLabel: 'USD' },
   [TRADE_TABLE_COLUMN_IDS.direction]: { kind: 'multi-select' },
+  [TRADE_TABLE_COLUMN_IDS.entryPrice]: { kind: 'number' },
+  [TRADE_TABLE_COLUMN_IDS.exitCount]: { kind: 'number' },
   [TRADE_TABLE_COLUMN_IDS.id]: { kind: 'text' },
+  [TRADE_TABLE_COLUMN_IDS.notes]: { kind: 'multi-select' },
+  [TRADE_TABLE_COLUMN_IDS.quantityLots]: { kind: 'number' },
   [TRADE_TABLE_COLUMN_IDS.result]: { kind: 'number', unitLabel: 'USD' },
   [TRADE_TABLE_COLUMN_IDS.resultKind]: { kind: 'multi-select' },
+  [TRADE_TABLE_COLUMN_IDS.reviewStatus]: { kind: 'multi-select' },
+  [TRADE_TABLE_COLUMN_IDS.spreadTicks]: { kind: 'number' },
+  [TRADE_TABLE_COLUMN_IDS.stopLoss]: { kind: 'number' },
   [TRADE_TABLE_COLUMN_IDS.tags]: { kind: 'multi-select' },
 };
 
@@ -56,10 +102,18 @@ const DATA_COLUMN_IDS = [
   TRADE_TABLE_COLUMN_IDS.assetCategory,
   TRADE_TABLE_COLUMN_IDS.closedAt,
   TRADE_TABLE_COLUMN_IDS.closedAtTime,
+  TRADE_TABLE_COLUMN_IDS.commissionUsd,
   TRADE_TABLE_COLUMN_IDS.direction,
+  TRADE_TABLE_COLUMN_IDS.entryPrice,
+  TRADE_TABLE_COLUMN_IDS.exitCount,
   TRADE_TABLE_COLUMN_IDS.id,
+  TRADE_TABLE_COLUMN_IDS.notes,
+  TRADE_TABLE_COLUMN_IDS.quantityLots,
   TRADE_TABLE_COLUMN_IDS.result,
   TRADE_TABLE_COLUMN_IDS.resultKind,
+  TRADE_TABLE_COLUMN_IDS.reviewStatus,
+  TRADE_TABLE_COLUMN_IDS.spreadTicks,
+  TRADE_TABLE_COLUMN_IDS.stopLoss,
   TRADE_TABLE_COLUMN_IDS.tags,
 ] as const;
 
@@ -76,15 +130,30 @@ export const TRADE_TABLE_COLUMN_SIZE_LIMITS = {
 /** Fixed row height for windowed rendering; must match the `--table-row-height` token. */
 export const TRADE_TABLE_ROW_HEIGHT = 48;
 
+const DETAIL_COLUMN_WIDTH = 120;
+const ASSET_CATEGORY_COLUMN_WIDTH = 110;
+
+/**
+ * Canonical column order. The visible defaults follow the requested workspace
+ * reading order: asset, result, entry type, asset type, tags, account, date.
+ */
 export const DEFAULT_TRADE_TABLE_COLUMNS: readonly TableColumnLayoutDto[] = [
-  { id: TRADE_TABLE_COLUMN_IDS.result, visible: true, width: DEFAULT_COLUMN_WIDTH },
   { id: TRADE_TABLE_COLUMN_IDS.asset, visible: true, width: DEFAULT_COLUMN_WIDTH },
-  { id: TRADE_TABLE_COLUMN_IDS.tags, visible: true, width: TAGS_COLUMN_WIDTH },
-  { id: TRADE_TABLE_COLUMN_IDS.assetCategory, visible: false, width: NARROW_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.result, visible: true, width: DEFAULT_COLUMN_WIDTH },
   { id: TRADE_TABLE_COLUMN_IDS.direction, visible: true, width: NARROW_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.assetCategory, visible: true, width: ASSET_CATEGORY_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.tags, visible: true, width: TAGS_COLUMN_WIDTH },
   { id: TRADE_TABLE_COLUMN_IDS.account, visible: true, width: DEFAULT_COLUMN_WIDTH },
   { id: TRADE_TABLE_COLUMN_IDS.closedAt, visible: true, width: DEFAULT_COLUMN_WIDTH },
   { id: TRADE_TABLE_COLUMN_IDS.closedAtTime, visible: false, width: DEFAULT_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.entryPrice, visible: false, width: DETAIL_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.stopLoss, visible: false, width: DETAIL_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.quantityLots, visible: false, width: DETAIL_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.commissionUsd, visible: false, width: DETAIL_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.spreadTicks, visible: false, width: DETAIL_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.exitCount, visible: false, width: NARROW_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.reviewStatus, visible: false, width: DEFAULT_COLUMN_WIDTH },
+  { id: TRADE_TABLE_COLUMN_IDS.notes, visible: false, width: DEFAULT_COLUMN_WIDTH },
   { id: TRADE_TABLE_COLUMN_IDS.resultKind, visible: false, width: NARROW_COLUMN_WIDTH },
   { id: TRADE_TABLE_COLUMN_IDS.id, visible: false, width: WIDE_COLUMN_WIDTH },
 ];
@@ -108,13 +177,21 @@ export const DEFAULT_TRADE_TABLE_MODE: TableDisplayMode = 'compact';
 const COMPACT_VISIBILITY: Readonly<Record<string, boolean>> = {
   [TRADE_TABLE_COLUMN_IDS.account]: true,
   [TRADE_TABLE_COLUMN_IDS.asset]: true,
-  [TRADE_TABLE_COLUMN_IDS.assetCategory]: false,
+  [TRADE_TABLE_COLUMN_IDS.assetCategory]: true,
   [TRADE_TABLE_COLUMN_IDS.closedAt]: true,
   [TRADE_TABLE_COLUMN_IDS.closedAtTime]: false,
+  [TRADE_TABLE_COLUMN_IDS.commissionUsd]: false,
   [TRADE_TABLE_COLUMN_IDS.direction]: true,
+  [TRADE_TABLE_COLUMN_IDS.entryPrice]: false,
+  [TRADE_TABLE_COLUMN_IDS.exitCount]: false,
   [TRADE_TABLE_COLUMN_IDS.id]: false,
+  [TRADE_TABLE_COLUMN_IDS.notes]: false,
+  [TRADE_TABLE_COLUMN_IDS.quantityLots]: false,
   [TRADE_TABLE_COLUMN_IDS.result]: true,
   [TRADE_TABLE_COLUMN_IDS.resultKind]: false,
+  [TRADE_TABLE_COLUMN_IDS.reviewStatus]: false,
+  [TRADE_TABLE_COLUMN_IDS.spreadTicks]: false,
+  [TRADE_TABLE_COLUMN_IDS.stopLoss]: false,
   [TRADE_TABLE_COLUMN_IDS.tags]: true,
 };
 
@@ -124,10 +201,18 @@ const ADVANCED_VISIBILITY: Readonly<Record<string, boolean>> = {
   [TRADE_TABLE_COLUMN_IDS.assetCategory]: true,
   [TRADE_TABLE_COLUMN_IDS.closedAt]: false,
   [TRADE_TABLE_COLUMN_IDS.closedAtTime]: true,
+  [TRADE_TABLE_COLUMN_IDS.commissionUsd]: true,
   [TRADE_TABLE_COLUMN_IDS.direction]: true,
+  [TRADE_TABLE_COLUMN_IDS.entryPrice]: true,
+  [TRADE_TABLE_COLUMN_IDS.exitCount]: true,
   [TRADE_TABLE_COLUMN_IDS.id]: true,
+  [TRADE_TABLE_COLUMN_IDS.notes]: true,
+  [TRADE_TABLE_COLUMN_IDS.quantityLots]: true,
   [TRADE_TABLE_COLUMN_IDS.result]: true,
   [TRADE_TABLE_COLUMN_IDS.resultKind]: true,
+  [TRADE_TABLE_COLUMN_IDS.reviewStatus]: true,
+  [TRADE_TABLE_COLUMN_IDS.spreadTicks]: true,
+  [TRADE_TABLE_COLUMN_IDS.stopLoss]: true,
   [TRADE_TABLE_COLUMN_IDS.tags]: true,
 };
 

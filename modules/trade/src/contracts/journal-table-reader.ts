@@ -1,6 +1,6 @@
 import type { InstrumentCategory } from '@tjournal/instrument';
 
-import type { ClosedTrade, TradeResultKind } from '../domain/trade';
+import type { ClosedTrade, TradeResultKind, TradeReviewStatus } from '../domain/trade';
 
 export const JOURNAL_TABLE_SORT_FIELDS = {
   account: 'account',
@@ -42,6 +42,26 @@ export interface JournalTableResultBounds {
   readonly mode: NumberBoundMode;
 }
 
+/**
+ * Optional numeric detail columns a trade row exposes without loading the
+ * execution aggregate. Each one can carry its own exact Decimal bounds.
+ */
+export const JOURNAL_TABLE_DETAIL_NUMERIC_FIELDS = {
+  commission: 'commission',
+  entryPrice: 'entryPrice',
+  exitCount: 'exitCount',
+  quantity: 'quantity',
+  spread: 'spread',
+  stopLoss: 'stopLoss',
+} as const;
+export type JournalTableDetailNumericField =
+  (typeof JOURNAL_TABLE_DETAIL_NUMERIC_FIELDS)[keyof typeof JOURNAL_TABLE_DETAIL_NUMERIC_FIELDS];
+
+/** Presence of the qualitative notes, used by the notes filter. */
+export const JOURNAL_TABLE_NOTE_PRESENCE = { entry: 'entry', review: 'review' } as const;
+export type JournalTableNotePresence =
+  (typeof JOURNAL_TABLE_NOTE_PRESENCE)[keyof typeof JOURNAL_TABLE_NOTE_PRESENCE];
+
 export interface JournalTableFilters {
   readonly accountIds: readonly string[];
   readonly categories: readonly InstrumentCategory[];
@@ -49,15 +69,22 @@ export interface JournalTableFilters {
   readonly closedFromDate: string | null;
   /** `YYYY-MM-DD` UTC date, inclusive. */
   readonly closedToDate: string | null;
+  /** Exact Decimal bounds per detail column; a missing key means no filter. */
+  readonly detailBounds: Readonly<
+    Partial<Record<JournalTableDetailNumericField, JournalTableResultBounds>>
+  > | null;
   readonly entryKinds: readonly JournalTableEntryKind[];
   readonly includeUntagged: boolean;
   readonly includeUnassigned: boolean;
   readonly instrumentIds: readonly string[];
+  /** Requires at least one of the selected notes to be present. */
+  readonly notePresence: readonly JournalTableNotePresence[];
   /** ISO instant, inclusive; mirrors the existing date-time range filter. */
   readonly occurredFrom: string | null;
   readonly occurredTo: string | null;
   readonly resultBounds: JournalTableResultBounds | null;
   readonly resultUnits: readonly TradeResultKind[];
+  readonly reviewStatuses: readonly TradeReviewStatus[];
   readonly tagIds: readonly string[];
   /** Case-insensitive substring match on row identifiers and trade notes. */
   readonly textQuery: string | null;
@@ -81,11 +108,29 @@ export interface JournalTableMovementRow {
   readonly occurredAt: string;
 }
 
-/** Lean table row; execution and qualitative notes are loaded only for details. */
+/**
+ * Bounded detail projection of a trade row: scalar execution fields, the exit
+ * count and note presence are safe to send with a page, while the full
+ * execution aggregate and the note contents still require the point lookup.
+ */
+export interface JournalTableTradeDetails {
+  readonly commissionUsd: string | null;
+  readonly entryPrice: string | null;
+  readonly exitCount: number;
+  readonly hasEntryNote: boolean;
+  readonly hasReviewNote: boolean;
+  readonly quantityLots: string | null;
+  readonly reviewStatus: TradeReviewStatus;
+  readonly spreadTicks: string | null;
+  readonly stopLossPrice: string | null;
+}
+
+/** Lean table row; note contents and the full execution aggregate stay out. */
 export type JournalTableTradeRow = Omit<
   ClosedTrade,
   'entryNote' | 'execution' | 'reviewNote' | 'reviewStatus'
->;
+> &
+  JournalTableTradeDetails;
 
 export interface JournalTableTradeSource {
   getJournalTableTradesByIds(ids: readonly string[]): readonly JournalTableTradeRow[];

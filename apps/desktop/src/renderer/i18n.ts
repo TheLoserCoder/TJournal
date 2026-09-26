@@ -95,6 +95,8 @@ const resources = {
         exitVolume: 'Closed volume',
         exitResult: 'Manual exit result',
         exitResultShort: 'Manual result',
+        exitCount: 'Exits',
+        notes: 'Notes',
         language: 'Language',
         result: 'Result',
         partialClosures: 'Partial closures',
@@ -137,6 +139,8 @@ const resources = {
         defaultsLoading: 'Loading commission and spread profiles…',
         defaultsLoadFailed:
           'Saved commission and spread profiles could not be loaded. Saving is disabled so they are not replaced with an empty list.',
+        validationFailed: 'Check the account details.',
+        invalidOpeningBalance: 'Enter a non-negative amount using digits and a decimal point.',
         uncoveredWarning: 'Known balance is incomplete: {{count}} trade(s) are uncovered.',
       },
       catalog: {
@@ -464,6 +468,8 @@ const resources = {
         exitVolume: 'Закрытый объём',
         exitResult: 'Ручной результат выхода',
         exitResultShort: 'Ручной результат',
+        exitCount: 'Выходы',
+        notes: 'Заметки',
         language: 'Язык',
         result: 'Результат',
         partialClosures: 'Частичные закрытия',
@@ -505,6 +511,8 @@ const resources = {
         defaultsLoading: 'Загрузка профилей комиссий и спреда…',
         defaultsLoadFailed:
           'Не удалось загрузить сохранённые профили комиссий и спреда. Сохранение отключено, чтобы не заменить их пустым списком.',
+        validationFailed: 'Проверьте данные счёта.',
+        invalidOpeningBalance: 'Введите неотрицательную сумму цифрами, при необходимости с точкой.',
         uncoveredWarning: 'Известный баланс неполный: непокрытых сделок — {{count}}.',
       },
       catalog: {

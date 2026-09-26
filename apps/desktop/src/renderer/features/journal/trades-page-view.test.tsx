@@ -4,7 +4,7 @@ import { I18nextProvider } from 'react-i18next';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { CashMovementDto, TradeDto } from '../../../shared/desktop-api';
+import type { CashMovementDto, JournalPageTradeDto } from '../../../shared/desktop-api';
 import { i18n } from '../../i18n';
 import { TRANSLATION_KEYS } from '../../i18n-keys';
 import { createEmptyNumberFilterState } from '../../components/ui/number-filter-state';
@@ -17,21 +17,26 @@ import { TradesPageView } from './trades-page-view';
 const TEST_COLUMNS: readonly LegacyColumnDef<JournalEntryRow>[] = [
   { accessorFn: (entry) => entry.id, header: 'Entry', id: 'entry', size: 200 },
 ];
-const TEST_TRADE: TradeDto = {
+const TEST_TRADE: JournalPageTradeDto = {
   account: null,
   closedAt: '2026-09-13T12:00:00.000Z',
+  commissionUsd: null,
   direction: 'long',
-  entryNote: null,
-  execution: null,
+  entryPrice: null,
+  exitCount: 0,
+  hasEntryNote: false,
+  hasReviewNote: false,
   id: 'trade-1',
   instrumentId: 'instrument-1',
   instrumentSymbol: 'EURUSD',
+  quantityLots: null,
   resultKind: 'cash',
   resultSource: 'manual',
   resultValue: '100',
-  reviewNote: null,
   reviewStatus: 'unreviewed',
   riskBindingSnapshot: null,
+  spreadTicks: null,
+  stopLossPrice: null,
   tagIds: [],
 };
 const TEST_MOVEMENT: CashMovementDto = {
@@ -60,12 +65,15 @@ const createFilters = (): TradesTablePresenter['filters'] => ({
   dateFrom: '',
   dateTo: '',
   dateTimeRange: createEmptyDateTimeRangeFilterState(),
+  detailBounds: {},
   entryFilterOptions: [],
   entryFilters: [],
+  notePresence: [],
   reset: vi.fn(),
   resultBounds: createEmptyNumberFilterState(),
   resultUnit: 'all',
   resultUnitOptions: [],
+  reviewStatuses: [],
   setAccountFilterIds: vi.fn(),
   setAccountIncludeUnassigned: vi.fn(),
   setAssetCategoryFilters: vi.fn(),
@@ -73,9 +81,12 @@ const createFilters = (): TradesTablePresenter['filters'] => ({
   setDateFrom: vi.fn(),
   setDateTo: vi.fn(),
   setDateTimeRange: vi.fn(),
+  setDetailBounds: vi.fn(),
   setEntryFilters: vi.fn(),
+  setNotePresence: vi.fn(),
   setResultBounds: vi.fn(),
   setResultUnit: vi.fn(),
+  setReviewStatuses: vi.fn(),
   setTagFilterIds: vi.fn(),
   setTagIncludeUntagged: vi.fn(),
   setTextQuery: vi.fn(),
@@ -129,11 +140,9 @@ const createTablePresenter = (
 const createSummaryPresenter = (): TradeSummaryPresenter => ({
   closeSettings: vi.fn(),
   followTableFilters: false,
-  metric: 'cash',
   openSettings: vi.fn(),
   period: 'all',
   setFollowTableFilters: vi.fn(),
-  setMetric: vi.fn(),
   setPeriod: vi.fn(),
   settingsOpen: false,
   summary: null,
@@ -147,8 +156,9 @@ interface TradesHarnessOptions {
   readonly onEditTrade?: (tradeId: string) => void;
   readonly overrides?: Partial<TradesTablePresenter>;
   readonly percentBaseUsd?: string | null;
-  readonly resultKind?: TradeDto['resultKind'];
+  readonly resultKind?: JournalPageTradeDto['resultKind'];
   readonly resultPreviewUsd?: string | null;
+  readonly resultValue?: string;
   readonly symbol?: string;
 }
 
@@ -161,6 +171,7 @@ const TradesHarness = ({
   percentBaseUsd = null,
   resultKind = 'cash',
   resultPreviewUsd = null,
+  resultValue = '',
   symbol = '',
 }: TradesHarnessOptions): ReactElement => {
   const table = useLegacyTable({
@@ -200,7 +211,7 @@ const TradesHarness = ({
         percentBaseUsd={percentBaseUsd}
         resultKind={resultKind}
         resultPreviewUsd={resultPreviewUsd}
-        resultValue=""
+        resultValue={resultValue}
         summaryPresenter={createSummaryPresenter()}
         symbol={symbol}
         tagIds={[]}
@@ -371,13 +382,24 @@ describe('TradesPageView action layers', () => {
     expect(document.querySelector('.quick-entry-control-tags')).toBeNull();
   });
 
-  it('disables Add while a trade has no asset and enables it with a symbol', () => {
+  it('disables Add until both the asset and the result are present', () => {
+    const addButton = (): HTMLElement =>
+      screen.getByRole('button', { name: i18n.t(TRANSLATION_KEYS.actionAdd) });
+
     renderTrades({ accountId: 'account-1' });
-    expect(screen.getByRole('button', { name: i18n.t(TRANSLATION_KEYS.actionAdd) })).toBeDisabled();
+    expect(addButton()).toBeDisabled();
 
     cleanup();
     renderTrades({ accountId: 'account-1', symbol: 'EURUSD' });
-    expect(screen.getByRole('button', { name: i18n.t(TRANSLATION_KEYS.actionAdd) })).toBeEnabled();
+    expect(addButton()).toBeDisabled();
+
+    cleanup();
+    renderTrades({ accountId: 'account-1', resultValue: '25' });
+    expect(addButton()).toBeDisabled();
+
+    cleanup();
+    renderTrades({ accountId: 'account-1', symbol: 'EURUSD', resultValue: '25' });
+    expect(addButton()).toBeEnabled();
   });
 
   it('keeps the percent base out of the under-toolbar feedback', () => {

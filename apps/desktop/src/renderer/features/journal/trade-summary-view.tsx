@@ -15,7 +15,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { TRANSLATION_KEYS } from '../../i18n-keys';
-import { WinRateRing } from '../../components/charts/win-rate-ring';
+import { ResultShareRing } from '../../components/charts/result-share-ring';
 import { IconButton } from '../../components/ui/icon-button';
 import { Tooltip } from '../../components/ui/tooltip';
 import type { TradeSummaryPresenter } from './use-trade-summary-presenter';
@@ -29,8 +29,12 @@ interface SummaryMetric {
   readonly emphasis: SummaryEmphasis;
   readonly label: string;
   readonly marker?: string;
-  /** Optional exact percentage shown as a compact win-rate donut. */
-  readonly ring?: number;
+  /** Optional win/loss/break-even split shown as a compact distribution donut. */
+  readonly resultShare?: {
+    readonly losing: number;
+    readonly neutral: number;
+    readonly winning: number;
+  };
   readonly suffix?: string;
   readonly tone: SummaryTone;
   readonly tooltip?: string;
@@ -69,7 +73,7 @@ const renderMetric = (metric: SummaryMetric, translate: (key: string) => string)
       </span>
       <span className="trade-summary-value">
         {metric.tooltip === undefined ? value : <Tooltip content={metric.tooltip}>{value}</Tooltip>}
-        {metric.ring !== undefined && <WinRateRing value={metric.ring} />}
+        {metric.resultShare !== undefined && <ResultShareRing {...metric.resultShare} />}
       </span>
     </div>
   );
@@ -127,7 +131,17 @@ export const TradeSummaryView = ({
       Icon: Target,
       emphasis: 'hero',
       label: TRANSLATION_KEYS.statisticsWinRate,
-      ring: summary.winRate === null ? undefined : Number(summary.winRate),
+      resultShare:
+        summary.winRate === null ||
+        summary.winningTrades === null ||
+        summary.losingTrades === null ||
+        summary.neutralTrades === null
+          ? undefined
+          : {
+              losing: summary.losingTrades,
+              neutral: summary.neutralTrades,
+              winning: summary.winningTrades,
+            },
       suffix: '%',
       tone: 'accent',
       value: summary.winRate === null ? '—' : formatDecimalString(summary.winRate, language),
@@ -170,7 +184,8 @@ export const TradeSummaryView = ({
       Icon: Star,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsBestAsset,
-      tone: 'neutral',
+      // Positive tone is reserved for a real leader; an absent highlight stays neutral.
+      tone: summary.bestInstrument === null ? 'neutral' : 'positive',
       tooltip: summary.bestInstrument ?? undefined,
       value: summary.bestInstrument ?? '—',
     },
@@ -178,7 +193,7 @@ export const TradeSummaryView = ({
       Icon: TriangleAlert,
       emphasis: 'supporting',
       label: TRANSLATION_KEYS.statisticsWorstAsset,
-      tone: 'neutral',
+      tone: summary.worstInstrument === null ? 'neutral' : 'negative',
       tooltip: summary.worstInstrument ?? undefined,
       value: summary.worstInstrument ?? '—',
     },

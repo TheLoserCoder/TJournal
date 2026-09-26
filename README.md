@@ -6,11 +6,11 @@ desktop, future mobile and optional server adapters separate from the domain.
 
 ## Status
 
-The v1 feature set is implemented and passes the automated gates (`pnpm check`,
-`pnpm test:e2e`, `pnpm format:check`, `pnpm build`). Release hardening is still open: the
-installer is not signed or distributed, and the interactive Electron acceptance pass belongs to
-the owner. See [docs/roadmap/tasks.md](docs/roadmap/tasks.md) for per-task status and
-[docs/product/scope-v1.md](docs/product/scope-v1.md) for what v1 deliberately does not include.
+The v1 feature set is implemented. Release acceptance, installer verification and publication
+are tracked in [Task Master](.taskmaster/tasks/tasks.json) (task #12); the installer is not yet
+distributed. The first public Windows v1 release is planned as an unsigned GitHub Releases
+artifact ([ADR-0018](docs/adr/0018-unsigned-windows-v1-distribution.md)).
+[Product scope](docs/product/scope-v1.md) records what v1 deliberately does not include.
 
 ## What it does
 
@@ -65,7 +65,7 @@ pnpm clean            # remove TypeScript build outputs
 | Coding rules, testing, tooling    | [docs/engineering](docs/engineering)                                                                                                                  |
 | Query and analytics performance   | [docs/engineering/query-performance.md](docs/engineering/query-performance.md), [analytics-performance.md](docs/engineering/analytics-performance.md) |
 | Backup and disaster recovery      | [docs/engineering/backup-recovery.md](docs/engineering/backup-recovery.md)                                                                            |
-| Roadmap and task status           | [docs/roadmap](docs/roadmap)                                                                                                                          |
+| Current tasks and release status  | [Task Master](.taskmaster/tasks/tasks.json); [historical roadmap](docs/roadmap/tasks.md)                                                              |
 | Confirmed defects and regressions | [docs/bugs/README.md](docs/bugs/README.md)                                                                                                            |
 
 Read [AGENTS.md](AGENTS.md) before making changes.

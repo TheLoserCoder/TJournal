@@ -12,6 +12,7 @@ import {
   classifyTradeResult,
   getTradeMetricValue,
 } from './assess-trade-result';
+import type { TradeSummaryFact } from './contracts/trade-summary-fact-source';
 
 export const SUMMARY_PERIODS = {
   all: 'all',
@@ -58,6 +59,8 @@ export interface TradeSummary {
   readonly worstInstrument: string | null;
 }
 
+type SummaryFilters = NonNullable<TradeSummaryQuery['filters']>;
+
 const startOfPeriod = (period: SummaryPeriod, now: Date): Date | null => {
   if (period === SUMMARY_PERIODS.all) return null;
   const start = new Date(now);
@@ -75,75 +78,89 @@ const startOfPeriod = (period: SummaryPeriod, now: Date): Date | null => {
   return start;
 };
 
-export const calculateTradeSummary = (
-  trades: readonly ClosedTrade[],
+const matchesSummaryFilters = (trade: TradeSummaryFact, filters: SummaryFilters): boolean => {
+  if (filters.instrumentIds !== null && !filters.instrumentIds.includes(trade.instrumentId)) {
+    return false;
+  }
+  if (filters.resultKinds !== null && !filters.resultKinds.includes(trade.resultKind)) {
+    return false;
+  }
+  if (filters.resultUnits != null) {
+    const unit = trade.inputResultKind ?? trade.resultKind;
+    if (!filters.resultUnits.includes(unit)) return false;
+  }
+  if (filters.entryKinds != null && !filters.entryKinds.includes('trade')) return false;
+  if (filters.textQuery != null && filters.textQuery !== '') {
+    if (!trade.id.toUpperCase().includes(filters.textQuery.toUpperCase())) return false;
+  }
+  if (filters.netResultBounds != null) {
+    const { minimum, maximum } = filters.netResultBounds;
+    if (minimum !== null || maximum !== null) {
+      const value = getTradeMetricValue(trade, TRADE_RESULT_KINDS.cash);
+      if (value === null) return false;
+      if (minimum !== null && maximum !== null && minimum === maximum) {
+        if (!value.equals(new Decimal(minimum))) return false;
+      } else {
+        if (minimum !== null && value.lessThan(new Decimal(minimum))) return false;
+        if (maximum !== null && value.greaterThan(new Decimal(maximum))) return false;
+      }
+    }
+  }
+  if (filters.accountIds !== undefined && filters.accountIds !== null) {
+    const assigned = trade.account?.accountId;
+    const matchesAccount = assigned !== undefined && filters.accountIds.includes(assigned);
+    const matchesUnassigned =
+      filters.includeUnassigned === true && (assigned === undefined || assigned === null);
+    if (!matchesAccount && !matchesUnassigned) return false;
+  }
+  const closedAt = new Date(trade.closedAt).getTime();
+  if (filters.closedFrom !== null && closedAt < new Date(filters.closedFrom).getTime()) {
+    return false;
+  }
+  if (filters.closedTo !== null && closedAt > new Date(filters.closedTo).getTime()) return false;
+  return true;
+};
+
+/**
+ * Builds a trade summary from a single streaming pass. Only running counters,
+ * one Decimal total and a per-instrument map are retained, so the journal size
+ * does not determine the memory held by a summary.
+ */
+export const summarizeTradeFacts = (
+  facts: Iterable<TradeSummaryFact>,
   query: TradeSummaryQuery,
 ): TradeSummary => {
   const start = startOfPeriod(query.period, query.now);
-  const periodTrades =
-    start === null
-      ? trades
-      : trades.filter((trade) => new Date(trade.closedAt).getTime() >= start.getTime());
-  const filteredTrades = periodTrades.filter((trade) => {
-    const filters = query.filters;
-    if (filters === undefined || filters === null) return true;
-    if (filters.instrumentIds !== null && !filters.instrumentIds.includes(trade.instrumentId)) {
-      return false;
-    }
-    if (filters.resultKinds !== null && !filters.resultKinds.includes(trade.resultKind)) {
-      return false;
-    }
-    if (filters.resultUnits != null) {
-      const unit = trade.inputResultKind ?? trade.resultKind;
-      if (!filters.resultUnits.includes(unit)) return false;
-    }
-    if (filters.entryKinds != null && !filters.entryKinds.includes('trade')) return false;
-    if (filters.textQuery != null && filters.textQuery !== '') {
-      if (!trade.id.toUpperCase().includes(filters.textQuery.toUpperCase())) return false;
-    }
-    if (filters.netResultBounds != null) {
-      const { minimum, maximum } = filters.netResultBounds;
-      if (minimum !== null || maximum !== null) {
-        const value = getTradeMetricValue(trade, TRADE_RESULT_KINDS.cash);
-        if (value === null) return false;
-        if (minimum !== null && maximum !== null && minimum === maximum) {
-          if (!value.equals(new Decimal(minimum))) return false;
-        } else {
-          if (minimum !== null && value.lessThan(new Decimal(minimum))) return false;
-          if (maximum !== null && value.greaterThan(new Decimal(maximum))) return false;
-        }
-      }
-    }
-    if (filters.accountIds !== undefined && filters.accountIds !== null) {
-      const assigned = trade.account?.accountId;
-      const matchesAccount = assigned !== undefined && filters.accountIds.includes(assigned);
-      const matchesUnassigned =
-        filters.includeUnassigned === true && (assigned === undefined || assigned === null);
-      if (!matchesAccount && !matchesUnassigned) return false;
-    }
-    const closedAt = new Date(trade.closedAt).getTime();
-    if (filters.closedFrom !== null && closedAt < new Date(filters.closedFrom).getTime()) {
-      return false;
-    }
-    if (filters.closedTo !== null && closedAt > new Date(filters.closedTo).getTime()) return false;
-    return true;
-  });
-  const values = filteredTrades.flatMap((trade) => {
+  const startTime = start === null ? null : start.getTime();
+  const filters = query.filters ?? null;
+
+  let totalTrades = 0;
+  let coveredTrades = 0;
+  let winningTrades = 0;
+  let losingTrades = 0;
+  let neutralTrades = 0;
+  let total = new Decimal(0);
+  const byInstrument = new Map<string, { symbol: string; total: Decimal }>();
+
+  for (const trade of facts) {
+    if (startTime !== null && new Date(trade.closedAt).getTime() < startTime) continue;
+    if (filters !== null && !matchesSummaryFilters(trade, filters)) continue;
+    totalTrades += 1;
     const value = getTradeMetricValue(trade, query.metric);
     const tone = classifyTradeResult(trade, query);
-    return value === null || tone === null
-      ? []
-      : [{ instrumentId: trade.instrumentId, symbol: trade.instrumentSymbol, tone, value }];
-  });
-  const total = values.reduce((sum, item) => sum.plus(item.value), new Decimal(0));
-  const byInstrument = new Map<string, { symbol: string; total: Decimal }>();
-  for (const item of values) {
-    const previous = byInstrument.get(item.instrumentId);
-    byInstrument.set(item.instrumentId, {
-      symbol: item.symbol,
-      total: (previous?.total ?? new Decimal(0)).plus(item.value),
+    if (value === null || tone === null) continue;
+    coveredTrades += 1;
+    total = total.plus(value);
+    if (tone === TRADE_RESULT_TONES.positive) winningTrades += 1;
+    else if (tone === TRADE_RESULT_TONES.negative) losingTrades += 1;
+    else neutralTrades += 1;
+    const previous = byInstrument.get(trade.instrumentId);
+    byInstrument.set(trade.instrumentId, {
+      symbol: trade.instrumentSymbol,
+      total: (previous?.total ?? new Decimal(0)).plus(value),
     });
   }
+
   const ordered = [...byInstrument].sort(([leftId, left], [rightId, right]) => {
     const comparison = right.total.comparedTo(left.total);
     return comparison === 0
@@ -153,21 +170,22 @@ export const calculateTradeSummary = (
   const bestInstrument = ordered.find(([, value]) => value.total.isPositive())?.[1].symbol ?? null;
   const worstInstrument =
     [...ordered].reverse().find(([, value]) => value.total.isNegative())?.[1].symbol ?? null;
-
-  const winningTrades = values.filter(({ tone }) => tone === TRADE_RESULT_TONES.positive).length;
-  const losingTrades = values.filter(({ tone }) => tone === TRADE_RESULT_TONES.negative).length;
-  const neutralTrades = values.length - winningTrades - losingTrades;
   const decided = winningTrades + losingTrades;
 
   return {
     bestInstrument,
-    coveredTrades: values.length,
+    coveredTrades,
     losingTrades,
     neutralTrades,
-    totalResult: values.length === 0 ? null : total.toString(),
-    totalTrades: filteredTrades.length,
+    totalResult: coveredTrades === 0 ? null : total.toString(),
+    totalTrades,
     winRate: decided === 0 ? null : new Decimal(winningTrades).div(decided).mul(100).toString(),
     winningTrades,
     worstInstrument,
   };
 };
+
+export const calculateTradeSummary = (
+  trades: readonly ClosedTrade[],
+  query: TradeSummaryQuery,
+): TradeSummary => summarizeTradeFacts(trades, query);

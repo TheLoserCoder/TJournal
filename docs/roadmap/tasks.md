@@ -1,5 +1,7 @@
 # Задачи
 
+> Исторический журнал FND-001–FND-032. Новые задачи, текущие статусы и незакрытые проверки ведутся в проектном Task Master (`.taskmaster/tasks/tasks.json`); см. `docs/engineering/tooling.md`. Записи ниже не являются актуальной очередью задач.
+
 ## FND-001 — Базовый шаблон проекта
 
 - Status: Done
@@ -267,6 +269,17 @@
 - Documentation: ADR-0008 (Amendment 2026-09-24 FND-031), `docs/architecture/design-system.md` (палитра, кольцо, условные треки, tooltip, протокол контраста), `docs/architecture/code-map.md`, `docs/bugs/README.md` (UI-020).
 - Verification: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm format:check`, `pnpm build`, `pnpm test:e2e`; интерактивный Light/Dark smoke и измерение адаптивности в Electron остаются ручными.
 
+## FND-032 — Единая визуальная система, детали в таблице и тики на счёте
+
+- Status: Implemented (automated verification complete; visible Electron smoke remains).
+- Goal: Устранить расхождения Trades/Statistics, показать детали сделки в настройках таблицы, перенести расчётные тики из актива в профиль «счёт–актив», убрать выбор метрики и `%/R`-границ из быстрой статистики и не помечать один актив одновременно лучшим и худшим.
+- Delivered: карточки KPI статистики приведены к метрической лексике сводки сделок; заголовки всех таблиц (включая мини-таблицы) больше не форсируют верхний регистр; навигация sidebar явно выровнена по левому краю (scope `.sidebar .navigation-item`); badge Long/Short получил декоративные стрелки; лучший/худший актив быстрой сводки получает positive/negative tone только при значении; highlights отчёта не показывают одну группу как лучшую и худшую (ADR-0010); кнопка «Добавить» выключена без результата/суммы; диалог быстрой статистики оставляет только USD-границы без выбора метрики; bounded page row получил скалярную проекцию деталей (цены, стоп, лоты, комиссия, спред, число выходов, review status, наличие заметок) с серверными фильтрами и колонками в настройках вида, batched exit count; тики перенесены в `account_instrument_defaults` (migration `010-account-instrument-ticks`, backfill из `instrument_calculation_profiles`, legacy-fallback при создании сделки), редактор и таблица актива больше их не редактируют, account cost profile получил tick size/value.
+- Rules: расчётные тики — пара (оба или ни одного); `CreateTradeUseCase` читает профиль счёта и лишь затем legacy-профиль инструмента; page DTO не несёт текст заметок и строки выходов; detail-фильтры выполняются в SQLite и исключают движения денег; сохранённый layout дополняется дефолтной видимостью/шириной новых колонок; сортировка доступна только колонкам из существующего allowlist.
+- Tests: доменные тесты аккаунта (нормализация тиков), миграционный backfill, `sqlite-trade-update.test.ts` (тики счёта в snapshot и расчёте), `journal-table-reader.test.ts` (detail/note/review фильтры и проекция page row), `get-analytics-report-use-case.test.ts` (единичный/нейтральный актив), обновлённые renderer- и IPC-схема-тесты, query-count (readPage 6 statements).
+- Documentation: ADR-0017, ADR-0010, ADR-0006, ADR-0013, `docs/architecture/design-system.md`, `docs/architecture/code-map.md`, `docs/product/scope-v1.md`, `docs/engineering/query-performance.md`, `docs/adr/README.md`.
+- Follow-up (FND-032b): кольцо `WinRateRing` добавлено в KPI-карточку винрейта статистики (паритет со сделками, `ui-meter` убран); чип тега пробрасывает ref/пропсы Radix-триггера и показывает комментарий по наведению только при его наличии; канонический порядок колонок по умолчанию — «Актив, Результат, Тип сделки, Тип актива, Теги, Счёт, Дата» (тип актива виден в обоих режимах); кнопка выбора тега получила высоту обычного поля в quick-entry и в диалоге сделки.
+- Verification: `pnpm test` (90 файлов / 407 тестов), `pnpm lint`, `pnpm typecheck`, `pnpm architecture`, `pnpm format:check`, `pnpm build`; визуальный smoke в Electron остаётся ручным.
+
 ## Правило задач
 
-Каждая следующая задача содержит цель, зависимости, затрагиваемые контракты, критерии приёмки, тестовые сценарии, документацию для обновления и статус.
+Для новых задач использовать Task Master: цель, зависимости, затрагиваемые контракты, критерии приёмки, тестовые сценарии, документация для обновления и статус фиксируются там. Этот файл сохраняет исторический контекст; при переносе открытых проверок указывать исходный FND-ID, не менять задним числом статусы завершённой разработки.

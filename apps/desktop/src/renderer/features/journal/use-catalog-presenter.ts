@@ -11,6 +11,7 @@ import type {
   UpdateAccountDto,
   UpdateInstrumentDto,
   UpdateTagDto,
+  SafeErrorDto,
 } from '../../../shared/desktop-api';
 import type { JournalPresenter } from './use-journal-presenter';
 
@@ -21,6 +22,9 @@ export interface CatalogAccountDefaultDraft {
   readonly commissionUsd: string;
   readonly instrumentId: string;
   readonly spreadTicks: string;
+  /** Empty string means the account has no calculation ticks for the asset. */
+  readonly tickSize: string;
+  readonly tickValueUsdPerLot: string;
 }
 
 export interface CatalogAccountDraft {
@@ -64,7 +68,20 @@ const toAccountDefaultDrafts = (
     commissionUsd: item.commissionUsd,
     instrumentId: item.instrumentId,
     spreadTicks: item.spreadTicks,
+    tickSize: item.tickSize ?? '',
+    tickValueUsdPerLot: item.tickValueUsdPerLot ?? '',
   }));
+
+const toAccountDefaultInput = (
+  draft: CatalogAccountDefaultDraft,
+): CreateAccountDto['defaults'][number] => ({
+  commissionUsd: draft.commissionUsd,
+  instrumentId: draft.instrumentId,
+  spreadTicks: draft.spreadTicks,
+  tickSize: draft.tickSize.trim() === '' ? null : draft.tickSize.trim(),
+  tickValueUsdPerLot:
+    draft.tickValueUsdPerLot.trim() === '' ? null : draft.tickValueUsdPerLot.trim(),
+});
 
 export interface CatalogPresenter {
   readonly tab: CatalogTab;
@@ -74,6 +91,7 @@ export interface CatalogPresenter {
   readonly accountDraft: CatalogAccountDraft;
   readonly accountEditorOpen: boolean;
   readonly accountSaving: boolean;
+  readonly accountError: SafeErrorDto | null;
   readonly accountsLayout: TableLayoutDto | undefined;
   readonly assetEditorOpen: boolean;
   readonly assetsLayout: TableLayoutDto | undefined;
@@ -132,6 +150,7 @@ export const useCatalogPresenter = (journal: JournalPresenter): CatalogPresenter
   const [accountDefaultsStatus, setAccountDefaultsStatus] =
     useState<CatalogAccountDefaultsStatus>('idle');
   const [accountSaving, setAccountSaving] = useState(false);
+  const [accountSaveFailed, setAccountSaveFailed] = useState(false);
   const [pendingOperation, setPendingOperation] = useState<CatalogPendingOperation | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const accountDefaultsRequest = useRef(0);
@@ -164,6 +183,7 @@ export const useCatalogPresenter = (journal: JournalPresenter): CatalogPresenter
   };
 
   const openAccountEditor = (account?: AccountDto): void => {
+    setAccountSaveFailed(false);
     setEditingAccount(account ?? null);
     setAccountEditorOpen(true);
     setAccountSaving(false);
@@ -189,6 +209,7 @@ export const useCatalogPresenter = (journal: JournalPresenter): CatalogPresenter
   const saveAccount = async (input: CreateAccountDto | UpdateAccountDto): Promise<boolean> => {
     const saved =
       'id' in input ? await journal.updateAccount(input) : await journal.createAccount(input);
+    setAccountSaveFailed(saved === null);
     return saved !== null;
   };
 
@@ -219,7 +240,7 @@ export const useCatalogPresenter = (journal: JournalPresenter): CatalogPresenter
     try {
       const saved = await saveAccount({
         ...(account === null ? {} : { id: account.id }),
-        defaults: accountDraft.defaults,
+        defaults: accountDraft.defaults.map(toAccountDefaultInput),
         name: accountDraft.name,
         openingBalanceUsd: accountDraft.openingBalanceUsd,
       });
@@ -295,6 +316,7 @@ export const useCatalogPresenter = (journal: JournalPresenter): CatalogPresenter
     accountDefaultsStatus,
     accountDraft,
     accountEditorOpen,
+    accountError: accountEditorOpen && accountSaveFailed ? (journal.error ?? null) : null,
     accountSaving,
     assetEditorOpen,
     bulkBusy,
@@ -315,7 +337,13 @@ export const useCatalogPresenter = (journal: JournalPresenter): CatalogPresenter
           ...current,
           defaults: [
             ...current.defaults,
-            { commissionUsd: '0', instrumentId: first.id, spreadTicks: '0' },
+            {
+              commissionUsd: '0',
+              instrumentId: first.id,
+              spreadTicks: '0',
+              tickSize: '',
+              tickValueUsdPerLot: '',
+            },
           ],
         };
       }),
@@ -324,6 +352,7 @@ export const useCatalogPresenter = (journal: JournalPresenter): CatalogPresenter
       setPendingOperation(null);
     },
     closeAccountEditor: () => {
+      setAccountSaveFailed(false);
       accountDefaultsRequest.current += 1;
       setAccountEditorOpen(false);
       setEditingAccount(null);
@@ -406,9 +435,14 @@ export const useCatalogPresenter = (journal: JournalPresenter): CatalogPresenter
           currentIndex === index ? { ...item, [field]: value } : item,
         ),
       })),
-    setAccountDraftName: (name) => setAccountDraft((current) => ({ ...current, name })),
-    setAccountDraftOpening: (openingBalanceUsd) =>
-      setAccountDraft((current) => ({ ...current, openingBalanceUsd })),
+    setAccountDraftName: (name) => {
+      setAccountSaveFailed(false);
+      setAccountDraft((current) => ({ ...current, name }));
+    },
+    setAccountDraftOpening: (openingBalanceUsd) => {
+      setAccountSaveFailed(false);
+      setAccountDraft((current) => ({ ...current, openingBalanceUsd }));
+    },
     setTab,
     submitAccountDraft,
     tab,

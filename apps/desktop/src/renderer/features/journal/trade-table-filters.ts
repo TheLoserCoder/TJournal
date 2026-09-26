@@ -13,10 +13,22 @@ import {
   type NumberFilterState,
 } from '../../components/ui/number-filter-state';
 import type { JournalEntryRow } from './journal-entry-row';
-import { TRADE_RESULT_FILTERS, TRADE_TABLE_COLUMN_IDS } from './trade-table.config';
+import {
+  TRADE_RESULT_FILTERS,
+  TRADE_TABLE_COLUMN_IDS,
+  type TradeDetailNumericField,
+  type TradeNotePresence,
+} from './trade-table.config';
 
 /** Sentinel option id for the "without tags" entry of the tag filter list. */
 export const TRADE_TAG_UNTAGGED_FILTER_ID = '__untagged__';
+
+export const TRADE_REVIEW_STATUS_FILTERS = {
+  reviewed: 'reviewed',
+  unreviewed: 'unreviewed',
+} as const;
+export type TradeReviewStatusFilter =
+  (typeof TRADE_REVIEW_STATUS_FILTERS)[keyof typeof TRADE_REVIEW_STATUS_FILTERS];
 
 export const TRADE_ENTRY_FILTERS = {
   deposit: 'deposit',
@@ -27,6 +39,10 @@ export const TRADE_ENTRY_FILTERS = {
 export type TradeEntryFilter = (typeof TRADE_ENTRY_FILTERS)[keyof typeof TRADE_ENTRY_FILTERS];
 export type TradeResultUnitFilter = TradeResultKind | 'all';
 
+export type TradeDetailBounds = Readonly<
+  Partial<Record<TradeDetailNumericField, NumberFilterState>>
+>;
+
 export interface TradeTableFilterState {
   readonly accountFilterIds: readonly string[];
   readonly accountIncludeUnassigned: boolean;
@@ -35,9 +51,12 @@ export interface TradeTableFilterState {
   readonly dateFrom: string;
   readonly dateTo: string;
   readonly dateTimeRange: DateTimeRangeFilterState;
+  readonly detailBounds: TradeDetailBounds;
   readonly entryFilters: readonly TradeEntryFilter[];
+  readonly notePresence: readonly TradeNotePresence[];
   readonly resultBounds: NumberFilterState;
   readonly resultUnit: TradeResultUnitFilter;
+  readonly reviewStatuses: readonly TradeReviewStatusFilter[];
   readonly tagFilterIds: readonly string[];
   readonly tagIncludeUntagged: boolean;
   readonly textQuery: string;
@@ -51,9 +70,12 @@ export const createInitialTradeTableFilterState = (): TradeTableFilterState => (
   dateFrom: '',
   dateTo: '',
   dateTimeRange: createEmptyDateTimeRangeFilterState(),
+  detailBounds: {},
   entryFilters: [],
+  notePresence: [],
   resultBounds: createEmptyNumberFilterState(),
   resultUnit: TRADE_RESULT_FILTERS.all,
+  reviewStatuses: [],
   tagFilterIds: [],
   tagIncludeUntagged: false,
   textQuery: '',
@@ -63,14 +85,30 @@ export interface TradeTableFilterAwareness {
   readonly account: boolean;
   readonly assetCategories: boolean;
   readonly assets: boolean;
+  readonly commission: boolean;
   readonly date: boolean;
   readonly dateTime: boolean;
+  readonly entryPrice: boolean;
+  readonly exitCount: boolean;
+  readonly notes: boolean;
+  readonly quantity: boolean;
   readonly result: boolean;
   readonly resultUnit: boolean;
+  readonly reviewStatus: boolean;
+  readonly spread: boolean;
+  readonly stopLoss: boolean;
   readonly tags: boolean;
   readonly text: boolean;
   readonly types: boolean;
 }
+
+const isDetailBoundActive = (
+  bounds: TradeDetailBounds,
+  field: TradeDetailNumericField,
+): boolean => {
+  const value = bounds[field];
+  return value !== undefined && !isNumberFilterStateDefault(value);
+};
 
 export const getTradeTableFilterAwareness = (
   state: TradeTableFilterState,
@@ -78,10 +116,18 @@ export const getTradeTableFilterAwareness = (
   account: state.accountFilterIds.length > 0 || state.accountIncludeUnassigned,
   assetCategories: state.assetCategoryFilters.length > 0,
   assets: state.assetFilterIds.length > 0,
+  commission: isDetailBoundActive(state.detailBounds, 'commission'),
   date: state.dateFrom !== '' || state.dateTo !== '',
   dateTime: !isDateTimeRangeFilterStateDefault(state.dateTimeRange),
+  entryPrice: isDetailBoundActive(state.detailBounds, 'entryPrice'),
+  exitCount: isDetailBoundActive(state.detailBounds, 'exitCount'),
+  notes: state.notePresence.length > 0,
+  quantity: isDetailBoundActive(state.detailBounds, 'quantity'),
   result: !isNumberFilterStateDefault(state.resultBounds),
   resultUnit: state.resultUnit !== TRADE_RESULT_FILTERS.all,
+  reviewStatus: state.reviewStatuses.length > 0,
+  spread: isDetailBoundActive(state.detailBounds, 'spread'),
+  stopLoss: isDetailBoundActive(state.detailBounds, 'stopLoss'),
   tags: state.tagFilterIds.length > 0 || state.tagIncludeUntagged,
   text: state.textQuery.trim() !== '',
   types: state.entryFilters.length > 0,
@@ -96,10 +142,18 @@ const TRADE_FILTER_AWARENESS_KEYS: Readonly<Record<string, keyof TradeTableFilte
   [TRADE_TABLE_COLUMN_IDS.assetCategory]: 'assetCategories',
   [TRADE_TABLE_COLUMN_IDS.closedAt]: 'date',
   [TRADE_TABLE_COLUMN_IDS.closedAtTime]: 'dateTime',
+  [TRADE_TABLE_COLUMN_IDS.commissionUsd]: 'commission',
   [TRADE_TABLE_COLUMN_IDS.direction]: 'types',
+  [TRADE_TABLE_COLUMN_IDS.entryPrice]: 'entryPrice',
+  [TRADE_TABLE_COLUMN_IDS.exitCount]: 'exitCount',
   [TRADE_TABLE_COLUMN_IDS.id]: 'text',
+  [TRADE_TABLE_COLUMN_IDS.notes]: 'notes',
+  [TRADE_TABLE_COLUMN_IDS.quantityLots]: 'quantity',
   [TRADE_TABLE_COLUMN_IDS.result]: 'result',
   [TRADE_TABLE_COLUMN_IDS.resultKind]: 'resultUnit',
+  [TRADE_TABLE_COLUMN_IDS.reviewStatus]: 'reviewStatus',
+  [TRADE_TABLE_COLUMN_IDS.spreadTicks]: 'spread',
+  [TRADE_TABLE_COLUMN_IDS.stopLoss]: 'stopLoss',
   [TRADE_TABLE_COLUMN_IDS.tags]: 'tags',
 };
 

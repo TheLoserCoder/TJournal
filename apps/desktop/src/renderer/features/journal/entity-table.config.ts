@@ -22,8 +22,6 @@ export const ASSET_COLUMN_IDS = {
   selection: 'selection',
   status: 'status',
   symbol: 'symbol',
-  tickSize: 'tickSize',
-  tickValue: 'tickValue',
 } as const;
 export type AssetColumnId = (typeof ASSET_COLUMN_IDS)[keyof typeof ASSET_COLUMN_IDS];
 
@@ -97,15 +95,6 @@ export const ASSET_COLUMN_SCHEMAS: Readonly<
   },
   [ASSET_COLUMN_IDS.status]: { kind: 'multi-select', labelKey: TRANSLATION_KEYS.fieldStatus },
   [ASSET_COLUMN_IDS.symbol]: { kind: 'text', labelKey: TRANSLATION_KEYS.fieldAsset },
-  [ASSET_COLUMN_IDS.tickSize]: {
-    kind: 'number',
-    labelKey: TRANSLATION_KEYS.fieldTickSize,
-  },
-  [ASSET_COLUMN_IDS.tickValue]: {
-    kind: 'number',
-    labelKey: TRANSLATION_KEYS.fieldTickValue,
-    unit: TRANSLATION_KEYS.tradeUnitCash,
-  },
 };
 
 export const TAG_COLUMN_SCHEMAS: Readonly<
@@ -141,8 +130,6 @@ const ENTITY_TABLE_COLUMNS = {
     { id: ASSET_COLUMN_IDS.selection, visible: true, width: 48 },
     { id: ASSET_COLUMN_IDS.symbol, visible: true, width: 160 },
     { id: ASSET_COLUMN_IDS.category, visible: true, width: 140 },
-    { id: ASSET_COLUMN_IDS.tickSize, visible: true, width: 130 },
-    { id: ASSET_COLUMN_IDS.tickValue, visible: true, width: 190 },
     { id: ASSET_COLUMN_IDS.status, visible: true, width: 130 },
   ],
   tags: [

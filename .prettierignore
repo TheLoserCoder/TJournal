@@ -4,3 +4,5 @@ apps/desktop/out/
 apps/desktop/release/
 **/.tsbuild/
 **/*.tsbuildinfo
+# Generated Task Master ledger; the tool rewrites it, so Prettier must not own it.
+.taskmaster/

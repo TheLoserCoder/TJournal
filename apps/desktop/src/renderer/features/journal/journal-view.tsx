@@ -101,36 +101,28 @@ const NAVIGATION = [
   { icon: Settings, id: 'settings', labelKey: TRANSLATION_KEYS.navigationSettings },
 ] as const;
 
-const isPositiveDecimal = (value: string): boolean => {
-  const normalized = value.trim().replace(',', '.');
-  if (normalized === '') return false;
-  const parsed = Number.parseFloat(normalized);
-  return Number.isFinite(parsed) && parsed > 0;
-};
-
 /**
  * Prompt shown when an R trade is submitted without any 1R value: neither the
  * session field (table settings) nor the account default is set. The value is
  * saved with the trade and remembered for the account; the hint tells the user
- * where to find it later.
+ * where to find it later. Validity is owned by the presenter, so partial numeric
+ * input is rejected before a trade is attempted.
  */
 const RiskMissingDialog = ({
+  invalid,
   onCancel,
+  onInput,
   onSubmit,
 }: {
+  readonly invalid: boolean;
   readonly onCancel: () => void;
+  readonly onInput: () => void;
   readonly onSubmit: (value: string) => void;
 }): ReactElement => {
   const { t } = useTranslation();
   const [value, setValue] = useState('');
-  const [invalid, setInvalid] = useState(false);
   const submit = (event: FormEvent): void => {
     event.preventDefault();
-    if (!isPositiveDecimal(value)) {
-      setInvalid(true);
-      return;
-    }
-    setInvalid(false);
     onSubmit(value);
   };
   return (
@@ -149,7 +141,7 @@ const RiskMissingDialog = ({
             inputMode="decimal"
             onChange={(event) => {
               setValue(event.target.value);
-              setInvalid(false);
+              onInput();
             }}
             placeholder={t(TRANSLATION_KEYS.tradeOneRiskUsd)}
             required
@@ -287,10 +279,7 @@ export const JournalView = ({
               <Select
                 ariaLabel={t(TRANSLATION_KEYS.fieldTheme)}
                 onValueChange={(value) =>
-                  void journal.updateSettings({
-                    ...journal.settings,
-                    themeMode: value as 'auto' | 'dark' | 'light',
-                  })
+                  void journal.updateSettings({ themeMode: value as 'auto' | 'dark' | 'light' })
                 }
                 value={journal.settings.themeMode}
                 options={themeOptions}
@@ -302,10 +291,7 @@ export const JournalView = ({
               <Select
                 ariaLabel={t(TRANSLATION_KEYS.fieldLanguage)}
                 onValueChange={(value) =>
-                  void journal.updateSettings({
-                    ...journal.settings,
-                    languageMode: value as 'system' | 'ru' | 'en',
-                  })
+                  void journal.updateSettings({ languageMode: value as 'system' | 'ru' | 'en' })
                 }
                 value={journal.settings.languageMode}
                 options={languageOptions}
@@ -365,7 +351,7 @@ export const JournalView = ({
         ))}
       </aside>
       <div className="page-content">
-        {journal.error !== null && (
+        {journal.error !== null && presenter.catalog.accountError === null && (
           <div className="error-message">
             <p>{t(ERROR_TRANSLATION_KEYS[journal.error.code])}</p>
             {journal.error.issues?.map((issue, index) => (
@@ -532,7 +518,9 @@ export const JournalView = ({
       )}
       {presenter.riskPromptOpen && (
         <RiskMissingDialog
+          invalid={presenter.riskPromptInvalid}
           onCancel={presenter.cancelRiskPrompt}
+          onInput={presenter.clearRiskPromptError}
           onSubmit={(value) => void presenter.submitRiskPrompt(value)}
         />
       )}

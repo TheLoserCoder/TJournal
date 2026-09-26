@@ -4,6 +4,7 @@ import type {
   JournalPageBoundMode,
   JournalPageFiltersDto,
   JournalPageRequestDto,
+  JournalPageResultBoundsDto,
   JournalPageSortField,
 } from '../../../shared/desktop-api';
 import {
@@ -16,8 +17,12 @@ import {
   type NumberFilterMode,
   type NumberFilterState,
 } from '../../components/ui/number-filter-state';
-import { TRADE_RESULT_FILTERS, TRADE_TABLE_SORT_FIELDS } from './trade-table.config';
-import type { TradeTableFilterState } from './trade-table-filters';
+import {
+  TRADE_RESULT_FILTERS,
+  TRADE_TABLE_SORT_FIELDS,
+  type TradeDetailNumericField,
+} from './trade-table.config';
+import type { TradeDetailBounds, TradeTableFilterState } from './trade-table-filters';
 
 export const JOURNAL_PAGE_LIMIT = 100;
 
@@ -57,6 +62,17 @@ const toResultBounds = (state: NumberFilterState): JournalPageFiltersDto['result
   };
 };
 
+const toDetailBounds = (state: TradeDetailBounds): JournalPageFiltersDto['detailBounds'] => {
+  const bounds: Record<string, JournalPageResultBoundsDto> = {};
+  (Object.keys(state) as TradeDetailNumericField[]).forEach((field) => {
+    const value = state[field];
+    if (value === undefined) return;
+    const converted = toResultBounds(value);
+    if (converted !== null) bounds[field] = converted;
+  });
+  return Object.keys(bounds).length === 0 ? null : bounds;
+};
+
 export const toJournalPageFilters = (state: TradeTableFilterState): JournalPageFiltersDto => {
   const occurred = toOccurredBoundaries(state.dateTimeRange);
   const textQuery = state.textQuery.trim();
@@ -65,14 +81,17 @@ export const toJournalPageFilters = (state: TradeTableFilterState): JournalPageF
     categories: state.assetCategoryFilters,
     closedFromDate: state.dateFrom === '' ? null : state.dateFrom,
     closedToDate: state.dateTo === '' ? null : state.dateTo,
+    detailBounds: toDetailBounds(state.detailBounds),
     entryKinds: state.entryFilters,
     includeUntagged: state.tagIncludeUntagged,
     includeUnassigned: state.accountIncludeUnassigned,
     instrumentIds: state.assetFilterIds,
+    notePresence: state.notePresence,
     occurredFrom: occurred.from,
     occurredTo: occurred.to,
     resultBounds: toResultBounds(state.resultBounds),
     resultUnits: state.resultUnit === TRADE_RESULT_FILTERS.all ? [] : [state.resultUnit],
+    reviewStatuses: state.reviewStatuses,
     tagIds: state.tagFilterIds,
     textQuery: textQuery === '' ? null : textQuery,
   };

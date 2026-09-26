@@ -22,6 +22,8 @@ const defaults: readonly AccountInstrumentDefaultsDto[] = [
     commissionUsd: '1',
     instrumentId: 'eurusd',
     spreadTicks: '2',
+    tickSize: null,
+    tickValueUsdPerLot: null,
     updatedAt: '2026-09-01T00:00:00.000Z',
   },
 ];

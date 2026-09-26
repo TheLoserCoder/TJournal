@@ -29,15 +29,18 @@ import {
   prependJournalPage,
   type JournalPageWindow,
 } from './journal-page-window';
-import { createTradeTableColumns } from './trade-table-columns';
+import { createTradeTableColumnLabels, createTradeTableColumns } from './trade-table-columns';
 import {
   createInitialTradeTableFilterState,
   hasActiveTradeTableFilters,
   TRADE_ENTRY_FILTERS,
+  type TradeDetailBounds,
   type TradeEntryFilter,
   type TradeResultUnitFilter,
+  type TradeReviewStatusFilter,
   type TradeTableFilterState,
 } from './trade-table-filters';
+import type { TradeDetailNumericField, TradeNotePresence } from './trade-table.config';
 import type { JournalEntryRow } from './journal-entry-row';
 import {
   DEFAULT_TRADE_TABLE_COLUMNS,
@@ -72,9 +75,15 @@ export interface TradeTableFiltersPresenter extends TradeTableFilterState {
   setDateFrom(value: string): void;
   setDateTo(value: string): void;
   setDateTimeRange(range: TradeTableFilterState['dateTimeRange']): void;
+  setDetailBounds(
+    field: TradeDetailNumericField,
+    bounds: TradeDetailBounds[TradeDetailNumericField],
+  ): void;
   setEntryFilters(values: readonly TradeEntryFilter[]): void;
+  setNotePresence(values: readonly TradeNotePresence[]): void;
   setResultBounds(bounds: TradeTableFilterState['resultBounds']): void;
   setResultUnit(value: TradeResultUnitFilter): void;
+  setReviewStatuses(values: readonly TradeReviewStatusFilter[]): void;
   setTagFilterIds(ids: readonly string[]): void;
   setTagIncludeUntagged(value: boolean): void;
   setTextQuery(value: string): void;
@@ -372,32 +381,7 @@ export const useTradesTablePresenter = ({
       createTradeTableColumns({
         assetCategories,
         categoryLabels,
-        labels: {
-          account: t(TRANSLATION_KEYS.fieldAccount),
-          accountUnassigned: t(TRANSLATION_KEYS.accountUnassigned),
-          asset: t(TRANSLATION_KEYS.fieldAsset),
-          assetCategory: t(TRANSLATION_KEYS.fieldAssetType),
-          date: t(TRANSLATION_KEYS.fieldDate),
-          dateTime: t(TRANSLATION_KEYS.fieldDateTime),
-          direction: t(TRANSLATION_KEYS.fieldType),
-          directionLong: t(TRANSLATION_KEYS.tradeDirectionLong),
-          directionShort: t(TRANSLATION_KEYS.tradeDirectionShort),
-          deposit: t(TRANSLATION_KEYS.accountDeposit),
-          withdrawal: t(TRANSLATION_KEYS.accountWithdrawal),
-          notApplicable: t(TRANSLATION_KEYS.tableNotApplicable),
-          notAvailable: t(TRANSLATION_KEYS.tableNotApplicable),
-          identifier: t(TRANSLATION_KEYS.fieldIdentifier),
-          result: t(TRANSLATION_KEYS.fieldResult),
-          resultUnit: t(TRANSLATION_KEYS.fieldUnit),
-          selectAll: t(TRANSLATION_KEYS.tableSelectAll),
-          selectRow: t(TRANSLATION_KEYS.tableSelectRow),
-          tags: t(TRANSLATION_KEYS.fieldTag),
-          tagsEmpty: t(TRANSLATION_KEYS.tagEmpty),
-          unit: t(TRANSLATION_KEYS.fieldUnit),
-          unitCash: t(TRANSLATION_KEYS.tradeUnitCash),
-          unitPercent: t(TRANSLATION_KEYS.tradeUnitPercent),
-          unitR: t(TRANSLATION_KEYS.tradeUnitR),
-        },
+        labels: createTradeTableColumnLabels(t),
         tagOverflowLabel: (hiddenCount) => t(TRANSLATION_KEYS.tagShowMore, { count: hiddenCount }),
         tags: tagsById,
         tradePreferences,
@@ -426,9 +410,19 @@ export const useTradesTablePresenter = ({
     setFilters(createInitialTradeTableFilterState());
   }, []);
 
-  const updateFilters = useCallback((patch: Partial<TradeTableFilterState>): void => {
-    setFilters((current) => ({ ...current, ...patch }));
-  }, []);
+  const updateFilters = useCallback(
+    (
+      patch:
+        | Partial<TradeTableFilterState>
+        | ((current: TradeTableFilterState) => Partial<TradeTableFilterState>),
+    ): void => {
+      setFilters((current) => ({
+        ...current,
+        ...(typeof patch === 'function' ? patch(current) : patch),
+      }));
+    },
+    [],
+  );
 
   return {
     accountOptions,
@@ -453,9 +447,18 @@ export const useTradesTablePresenter = ({
       setDateFrom: (value) => updateFilters({ dateFrom: value }),
       setDateTo: (value) => updateFilters({ dateTo: value }),
       setDateTimeRange: (dateTimeRange) => updateFilters({ dateTimeRange }),
+      setDetailBounds: (field, bounds) =>
+        updateFilters((current) => {
+          const detailBounds = { ...current.detailBounds };
+          if (bounds === undefined) delete detailBounds[field];
+          else detailBounds[field] = bounds;
+          return { detailBounds };
+        }),
       setEntryFilters: (values) => updateFilters({ entryFilters: values }),
+      setNotePresence: (notePresence) => updateFilters({ notePresence }),
       setResultBounds: (resultBounds) => updateFilters({ resultBounds }),
       setResultUnit: (resultUnit) => updateFilters({ resultUnit }),
+      setReviewStatuses: (reviewStatuses) => updateFilters({ reviewStatuses }),
       setTagFilterIds: (tagFilterIds) => updateFilters({ tagFilterIds }),
       setTagIncludeUntagged: (tagIncludeUntagged) => updateFilters({ tagIncludeUntagged }),
       setTextQuery: (textQuery) => updateFilters({ textQuery }),

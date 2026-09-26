@@ -9,14 +9,25 @@ import {
   type ClosedTrade,
   type JournalTableTradeRow,
   type NeutralRange,
+  type RiskBinding,
+  type SavedTradePreferences,
   type TradeExecution,
   type TradeExit,
   type TradePreferences,
   type TradeResultKind,
+  type TradeRiskBindingSnapshot,
   type TradeStore,
 } from '@tjournal/trade';
 
 import { SqliteVaultDatabase } from './sqlite-vault-database';
+import {
+  toAccountAttribution,
+  toInputResultKind,
+  toNetResultUsd,
+  toRiskBindingSnapshot,
+  toTradeResultKind,
+  type TradeRiskBindingColumns,
+} from './trade-row-mapping';
 
 const VAULT_PREFERENCES_ID = 'vault';
 const EXIT_QUERY_CHUNK_SIZE = 500;
@@ -71,6 +82,9 @@ interface ExitRow {
   readonly reported_result_kind: string | null;
   readonly reported_result_value: string | null;
   readonly trade_id: string;
+}
+interface TradeRiskBindingRow extends TradeRiskBindingColumns {
+  readonly id: string;
 }
 interface PreferencesRow {
   readonly neutral_include_commission: number;
@@ -203,6 +217,7 @@ export class SqliteTradeStore implements TradeStore {
       rows.forEach((row) => rowsById.set(row.id, row));
     }
     const tagsByTrade = this.loadTagMapForIds(ids);
+    const exitCounts = this.loadExitCountMap(ids);
     return ids.flatMap((id) => {
       const row = rowsById.get(id);
       if (row === undefined) return [];
@@ -211,12 +226,45 @@ export class SqliteTradeStore implements TradeStore {
         tagsByTrade.get(id) ?? [],
         [],
       );
-      void entryNote;
-      void execution;
-      void reviewNote;
-      void reviewStatus;
-      return [tableTrade];
+      return [
+        {
+          ...tableTrade,
+          commissionUsd: execution?.commissionUsd ?? null,
+          entryPrice: execution?.entryPrice ?? null,
+          exitCount: exitCounts.get(id) ?? 0,
+          hasEntryNote: entryNote !== null && entryNote.trim() !== '',
+          hasReviewNote: reviewNote !== null && reviewNote.trim() !== '',
+          quantityLots: execution?.quantityLots ?? null,
+          reviewStatus,
+          spreadTicks: execution?.spreadTicks ?? null,
+          stopLossPrice: execution?.stopLossPrice ?? null,
+        },
+      ];
     });
+  }
+
+  /**
+   * Exit counts for a page of trades in bounded chunks. The page DTO carries a
+   * count only; the exit prices stay in the point lookup used by the editor.
+   */
+  private loadExitCountMap(tradeIds: readonly string[]): ReadonlyMap<string, number> {
+    const counts = new Map<string, number>();
+    if (tradeIds.length === 0) return counts;
+    const database = this.vaultDatabase.require();
+    for (let start = 0; start < tradeIds.length; start += EXIT_QUERY_CHUNK_SIZE) {
+      const chunk = tradeIds.slice(start, start + EXIT_QUERY_CHUNK_SIZE);
+      const placeholders = chunk.map(() => '?').join(', ');
+      const rows = database
+        .prepare(
+          `SELECT trade_id, COUNT(*) AS count FROM trade_exits WHERE trade_id IN (${placeholders}) GROUP BY trade_id`,
+        )
+        .all(...chunk) as unknown as readonly {
+        readonly count: number;
+        readonly trade_id: string;
+      }[];
+      rows.forEach((row) => counts.set(row.trade_id, Number(row.count)));
+    }
+    return counts;
   }
 
   public restoreTrades(trades: readonly ClosedTrade[]): void {
@@ -231,45 +279,67 @@ export class SqliteTradeStore implements TradeStore {
 
   public restoreTradePreferences(
     preferences: TradePreferences,
-    trades: readonly ClosedTrade[],
+    reboundRiskBindings: readonly TradeRiskBindingSnapshot[],
   ): void {
     this.vaultDatabase.transaction(() => {
       this.writeTradePreferences(preferences);
-      trades.forEach((trade) => this.updateTradeRow(trade));
+      const update = this.vaultDatabase
+        .require()
+        .prepare('UPDATE trades SET risk_binding_kind = ?, risk_binding_value = ? WHERE id = ?');
+      for (const rebound of reboundRiskBindings) {
+        update.run(
+          rebound.riskBindingSnapshot?.kind ?? null,
+          rebound.riskBindingSnapshot?.value ?? null,
+          rebound.tradeId,
+        );
+      }
     });
   }
 
   public saveTradePreferences(
     preferences: TradePreferences,
     rebindHistorical = false,
-  ): TradePreferences {
+  ): SavedTradePreferences {
     const previous = this.getTradePreferences();
+    let reboundRiskBindings: readonly TradeRiskBindingSnapshot[] = [];
     this.vaultDatabase.transaction(() => {
       this.writeTradePreferences(preferences);
       if (rebindHistorical && preferences.riskBinding !== null) {
-        const database = this.vaultDatabase.require();
-        if (previous.riskBinding === null) {
-          database
-            .prepare(
-              `UPDATE trades SET risk_binding_kind = ?, risk_binding_value = ? WHERE result_kind = ? AND risk_binding_kind IS NULL`,
-            )
-            .run(preferences.riskBinding.kind, preferences.riskBinding.value, TRADE_RESULT_KINDS.r);
-        } else {
-          database
-            .prepare(
-              `UPDATE trades SET risk_binding_kind = ?, risk_binding_value = ? WHERE result_kind = ? AND (risk_binding_kind IS NULL OR (risk_binding_kind = ? AND risk_binding_value = ?))`,
-            )
-            .run(
-              preferences.riskBinding.kind,
-              preferences.riskBinding.value,
-              TRADE_RESULT_KINDS.r,
-              previous.riskBinding.kind,
-              previous.riskBinding.value,
-            );
-        }
+        reboundRiskBindings = this.rebindRiskBinding(preferences.riskBinding, previous.riskBinding);
       }
     });
-    return preferences;
+    return { preferences, reboundRiskBindings };
+  }
+
+  /**
+   * Rewrites the risk binding of unbound trades and trades bound to the previous
+   * vault default. The same WHERE clause captures the pre-update binding and
+   * performs the update, so the inverse is exact and bounded by the rows the
+   * rebind can change instead of the whole journal.
+   */
+  private rebindRiskBinding(
+    next: RiskBinding,
+    previous: RiskBinding | null,
+  ): readonly TradeRiskBindingSnapshot[] {
+    const database = this.vaultDatabase.require();
+    const where =
+      previous === null
+        ? 'result_kind = ? AND risk_binding_kind IS NULL'
+        : 'result_kind = ? AND (risk_binding_kind IS NULL OR (risk_binding_kind = ? AND risk_binding_value = ?))';
+    const parameters =
+      previous === null
+        ? [TRADE_RESULT_KINDS.r]
+        : [TRADE_RESULT_KINDS.r, previous.kind, previous.value];
+    const rows = database
+      .prepare(`SELECT id, risk_binding_kind, risk_binding_value FROM trades WHERE ${where}`)
+      .all(...parameters) as unknown as readonly TradeRiskBindingRow[];
+    database
+      .prepare(`UPDATE trades SET risk_binding_kind = ?, risk_binding_value = ? WHERE ${where}`)
+      .run(next.kind, next.value, ...parameters);
+    return rows.map((row) => ({
+      riskBindingSnapshot: toRiskBindingSnapshot(row),
+      tradeId: row.id,
+    }));
   }
 
   private writeTradePreferences(preferences: TradePreferences): void {
@@ -404,46 +474,12 @@ export class SqliteTradeStore implements TradeStore {
     exits: readonly TradeExit[],
   ): ClosedTrade {
     const execution = this.mapExecution(row, exits);
-    const resultKind =
-      row.result_kind === TRADE_RESULT_KINDS.r
-        ? TRADE_RESULT_KINDS.r
-        : row.result_kind === TRADE_RESULT_KINDS.percent
-          ? TRADE_RESULT_KINDS.percent
-          : TRADE_RESULT_KINDS.cash;
-    const netResultUsd =
-      row.net_result_usd ??
-      row.account_balance_impact_usd ??
-      (resultKind === TRADE_RESULT_KINDS.cash ? row.result_value : undefined);
-    const inputResultKind =
-      row.input_result_kind === null
-        ? undefined
-        : row.input_result_kind === TRADE_RESULT_KINDS.r
-          ? TRADE_RESULT_KINDS.r
-          : row.input_result_kind === TRADE_RESULT_KINDS.percent
-            ? TRADE_RESULT_KINDS.percent
-            : TRADE_RESULT_KINDS.cash;
+    const resultKind = toTradeResultKind(row.result_kind);
+    const netResultUsd = toNetResultUsd(row, resultKind);
+    const inputResultKind = toInputResultKind(row.input_result_kind);
     const inputResultValue = row.input_result_value ?? undefined;
     return {
-      account:
-        row.account_id === null ||
-        row.account_name_snapshot === null ||
-        row.account_balance_before_usd === null
-          ? null
-          : {
-              accountId: row.account_id,
-              accountName: row.account_name_snapshot,
-              balanceBeforeUsd: row.account_balance_before_usd,
-              balanceImpactUsd: row.account_balance_impact_usd,
-              conversionBalanceUsd: row.account_conversion_balance_usd,
-              conversion:
-                row.account_balance_conversion === 'cash' ||
-                row.account_balance_conversion === 'percent-of-balance' ||
-                row.account_balance_conversion === 'r-cash-risk' ||
-                row.account_balance_conversion === 'r-percent-risk'
-                  ? row.account_balance_conversion
-                  : null,
-              initialRiskUsd: row.account_initial_risk_usd,
-            },
+      account: toAccountAttribution(row),
       closedAt: row.closed_at,
       direction:
         row.direction === null
@@ -470,17 +506,7 @@ export class SqliteTradeStore implements TradeStore {
           ? TRADE_RESULT_SOURCES.calculated
           : TRADE_RESULT_SOURCES.manual,
       resultValue: row.result_value,
-      riskBindingSnapshot:
-        row.risk_binding_kind === null || row.risk_binding_value === null
-          ? null
-          : {
-              kind:
-                row.risk_binding_kind === RISK_BINDING_KINDS.percent
-                  ? RISK_BINDING_KINDS.percent
-                  : RISK_BINDING_KINDS.cash,
-              source: 'vault-default',
-              value: row.risk_binding_value,
-            },
+      riskBindingSnapshot: toRiskBindingSnapshot(row),
       tagIds,
     };
   }

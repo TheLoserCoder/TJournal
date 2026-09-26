@@ -2,10 +2,15 @@ export {};
 export {
   SUMMARY_PERIODS,
   calculateTradeSummary,
+  summarizeTradeFacts,
   type SummaryPeriod,
   type TradeSummary,
   type TradeSummaryQuery,
 } from './calculate-trade-summary';
+export type {
+  TradeSummaryFact,
+  TradeSummaryFactSource,
+} from './contracts/trade-summary-fact-source';
 export {
   TRADE_RESULT_TONES,
   classifyTradeResult,

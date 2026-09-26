@@ -13,6 +13,7 @@ const ACCOUNTS_ASSETS_MIGRATION_ID = '006-accounts-assets';
 const CASH_MOVEMENTS_MIGRATION_ID = '007-cash-movements';
 const TAGS_MIGRATION_ID = '008-tags';
 const TRADE_NOTES_MIGRATION_ID = '009-trade-notes-and-review';
+const ACCOUNT_TICKS_MIGRATION_ID = '010-account-instrument-ticks';
 const MIGRATION_IDS = [
   INITIAL_MIGRATION_ID,
   INSTRUMENTS_MIGRATION_ID,
@@ -23,6 +24,7 @@ const MIGRATION_IDS = [
   CASH_MOVEMENTS_MIGRATION_ID,
   TAGS_MIGRATION_ID,
   TRADE_NOTES_MIGRATION_ID,
+  ACCOUNT_TICKS_MIGRATION_ID,
 ] as const;
 const VAULT_PREFERENCES_ID = 'vault';
 
@@ -207,6 +209,7 @@ export class SqliteVaultDatabase {
         if (!this.hasMigration(CASH_MOVEMENTS_MIGRATION_ID)) this.migrateCashMovements();
         if (!this.hasMigration(TAGS_MIGRATION_ID)) this.migrateTags();
         if (!this.hasMigration(TRADE_NOTES_MIGRATION_ID)) this.migrateTradeNotes();
+        if (!this.hasMigration(ACCOUNT_TICKS_MIGRATION_ID)) this.migrateAccountInstrumentTicks();
         this.ensureAccountAttributionColumns();
         this.ensureAccountAttributionIntegrityTriggers();
       });
@@ -542,6 +545,8 @@ export class SqliteVaultDatabase {
         instrument_id TEXT NOT NULL REFERENCES instruments(id) ON DELETE CASCADE,
         commission_usd TEXT NOT NULL,
         spread_ticks TEXT NOT NULL,
+        tick_size TEXT,
+        tick_value_usd_per_lot TEXT,
         updated_at TEXT NOT NULL,
         PRIMARY KEY (account_id, instrument_id)
       );
@@ -690,5 +695,29 @@ export class SqliteVaultDatabase {
         CHECK (review_status IN ('unreviewed', 'reviewed'));
     `);
     this.recordMigration(TRADE_NOTES_MIGRATION_ID);
+  }
+
+  /**
+   * Moves the calculation ticks from the global instrument profile to the
+   * account cost profile. Existing cost-profile rows inherit the instrument
+   * values so a configured account keeps its calculated executions; the
+   * legacy instrument profile stays readable as a fallback.
+   */
+  private migrateAccountInstrumentTicks(): void {
+    this.addColumnIfMissing('account_instrument_defaults', 'tick_size', 'tick_size TEXT');
+    this.addColumnIfMissing(
+      'account_instrument_defaults',
+      'tick_value_usd_per_lot',
+      'tick_value_usd_per_lot TEXT',
+    );
+    this.require().exec(`
+      UPDATE account_instrument_defaults
+        SET tick_size = (SELECT p.tick_size FROM instrument_calculation_profiles p WHERE p.instrument_id = account_instrument_defaults.instrument_id),
+            tick_value_usd_per_lot = (SELECT p.tick_value_usd_per_lot FROM instrument_calculation_profiles p WHERE p.instrument_id = account_instrument_defaults.instrument_id)
+        WHERE tick_size IS NULL
+          AND tick_value_usd_per_lot IS NULL
+          AND EXISTS (SELECT 1 FROM instrument_calculation_profiles p WHERE p.instrument_id = account_instrument_defaults.instrument_id);
+    `);
+    this.recordMigration(ACCOUNT_TICKS_MIGRATION_ID);
   }
 }

@@ -1,4 +1,10 @@
-import type { ClosedTrade, TradePreferences } from '../domain/trade';
+import type {
+  ClosedTrade,
+  InstrumentCalculationSnapshot,
+  SavedTradePreferences,
+  TradePreferences,
+  TradeRiskBindingSnapshot,
+} from '../domain/trade';
 
 export interface AccountBalanceContext {
   readonly accountId: string;
@@ -14,6 +20,15 @@ export interface AccountBalanceReader {
     allowArchived?: boolean,
   ): AccountBalanceContext;
   saveAccountRiskUsd(accountId: string, riskUsd: string): void;
+  /**
+   * Calculation ticks configured for the account+instrument pair. `null` means
+   * the pair has no complete tick profile and the caller must fall back to the
+   * legacy instrument profile.
+   */
+  getInstrumentCalculationProfile(
+    accountId: string,
+    instrumentId: string,
+  ): InstrumentCalculationSnapshot | null;
 }
 
 export interface TradeStore {
@@ -26,7 +41,13 @@ export interface TradeStore {
   getTradePreferences(): TradePreferences;
   listTrades(): readonly ClosedTrade[];
   restoreTrades(trades: readonly ClosedTrade[]): void;
-  restoreTradePreferences(preferences: TradePreferences, trades: readonly ClosedTrade[]): void;
-  saveTradePreferences(preferences: TradePreferences, rebindHistorical?: boolean): TradePreferences;
+  restoreTradePreferences(
+    preferences: TradePreferences,
+    reboundRiskBindings: readonly TradeRiskBindingSnapshot[],
+  ): void;
+  saveTradePreferences(
+    preferences: TradePreferences,
+    rebindHistorical?: boolean,
+  ): SavedTradePreferences;
   updateTrade(trade: ClosedTrade): ClosedTrade;
 }

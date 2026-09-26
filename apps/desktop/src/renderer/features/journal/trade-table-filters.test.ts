@@ -1,29 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
-import type { TradeDto } from '../../../shared/desktop-api';
+import type { JournalPageTradeDto } from '../../../shared/desktop-api';
 import { TRADE_RESULT_KINDS, TRADE_RESULT_SOURCES } from '@tjournal/trade';
 
 import { getJournalEntryAmountUsd } from './trade-table-filters';
 import type { JournalEntryRow } from './journal-entry-row';
 
-const TEST_REQUIRED_TRADE: TradeDto = {
+const TEST_REQUIRED_TRADE: JournalPageTradeDto = {
   closedAt: '2026-09-21T12:00:00.000Z',
+  commissionUsd: null,
   direction: 'long',
-  entryNote: null,
-  execution: null,
+  entryPrice: null,
+  exitCount: 0,
+  hasEntryNote: false,
+  hasReviewNote: false,
   id: 'trade-1',
   instrumentId: 'instrument-1',
   instrumentSymbol: 'EURUSD',
+  quantityLots: null,
   resultKind: TRADE_RESULT_KINDS.cash,
   resultSource: TRADE_RESULT_SOURCES.manual,
   resultValue: '10',
-  reviewNote: null,
   reviewStatus: 'unreviewed',
   riskBindingSnapshot: null,
+  spreadTicks: null,
+  stopLossPrice: null,
   tagIds: [],
 };
 
-const tradeRow = (trade: TradeDto): JournalEntryRow => ({
+const tradeRow = (trade: JournalPageTradeDto): JournalEntryRow => ({
   id: `trade:${trade.id}`,
   kind: 'trade',
   occurredAt: trade.closedAt,

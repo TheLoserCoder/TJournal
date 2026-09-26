@@ -291,6 +291,7 @@ describe('renderer design system contract', () => {
     expect(dataTableCss).toContain('var(--table-row-selected-indicator)');
     expect(tradesPageCss).toContain('.trade-summary-value');
     expect(designSystemCss).toContain('.ui-win-rate-ring');
+    expect(designSystemCss).toContain('.ui-result-share-ring');
     expect(tradesPageCss).toContain('font-family: var(--ref-font-mono)');
   });
 });

@@ -1,13 +1,14 @@
 import type { RendererGateway } from './renderer-gateway';
 
+/**
+ * Renderer adapter over the typed preload API. Every method is part of the
+ * preload contract, so the adapter forwards directly and never fabricates a
+ * successful empty result: a stale or missing preload surface must fail loudly
+ * instead of silently presenting empty catalogues or a missing vault.
+ */
 export const createElectronRendererGateway = (): RendererGateway => ({
-  getDiagnostics: () =>
-    window.tjournal.diagnostics.getStatus?.() ??
-    Promise.resolve({
-      ok: true as const,
-      value: { appName: '', appVersion: '', logsDirectory: '', vaultPath: null },
-    }),
-  subscribeToChanges: (listener) => window.tjournal.changes?.subscribe(listener) ?? (() => {}),
+  getDiagnostics: () => window.tjournal.diagnostics.getStatus(),
+  subscribeToChanges: (listener) => window.tjournal.changes.subscribe(listener),
   createVault: () => window.tjournal.vault.create(),
   createVaultBackup: () => window.tjournal.vault.backup(),
   listVaultBackups: (beforeId) => window.tjournal.vault.backups(beforeId),
@@ -28,8 +29,7 @@ export const createElectronRendererGateway = (): RendererGateway => ({
   listAccountDefaults: (id) => window.tjournal.accounts.defaults(id),
   createCashMovement: (input) => window.tjournal.cashMovements.create(input),
   deleteCashMovement: (id) => window.tjournal.cashMovements.delete(id),
-  listCashMovements: () =>
-    window.tjournal.cashMovements?.list?.() ?? Promise.resolve({ ok: true as const, value: [] }),
+  listCashMovements: () => window.tjournal.cashMovements.list(),
   updateCashMovement: (input) => window.tjournal.cashMovements.update(input),
   createTrade: (input) => window.tjournal.trades.create(input),
   deleteTrade: (id) => window.tjournal.trades.delete(id),
@@ -42,10 +42,8 @@ export const createElectronRendererGateway = (): RendererGateway => ({
   getTradeSummary: (input) => window.tjournal.analytics.summary(input),
   getAnalyticsReport: (input) => window.tjournal.analytics.report(input),
   listInstruments: () => window.tjournal.instruments.list(),
-  listTags: () =>
-    window.tjournal.tags?.list?.() ?? Promise.resolve({ ok: true as const, value: [] }),
-  getTagTradeCounts: () =>
-    window.tjournal.tags?.counts?.() ?? Promise.resolve({ ok: true as const, value: {} }),
+  listTags: () => window.tjournal.tags.list(),
+  getTagTradeCounts: () => window.tjournal.tags.counts(),
   createTag: (input) => window.tjournal.tags.create(input),
   updateTag: (input) => window.tjournal.tags.update(input),
   deleteTags: (ids) => window.tjournal.tags.deleteMany(ids),

@@ -27,15 +27,14 @@ import { TRANSLATION_KEYS } from '../../i18n-keys';
 import { CashMovementDialogView } from './cash-movement-dialog-view';
 import { formatDecimalString } from './format-decimal';
 import { LegacyAccountWarning } from './legacy-account-warning-view';
-import {
-  TRADE_RESULT_FILTERS,
-  TRADE_TABLE_FILTER_SCHEMAS,
-  TRADE_TABLE_COLUMN_IDS,
-} from './trade-table.config';
-import { createEmptyNumberFilterState } from '../../components/ui/number-filter-state';
-import { createEmptyDateTimeRangeFilterState } from '../../components/ui/datetime-range-filter-state';
+import { TRADE_TABLE_FILTER_SCHEMAS } from './trade-table.config';
 import { getTradeTableFilterAwareness, isTradeColumnFilterActive } from './trade-table-filters';
-import { renderTradeFilterPanel, type FilterPanelContext } from './trade-table-filter-panels';
+import {
+  renderTradeFilterPanel,
+  resetTradeColumnFilter,
+  TRADE_COLUMN_LABEL_KEYS,
+  type FilterPanelContext,
+} from './trade-table-filter-panels';
 import { TRADE_TABLE_ROW_HEIGHT } from './trade-table.config';
 import { TagPicker } from './tag-picker';
 import type { TradesTablePresenter } from './use-trades-table-presenter';
@@ -79,19 +78,6 @@ interface TradesPageViewProps {
   readonly tablePresenter: TradesTablePresenter;
   readonly summaryPresenter: TradeSummaryPresenter;
 }
-
-const COLUMN_LABEL_KEYS = {
-  [TRADE_TABLE_COLUMN_IDS.account]: TRANSLATION_KEYS.fieldAccount,
-  [TRADE_TABLE_COLUMN_IDS.asset]: TRANSLATION_KEYS.fieldAsset,
-  [TRADE_TABLE_COLUMN_IDS.assetCategory]: TRANSLATION_KEYS.fieldAssetType,
-  [TRADE_TABLE_COLUMN_IDS.closedAt]: TRANSLATION_KEYS.fieldDate,
-  [TRADE_TABLE_COLUMN_IDS.closedAtTime]: TRANSLATION_KEYS.fieldDateTime,
-  [TRADE_TABLE_COLUMN_IDS.direction]: TRANSLATION_KEYS.fieldType,
-  [TRADE_TABLE_COLUMN_IDS.id]: TRANSLATION_KEYS.tableFilterIdentifierAndNotes,
-  [TRADE_TABLE_COLUMN_IDS.result]: TRANSLATION_KEYS.fieldResult,
-  [TRADE_TABLE_COLUMN_IDS.resultKind]: TRANSLATION_KEYS.fieldUnit,
-  [TRADE_TABLE_COLUMN_IDS.tags]: TRANSLATION_KEYS.fieldTag,
-} as const;
 
 export const TradesPageView = ({
   entryKind,
@@ -140,8 +126,8 @@ export const TradesPageView = ({
     [accounts],
   );
   const columnLabel = (columnId: string): string => {
-    const key = COLUMN_LABEL_KEYS[columnId as keyof typeof COLUMN_LABEL_KEYS];
-    return key === undefined ? columnId : t(key);
+    const key = TRADE_COLUMN_LABEL_KEYS[columnId];
+    return key === undefined ? columnId : t(key as Parameters<typeof t>[0]);
   };
   const unitOptions: readonly SelectOption[] = [
     { label: t(TRANSLATION_KEYS.tradeUnitCash), value: 'cash' },
@@ -164,53 +150,21 @@ export const TradesPageView = ({
       noTags: t(TRANSLATION_KEYS.tagEmpty),
       tagsUntagged: t(TRANSLATION_KEYS.tagFilterUntagged),
     },
+    noteOptions: [
+      { id: 'entry', label: t(TRANSLATION_KEYS.tradeEntryNote) },
+      { id: 'review', label: t(TRANSLATION_KEYS.tradeReviewNote) },
+    ],
     presenter: tablePresenter,
     resultUnitLabel: t(TRANSLATION_KEYS.tradeUnitCash),
+    reviewStatusOptions: [
+      { id: 'unreviewed', label: t(TRANSLATION_KEYS.tradeReviewUnreviewed) },
+      { id: 'reviewed', label: t(TRANSLATION_KEYS.tradeReviewReviewed) },
+    ],
     tagOptions: tablePresenter.tagOptions,
     unitOptions,
   };
   const awareness = getTradeTableFilterAwareness(tablePresenter.filters);
   const resetLabel = t(TRANSLATION_KEYS.actionReset);
-  const resetColumnFilter = (columnId: string): void => {
-    const columnFilters = tablePresenter.filters;
-    switch (columnId) {
-      case TRADE_TABLE_COLUMN_IDS.account:
-        columnFilters.setAccountFilterIds([]);
-        columnFilters.setAccountIncludeUnassigned(false);
-        break;
-      case TRADE_TABLE_COLUMN_IDS.asset:
-        columnFilters.setAssetFilterIds([]);
-        break;
-      case TRADE_TABLE_COLUMN_IDS.assetCategory:
-        columnFilters.setAssetCategoryFilters([]);
-        break;
-      case TRADE_TABLE_COLUMN_IDS.closedAt:
-        columnFilters.setDateFrom('');
-        columnFilters.setDateTo('');
-        break;
-      case TRADE_TABLE_COLUMN_IDS.closedAtTime:
-        columnFilters.setDateTimeRange(createEmptyDateTimeRangeFilterState());
-        break;
-      case TRADE_TABLE_COLUMN_IDS.direction:
-        columnFilters.setEntryFilters([]);
-        break;
-      case TRADE_TABLE_COLUMN_IDS.id:
-        columnFilters.setTextQuery('');
-        break;
-      case TRADE_TABLE_COLUMN_IDS.result:
-        columnFilters.setResultBounds(createEmptyNumberFilterState());
-        break;
-      case TRADE_TABLE_COLUMN_IDS.resultKind:
-        columnFilters.setResultUnit(TRADE_RESULT_FILTERS.all);
-        break;
-      case TRADE_TABLE_COLUMN_IDS.tags:
-        columnFilters.setTagFilterIds([]);
-        columnFilters.setTagIncludeUntagged(false);
-        break;
-      default:
-        break;
-    }
-  };
   const filters: readonly DataTableColumnFilterViewModel[] = Object.entries(
     TRADE_TABLE_FILTER_SCHEMAS,
   ).map(([columnId, schema]) => ({
@@ -220,10 +174,18 @@ export const TradesPageView = ({
     expanded: tablePresenter.activeFilterColumnId === columnId,
     label: t(TRANSLATION_KEYS.tableFilterColumn, { column: columnLabel(columnId) }),
     onOpenChange: (open) => tablePresenter.setActiveFilter(open ? columnId : null),
-    onReset: () => resetColumnFilter(columnId),
+    onReset: () => resetTradeColumnFilter(tablePresenter.filters, columnId),
     resetLabel,
   }));
   const hasEntryFeedback = accountId === null || legacyUnassignedCount > 0;
+  // Quick add is disabled exactly when the form has nothing to submit: no
+  // account, no asset symbol for a trade, or an empty amount/result. The
+  // details action is independent, because it opens its own form.
+  const quickAddDisabled =
+    accountId === null ||
+    (entryKind === 'trade'
+      ? symbol.trim() === '' || resultValue.trim() === ''
+      : movementAmount.trim() === '');
   // A USD result is already in USD, so the conversion preview is only useful
   // for percent and R inputs.
   const conversionElement =
@@ -354,7 +316,7 @@ export const TradesPageView = ({
             <div className="trades-topbar-actions">
               <Button
                 className="quick-entry-control quick-entry-control-add"
-                disabled={accountId === null || (entryKind === 'trade' && symbol.trim() === '')}
+                disabled={quickAddDisabled}
                 type="submit"
                 variant={BUTTON_VARIANTS.primary}
               >

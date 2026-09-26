@@ -6,7 +6,11 @@ import {
   TRADE_RESULT_SOURCES,
   type ClosedTrade,
 } from '@tjournal/trade';
-import { calculateTradeSummary, SUMMARY_PERIODS } from './calculate-trade-summary';
+import {
+  calculateTradeSummary,
+  summarizeTradeFacts,
+  SUMMARY_PERIODS,
+} from './calculate-trade-summary';
 
 const trade = (id: string, symbol: string, value: string): ClosedTrade => ({
   closedAt: '2026-09-10T12:00:00.000Z',
@@ -229,5 +233,29 @@ describe('calculateTradeSummary', () => {
 
     expect(calculateTradeSummary([withUsd('1', '50.00')], query).totalTrades).toBe(1);
     expect(calculateTradeSummary([withUsd('2', '50.01')], query).totalTrades).toBe(0);
+  });
+
+  it('summarises a lazily generated fact stream in one pass', () => {
+    const facts = Array.from({ length: 1_000 }, (_, index) =>
+      trade(`t-${index}`, index % 2 === 0 ? 'EURUSD' : 'BTCUSD', index % 3 === 0 ? '-5' : '7'),
+    );
+    let yielded = 0;
+    function* stream(): Generator<ClosedTrade> {
+      for (const fact of facts) {
+        yielded += 1;
+        yield fact;
+      }
+    }
+    const query = {
+      filters: null,
+      metric: TRADE_RESULT_KINDS.cash,
+      neutralCostSettings: { includeCommission: false, includeSpread: false },
+      neutralRange: null,
+      now: new Date('2026-09-13T12:00:00.000Z'),
+      period: SUMMARY_PERIODS.all,
+    } as const;
+
+    expect(summarizeTradeFacts(stream(), query)).toEqual(calculateTradeSummary(facts, query));
+    expect(yielded).toBe(facts.length);
   });
 });

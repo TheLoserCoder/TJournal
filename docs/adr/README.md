@@ -15,5 +15,7 @@
 - [ADR-0014: IPC registration and application command boundaries](0014-ipc-application-command-boundaries.md)
 - [ADR-0015: Verified SQLite vault backups and restore identity](0015-vault-backup-and-restore.md)
 - [ADR-0016: Qualitative trade journal notes and review status](0016-qualitative-trade-journal.md)
+- [ADR-0017: Account-scoped calculation ticks and bounded trade-detail columns](0017-account-tick-profile-and-trade-detail-columns.md)
+- [ADR-0018: Public Windows v1 distributed without code signing](0018-unsigned-windows-v1-distribution.md)
 
 Новые решения фиксируются отдельным файлом с контекстом, решением, последствиями и альтернативами.

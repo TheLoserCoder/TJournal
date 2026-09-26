@@ -22,7 +22,7 @@ interface StatisticsDependencies {
   readonly enabled: boolean;
   readonly getReport: (input: AnalyticsReportRequestDto) => Promise<AnalyticsReportDto | null>;
   readonly settings: ApplicationSettingsDto;
-  readonly updateSettings: (settings: ApplicationSettingsDto) => Promise<void>;
+  readonly updateSettings: (patch: Partial<ApplicationSettingsDto>) => Promise<void>;
 }
 
 export interface StatisticsPresenter {
@@ -147,7 +147,7 @@ export const useStatisticsPresenter = ({
   ]);
 
   const updateView = (next: ApplicationSettingsDto['statisticsView']): void => {
-    void updateSettings({ ...settings, statisticsView: next });
+    void updateSettings({ statisticsView: next });
   };
 
   const hasActiveFilters =

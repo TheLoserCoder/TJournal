@@ -1,0 +1,481 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Подключить CodeGraph и Task Master к TJournal",
+        "description": "Проверить граф и проектный Task Master; закрепить правила работы в AGENTS.md и docs/engineering/tooling.md. Старый docs/roadmap/tasks.md сохранить как исторический снимок.",
+        "details": "Проверить индекс исходников и поиск символа в CodeGraph, индексировать ключевые проектные документы. Инициализировать .taskmaster без изменения production-зависимостей и без фиктивных API-ключей; добавить и прочитать задачу через MCP. Документировать рабочий процесс задач, различие графа и ADR, а также ограничение AI-функций без ключей.",
+        "testStrategy": "CodeGraph reindex/symbol search/docs search; Task Master get_tasks/get_task/next_task; git diff --check и pnpm format:check для затронутых файлов.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-09-25T22:34:04.859Z"
+      },
+      {
+        "id": "2",
+        "title": "FND-012: ручная проверка Accounts & Assets",
+        "description": "Проверить оставшийся интерактивный Electron smoke после реализованных Accounts/Assets/Tags (история: docs/roadmap/tasks.md#FND-012).",
+        "details": "Пройти редактор счёта и актива, выбор профиля, восстановление и массовые действия; убедиться, что ошибки чтения профилей не стирают данные. Сверить автоматические проверки из архивной записи.",
+        "testStrategy": "Ручной Electron smoke по сценарию и запись результата в Task Master; при дефекте — регрессионный тест и отдельная задача.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-09-26T13:30:03.420Z"
+      },
+      {
+        "id": "3",
+        "title": "FND-013: ручная проверка учёта USD",
+        "description": "Проверить оставшийся видимый Electron smoke по account-bound USD accounting и quick-entry (история: docs/roadmap/tasks.md#FND-013).",
+        "details": "Создание счёта, запись USD/%/R-сделки, пополнение, отклонённое снятие, раздельное отображение P&L и баланса; сверить с ADR-0007.",
+        "testStrategy": "Ручной Electron smoke по сценарию и запись результата в Task Master; при дефекте — регрессионный тест и отдельная задача.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-09-26T13:30:06.875Z"
+      },
+      {
+        "id": "4",
+        "title": "FND-014: визуальная проверка дизайн-системы",
+        "description": "Закрыть оставшуюся ручную проверку Light/Dark/Auto и адаптивности (история: docs/roadmap/tasks.md#FND-014).",
+        "details": "Открыть видимый Electron, проверить Trades, каталоги, Settings, диалоги, keyboard focus, popups у края и узкое окно; зафиксировать найденные регрессии отдельными задачами.",
+        "testStrategy": "Ручной Electron smoke по сценарию и запись результата в Task Master; при дефекте — регрессионный тест и отдельная задача.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-09-26T13:30:10.144Z"
+      },
+      {
+        "id": "5",
+        "title": "FND-015: проверка типизированных фильтров",
+        "description": "Закрыть оставшийся интерактивный smoke таблиц и USD-результата (история: docs/roadmap/tasks.md#FND-015).",
+        "details": "Проверить фильтры всех таблиц, strict greater/less и inclusive between, сброс фильтров, состояние layout при появлении действий, узкое окно и keyboard focus.",
+        "testStrategy": "Ручной Electron smoke по сценарию и запись результата в Task Master; при дефекте — регрессионный тест и отдельная задача.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-09-26T13:30:13.469Z"
+      },
+      {
+        "id": "6",
+        "title": "Закрыть оставшийся Electron smoke FND-016–FND-032",
+        "description": "Провести оставшиеся ручные проверки для уже реализованных срезов FND-016–FND-032; источники сценариев и статусов — исторические записи docs/roadmap/tasks.md. Не объявлять эти срезы заново реализованными.",
+        "details": "Для каждой записи FND-016–FND-032 с пометкой visible/interactive/manual smoke сверить актуальность сценария, запустить видимый Electron и отметить результаты отдельно; при расхождении создать отдельную задачу/баг. ADR и code-map остаются источником ограничений. FND-022 уже отмечен как fully verified, его повторять только при связанных регрессиях.",
+        "testStrategy": "Ручной smoke сценариев из исторического roadmap; найденные ошибки подкрепить тестами и записать в Task Master.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": [],
+        "updatedAt": "2026-09-26T13:30:16.748Z"
+      },
+      {
+        "id": "7",
+        "title": "Полное визуальное и функциональное тестирование всех функций TJournal",
+        "description": "Провести исчерпывающее ручное тестирование всего, что доступно пользователю в Electron-приложении: все страницы, все модальные окна, всплывающие списки (popover/select/combobox/multi-select/tooltip/date-time pickers), быстрый ввод и редактирование сделок, движения денег, каталог счетов/активов/тегов, статистика, настройки и онбординг. Особый фокус — визуальная проверка: темы Light/Dark/Auto, локализация RU/EN, адаптивность и отсутствие обрезки/скачков layout. Результат каждой области фиксируется прямо в этой задаче и её подзадачах; при дефекте создаётся отдельная задача/баг с регрессионным тестом.",
+        "details": "Метод: запустить видимый Electron через window-placement launcher с изолированным тестовым userData (реальные vault не трогать) и использовать electron-playwright MCP (connect/snapshot + целевые действия). Для повторяемой регрессии — pnpm test:e2e (production-сборка). Ориентация по коду и точкам закрытия окон — через CodeGraph. Инвентарь поверхностей для покрытия: (1) Vault onboarding (создать/открыть, отказ перезаписи, проверка), блокирующий онбординг счёта, диалог ввода 1R, legacy account warning; (2) оболочка: sidebar 4 раздела, Undo/Redo, темы, языки; (3) быстрый ввод: DirectionToggle, asset Combobox с inline-созданием и выбором типа, account Select, результат cash/percent/R и инлайн-превью USD, entryKind trade/deposit/withdrawal, TagPicker с inline-созданием и палитрой; (4) таблица сделок: сортировка, resize-guide, горизонтальный скролл, layout-диалог (колонки, скрытые detail, 1R, показ движений), фильтры каждой колонки (Number greater/less/between, Text, DateTimeRange, MultiSelect, теги с «Без тегов»), сброс фильтров, выбор строк, bulk delete ConfirmDialog, tag overflow popover, двойной клик; (5) TradeDetailsDialogView: все секции (direction, account, asset, дата/время disabled, entry price, stop loss, лоты, комиссия, спред, exits mini-table + add/remove, allocation, result kind/value, review status, entry/review notes с лимитом, TagPicker), сохранение и ошибки; (6) CashMovementDialogView: deposit/withdrawal и отказ сверх баланса; (7) каталог: вкладки Счета/Активы/Теги, таблицы с фильтрами и layout, редактор счёта с профилями затрат и Combobox, редактор актива, редактор тега с палитрой из 10 цветов и textarea, quick-create, bulk delete/restore; (8) статистика: период (calendar range), multi-select фильтры account/direction/category/instrument, reset, тип графика и time bucket, KPI-карточки (win rate ring, distribution ring), time-series/breakdown charts и эквивалентные таблицы, tooltip, пустой отчёт, узкое окно; (9) настройки: карточка Интерфейс (тема/язык) и карточка Vault (путь, смена через нативный диалог, открыть папку, проверка с кодами vault-invalid/vault-not-accessible); (10) UI-примитивы и a11y: Dialog focus-return, Escape, non-dismissible режим, Tooltip, Popover у края экрана, keyboard Tab-порядок, scrollbar, prefers-reduced-motion, axe. Матрица визуальной проверки: ключевые экраны в Light/Dark/Auto x RU/EN x ширины 1600/1280/1100/960/800/620. Автоматический baseline для контекста: pnpm check и pnpm test:e2e.",
+        "testStrategy": "Ручной смоук в видимом Electron через electron-playwright MCP (accessibility snapshot + целевые действия) для каждой подзадачи; фиксация PASS/FAIL и найденных дефектов текстом в подзадаче. Для подтверждения текущего состояния перед началом — pnpm check и pnpm test:e2e. Любой найденный дефект получает отдельную Task Master задачу/баг и regression-тест; визуальные регрессии, которые можно закрепить, добавляются в test/e2e/*.spec.ts. Критерий завершения: все 10 областей отмечены, дефекты заведены, спорные/непокрытые места явно перечислены.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Онбординг: создание/открытие vault и обязательный счёт",
+            "description": "Проверить первый запуск и блокирующие диалоги до появления рабочего места.",
+            "details": "Проверить: VaultOnboardingView (создание нового vault, открытие существующего, отказ перезаписи непустой папки, проверка кандидата и сообщения vault-invalid / vault-not-accessible); блокирующий AccountOnboardingDialog (dismissible=false, Escape не закрывает, валидация имени и opening balance, ошибка не стирает данные); RiskMissingDialog при R-сделке без 1R (невалидное значение не отправляется, Cancel/Escape закрывают); LegacyAccountWarning (сообщение и переход к миграции старой сделки). Ожидаемо: до открытия vault рабочее место не монтируется; онбординг счёта нельзя пропустить; при ошибке активный vault/данные не меняются.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.252Z"
+          },
+          {
+            "id": 2,
+            "title": "Оболочка: навигация, Undo/Redo, темы, языки",
+            "description": "Проверить sidebar, историю команд и переключение темы/языка.",
+            "details": "Проверить: 4 раздела (Сделки, Счета и активы, Статистика, Настройки) с активным состоянием aria-current; в свёрнутом sidebar доступные имя и tooltip; кнопки Undo/Redo (disabled-состояния, Ctrl+Z/Ctrl+Y, корректный откат/повтор операций и отсутствие частично применённой инверсии); переключение темы Auto/Light/Dark на всех страницах без вспышек и нечитаемых контрастов; переключение System/RU/EN — весь видимый текст переводится, layout не ломается. Визуально сверить brand-строку и историю в одной строке.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.255Z"
+          },
+          {
+            "id": 3,
+            "title": "Быстрый ввод: сделка, пополнение, вывод, теги, конверсия",
+            "description": "Проверить тулбар быстрого ввода и все его контролы.",
+            "details": "Проверить: DirectionToggle Long/Short; asset Combobox (ввод, фильтрация, порядок последних использованных, inline-создание актива, сохранение введённого текста до выбора, неизвестный символ открывает AssetCreateDialogView с выбором типа, пустой символ не создаёт актив и кнопка Добавить выключена); account Select (без осцилляций после выбора, смена счёта); результат cash/percent/R и инлайн-превью '= N USD' (только при непустом значении, база процента в tooltip, percent требует положительный баланс); entryKind trade/deposit/withdrawal; amount для движения; TagPicker (выбранные теги, inline-создание, кнопки-крестики); submit: успех, ошибка валидации и сохранение черновика/тегов при неуспехе; поведение ≤56rem (перенос полей, перенос действий в свою строку).",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.258Z"
+          },
+          {
+            "id": 4,
+            "title": "Таблица сделок: фильтры, сортировка, layout, выбор, popup",
+            "description": "Проверить нейтральную DataTable в рабочем месте сделок и все её механики.",
+            "details": "Проверить: заголовки-фильтры для каждой колонки — Number (greater/less строгие, between включительный, обратный диапазон показывает ошибку и не применяется), Text, DateTimeRange, MultiSelect, теги (включая «Без тегов» и selected OR untagged), подсветка активного фильтра, локальный сброс в панели и общий сброс рядом с настройками вида; сортировка по allowlist; изменяемая ширина колонок и resize-guide; горизонтальный скролл и фокусируемый scroll-регион; TableLayoutDialogView (видимость detail-колонок, показ движений, 1R, сохранение на счёте и устойчивость к перезапуску/смене счёта); выбор строк и SelectionToolbar, безопасный сброс выбора, reservation высоты; ConfirmDialog удаления выбранного (busy блокирует действия); tag overflow '+N' popover; двойной клик по строке открывает правильный редактор (сделка/движение); пустая таблица vs пустой результат фильтра; виртуализация и подгрузка страниц при прокрутке.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.265Z"
+          },
+          {
+            "id": 5,
+            "title": "Диалог деталей и редактирования сделки",
+            "description": "Проверить TradeDetailsDialogView целиком.",
+            "details": "Проверить секции: direction (L/S), account Combobox, asset Combobox, дата и время (временные поля disabled и не меняют модель), entry price, stop loss, лоты, комиссия, спред; exits mini-table (добавление/удаление, volume selector в заголовке, allocation kind, reported result); execution preview и доступность расчёта; result kind + value и перевод; review status и entry/review notes (лимит символов, счётчик/подсказка); TagPicker (добавление/удаление, inline-создание); сохранение, отображение ошибок валидации, сохранение черновика при неуспехе, закрытие по Cancel/Escape с возвратом фокуса; изменение результата пересчитывает authoritative USD.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.268Z"
+          },
+          {
+            "id": 6,
+            "title": "Движение денег: диалог и правила баланса",
+            "description": "Проверить CashMovementDialogView и ограничения счёта.",
+            "details": "Проверить создание пополнения и вывода, редактирование существующего движения (двойной клик по строке), валидацию положительной суммы, отказ вывода сверх полного известного баланса, отсутствие влияния движений на P&L/win rate/число сделок, отдельное отображение accounted balance и trading P&L, отдельный тон пополнения (фиолетовый) и вывода (warning).",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.272Z"
+          },
+          {
+            "id": 7,
+            "title": "Каталог: счета, активы, теги",
+            "description": "Проверить страницу «Счета, активы и теги» и её редакторы.",
+            "details": "Проверить вкладки и таблицы Accounts/Assets/Tags: фильтры каждой колонки (единая фабрика панелей), layout-диалог, сортировка, resize; двойной клик открывает редактор; редактор счёта (имя, opening balance, профили затрат, блокировка сохранения пока профили не прочитаны, Retry при null-ответе, лимиты размера и 2R/риск); редактор актива (категория из INSTRUMENT_CATEGORIES, дефолтный тип, профили расчёта); редактор тега (палитра 10 цветов, textarea комментария, лимиты 64/500); quick-create на каждой вкладке; TagPicker/tag-chip/tag-overflow-list; bulk delete/restore (подтверждение, архивирование связанных, удаление свободных, stop-on-first-failure с retry, busy-защита); локализованные подписи категорий; пустые состояния центрированы.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.275Z"
+          },
+          {
+            "id": 8,
+            "title": "Статистика: фильтры, KPI, графики и таблицы",
+            "description": "Проверить аналитический отчёт и его визуальные состояния.",
+            "details": "Проверить: период (компактный календарь-диапазон, header reset, часовая детализация до 2 суток, непрерывная ось); multi-select фильтры account/direction/category/instrument и кнопка сброса (появляется только при активном фильтре, высоты совпадают с мультиселектами); тип графика и time bucket; KPI-карточки (win rate ring рядом с точным значением, distribution ring по win/loss/break-even counts), profit factor, average trade, max drawdown, coverage (непокрытые legacy-сделки видны только через coverage); time-series и breakdown charts (bounded 400 точек / 50 строк), themed tooltip; эквивалентные таблицы; пустой отчёт и выравнивание по верху; узкое окно и переполнение.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.279Z"
+          },
+          {
+            "id": 9,
+            "title": "Настройки: Интерфейс и Vault",
+            "description": "Проверить страницу настроек и управление vault.",
+            "details": "Проверить: карточка «Интерфейс» — Select темы (auto/light/dark) и языка (system/ru/en) применяются и сохраняются; карточка «Vault» — отображение текущего пути, кнопка открытия папки (shell.openPath), смена vault через нативный диалог с полной проверкой кандидата до замены, кнопка проверки с различимыми сообщениями vault-invalid/vault-not-accessible, отказ не меняет активный vault и историю; смена vault сбрасывает Undo/Redo и монтирует workspace с новым ключом без черновиков старой сессии.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.282Z"
+          },
+          {
+            "id": 10,
+            "title": "UI-примитивы, доступность, адаптивность и локализация",
+            "description": "Кросс-срез: примитивы, a11y, темы, ширины и языки на всех экранах.",
+            "details": "Проверить примитивы: Dialog (фокус-возврат на trigger, Escape, non-dismissible), Popover, Select, Combobox, MultiSelect, Tooltip, DatePicker/DateRangePicker, TimeField, DirectionToggle, TabList, Checkbox, TextField, TextArea, IconButton, FilterResetButton, SelectionToolbar, NumberFilterPanel/TextFilterPanel/DateTimeRangePanel. Проверить: keyboard Tab-порядок toolbar/sidebar/таблицы/диалогов; popup у самого края экрана не обрезается; scrollbar токенизирован для страницы/диалогов/popups/таблиц/статистики; prefers-reduced-motion; отсутствие layout jump при появлении действий/сброса. Матрица: ключевые экраны в Light/Dark/Auto x RU/EN x ширины 1600/1280/1100/960/800/620 — нет горизонтального overflow документа, обрезки текста или наложения тулбара на таблицу. Прогнать axe-проверку (inject axe-core) на онбординге, сделках, диалоге деталей, каталоге, статистике и настройках; новый serious/critical без ревью — дефект.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 7,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-25T23:38:42.286Z"
+          }
+        ],
+        "updatedAt": "2026-09-25T23:38:42.286Z"
+      },
+      {
+        "id": "8",
+        "title": "UI: ошибка валидации счёта показывается вне модального окна и текстом про сделку",
+        "description": "При сохранении счёта с отрицательным начальным балансом ошибка рендерится в общем баннере страницы (.page-content .error-message) за оверлеем модального окна и использует общий текст 'Check the highlighted trade data.' вместо сообщения про счёт. Пользователь видит открытый диалог без видимой рядом ошибки.",
+        "details": "Воспроизведение (подтверждено интерактивно через electron-playwright MCP): Каталог -> Счета -> Create -> Account='Neg Test', Opening balance='-50' -> Save. Диалог остаётся открытым, а текст ошибки появляется в верхнем баннере страницы, частично перекрытом оверлеем. Ожидаемо: ошибка показывается внутри диалога рядом с полем и с сообщением, не упоминающим сделку (например, must-be-non-negative / account-specific). Затронуто: apps/desktop/src/renderer/features/journal/journal-view.tsx (рендер journal.error в .page-content), account-asset-editor-dialogs.tsx и use-catalog-presenter.ts (обработка ошибки сохранения счёта), fallback error.validation-invalid в i18n. Также проверить, что валидация отрицательного начального баланса вообще должна отклоняться (must-be-non-negative).",
+        "testStrategy": "Добавить регрессионный тест (E2E или component), утверждающий, что сообщение об ошибке находится внутри диалога; текущий test/e2e/catalog.spec.ts проверяет лишь то, что диалог остаётся открытым. Прогнать pnpm check и pnpm test:e2e.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2026-09-26T13:16:43.861Z"
+      },
+      {
+        "id": "9",
+        "title": "Проверить расхождение даты/времени сделки между таблицей и диалогом деталей (UTC vs локаль)",
+        "description": "В таблице сделок дата отображается в локальной зоне, а в диалоге деталей поле Date/Time показывает, судя по наблюдению, UTC: для одной сделки таблица показывала 9/26/2026, диалог — 2026-09-25 23:06 (локаль UTC+3). Нужно подтвердить и решить, должна ли UI-форма показывать локальное время.",
+        "details": "Наблюдение получено интерактивно (electron-playwright MCP) на сделке, созданной вечером по локальному времени. Код-карта утверждает, что сравнения времени идут в UTC; поля даты/времени в диалоге деталей объявлены визуально-disabled и не меняют модель. Проверить: apps/desktop/src/renderer/features/journal/trade-details-dialog-view.tsx (форматирование даты/времени), trade-table-columns.tsx (колонка Date), модуль trade (closedAt в UTC). Если это осознанный UTC-показ, зафиксировать это в подписи/tooltip; если нет — показывать локальное время согласованно с таблицей.",
+        "testStrategy": "Юнит/компонентный тест на форматирование даты в деталях и таблице для одного closedAt; ручная проверка при UTC+3. Прогнать pnpm check.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": [],
+        "updatedAt": "2026-09-26T13:16:50.343Z"
+      },
+      {
+        "id": "10",
+        "title": "Исправить риски ревизии: память аналитики, Undo предпочтений, gateway, ввод 1R и форматирование",
+        "description": "План выполнения ревизии текущего рабочего дерева: измерить и устранить два неограниченных пути чтения сделок, прекратить маскировать несовместимость preload API, исправить полную валидацию 1R, затем закрыть форматирование затронутых существующих файлов. Код в этой задаче не менять; реализацию вести отдельными подзадачами и обновлять статусы.",
+        "details": "Контекст: apps/desktop/src/main/analytics-worker.ts:46 -> platform/database/src/sqlite-trade-store.ts:155; apps/desktop/src/main/application/trade-preferences/trade-preferences-commands.ts:41-49 -> restoreTradePreferences; apps/desktop/src/renderer/gateway/electron-renderer-gateway.ts:4-10,31-32,45-48; apps/desktop/src/renderer/features/journal/journal-view.tsx:104-109; pnpm format:check указывает на .taskmaster/tasks/tasks.json и шесть test/e2e файлов. Порядок: (1) измерить baseline быстрых summary и preference update/undo на реалистичном объёме, не оптимизировать без сравнения; (2) переработать summary с ограниченной памятью без изменения публичного IPC DTO, Decimal-правил и семантики ADR-0010/0004; (3) ограничить snapshot и восстановление предпочтений фактически перепривязанными данными и сохранить атомарность Undo/Redo; (4) убрать успешные подмены отсутствующих методов gateway и проверить отказ/ошибку подписки с учётом renderer onboarding; (5) валидировать 1R целиком по правилу домена; (6) форматирование пользовательских изменённых файлов и финальные проверки. Модули/контракты: analytics application/порт потока, platform/database adapter и worker composition только в пределах существующих границ; trade preferences application/порт/SQLite/history; gateway -> typed DesktopApi preload -> presenter; trade domain validator -> renderer View. Новая архитектура/IPC/schema не требуется без доказанной необходимости. Перед правками сверить актуальное дерево, ADR и затронутые тесты; не перетирать соседние незакоммиченные изменения. Все поведенческие исправления с регрессионным тестом, изменения shared contracts — оценить влияние по CodeGraph. При выявлении конфликта с ADR задать вопрос, а не молча менять решение.",
+        "testStrategy": "Baseline и повторные замеры времени/памяти на большом журнале (число сделок и метод замера фиксировать в подзадаче); unit/integration tests на empty/legacy/filters/Decimal/tie-break и Undo/Redo/rebind, gateway missing methods и валидатор строки; pnpm.cmd lint, pnpm.cmd typecheck, pnpm.cmd architecture, pnpm.cmd test, pnpm.cmd format:check, целевой Electron smoke или e2e при затрагивании UI. Статусы и результаты проверки фиксировать в Task Master, а не в roadmap.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Зафиксировать baseline памяти и времени на большом журнале",
+            "description": "Измерить быстрый summary и update/undo торговых предпочтений на наборе с большим числом сделок, смешанными видами результатов, тегами и exits; отдельно замерить rebindHistorical=false и true.",
+            "details": "Точки: platform/database/src/query-benchmark.test.ts, apps/desktop/src/main/analytics-worker.ts, platform/database/src/sqlite-trade-store.ts, apps/desktop/src/main/application/trade-preferences/trade-preferences-commands.ts. Зафиксировать размер входа, время и пиковую память/heap (или воспроизводимый proxy) и текущую семантику результата. Бенчмарк не должен попадать в обычный flaky test gate. Критерий: достаточно данных для сравнения до/после и выявления наиболее затратного чтения; не менять бизнес-правила.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 10,
+            "updatedAt": "2026-09-26T00:37:32.628Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Сделать быструю торговую сводку потоковой с ограниченной памятью",
+            "description": "Устранить полную загрузку ClosedTrade и промежуточных массивов из пути analytics.summary при сохранении DTO и наблюдаемого поведения.",
+            "details": "Текущий путь apps/desktop/src/main/analytics-worker.ts -> SqliteTradeStore.listTrades() -> modules/analytics/src/calculate-trade-summary.ts (periodTrades, filteredTrades, values). В analytics определить минимальную внутреннюю проекцию/итератор только нужных полей; в platform/database реализовать выборку без .all() и без полного чтения executions/tags, с фильтрацией где уместно. Worker собирает use case через существующий composition root; renderer, IPC и shared DTO остаются совместимыми. Не подменять Decimal на JS Number/SQLite REAL. Сохранить локальные границы периодов, фильтры по account/instrument/entryKind/resultKind/input unit/textQuery/netResultBounds/closedAt, legacy coverage, nullable значения, тон с настройками neutral cost/range, best/worst и tie-break по symbol/id. Если упрощённая проекция не сохраняет classify/getMetric semantics, расширять только внутренний порт, а не менять публичный контракт. Тесты сравнивают новый путь с calculateTradeSummary на одинаковом наборе, включая пустой, mixed result, legacy и граничные даты; benchmark после изменения должен показать меньшую пиковую память, без существенной регрессии времени.",
+            "status": "done",
+            "dependencies": [
+              "10.1"
+            ],
+            "parentTaskId": 10,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T00:37:32.634Z"
+          },
+          {
+            "id": 3,
+            "title": "Ограничить snapshot и Undo обновления торговых предпочтений",
+            "description": "Снять полный snapshot и перезаписать сделки только когда явная историческая перепривязка реально может изменить строки.",
+            "details": "Точки: apps/desktop/src/main/application/trade-preferences/trade-preferences-commands.ts и тест, modules/trade/src/contracts/trade-store.ts, platform/database/src/sqlite-trade-store.ts:266-305, UndoRedoHistory/CommandTransaction. Для rebindHistorical=false и riskBinding=null не читать все сделки и Undo восстанавливает только preferences; changedResources.trades отправлять только при фактическом изменении сделок с учётом инвалидации. Для rebindHistorical=true c riskBinding!=null — сохранять исходные снимки только затронутых R-записей (unbound или прежний vault default) в bounded/chunked или потоковом механизме, не держать весь журнал. Сохранять точную семантику ADR-0004, одну транзакцию и безопасный Undo/Redo без перезаписи чужих сделок. Если формат истории не допускает ограниченный snapshot, зафиксировать конфликт до изменения публичных контрактов. Тесты: оба флага, null/unchanged binding, partial rebind, смешанные сделки, Undo/Redo, failed update, ревизии, масштабный замер после.",
+            "status": "done",
+            "dependencies": [
+              "10.1"
+            ],
+            "parentTaskId": 10,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T01:02:18.236Z"
+          },
+          {
+            "id": 4,
+            "title": "Убрать успешные заглушки несовместимого preload API",
+            "description": "Не выдавать пустые каталоги, отсутствие vault и успешную подписку при отсутствии обязательных методов DesktopApi.",
+            "details": "Точки: apps/desktop/src/renderer/gateway/electron-renderer-gateway.ts:4-10,31-32,45-48; apps/desktop/src/preload/index.ts; apps/desktop/src/shared/desktop-api.ts; features/journal/use-journal-presenter.ts:335-358 и его error/onboarding policy. Прямо вызывать обязательные typed методы либо возвращать typed безопасную ошибку по существующему контракту; для sync subscribeToChanges обеспечить наблюдаемый отказ и исключить ложное состояние успешной подписки. Учитывать диагностику первой загрузки: отсутствие API не должно представляться как новый пустой vault. Тесты адаптера/презентера на отсутствующий метод, нормальный preload и реакцию на ошибку, без ложной успешной инициализации; не добавлять ненужных fallback для текущих обязательных каналов.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 10,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T00:56:27.859Z"
+          },
+          {
+            "id": 5,
+            "title": "Исправить полную валидацию положительного 1R в диалоге",
+            "description": "Строки вида 12abc, 1e3junk и частично распознанные числа не должны попадать в submitRiskPrompt.",
+            "details": "Точки: apps/desktop/src/renderer/features/journal/journal-view.tsx:104-109 и RiskMissingDialog, modules/trade/src/domain и browser-safe calculation/validation при необходимости, shared IPC validation, use-journal-workspace-presenter.tsx:340-347. Переиспользовать существующее правило положительного Decimal или точный parser без Number.parseFloat, принимать разрешённый десятичный формат с точкой/запятой и окружающими пробелами, сохранять точность больших/дробных чисел; правила разделителей уточнить по существующему домену. Валидация границы IPC остаётся источником истины; ошибка в диалоге локализована и не стирает черновик. Компонентный регрессионный тест на invalid prefix/suffix/zero/negative/valid decimal и сохранение значения при неуспешном ответе; целевой Electron smoke R quick-entry.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 10,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T00:56:27.865Z"
+          },
+          {
+            "id": 6,
+            "title": "Привести форматирование и выполнить финальную верификацию",
+            "description": "Проверить и устранить текущий format:check failure без изменения семантики незакоммиченных E2E сценариев; закрыть все проверки по исправлениям.",
+            "details": "Исходно pnpm.cmd format:check сообщает .taskmaster/tasks/tasks.json, test/e2e/catalog.spec.ts, fixtures.ts, layout-and-theme.spec.ts, quick-entry.spec.ts, statistics.spec.ts, table-interactions.spec.ts. Поскольку tasks.json генерируется Task Master, выяснить, должен ли он форматироваться Prettier либо исключаться как генерируемый ledger: не переписывать Task Master вручную во время активных операций. Для E2E применять только Prettier к указанным файлам, проверить diff соседних пользовательских правок. После подзадач 10.2–10.5: pnpm.cmd lint, typecheck, architecture, test, format:check; UI smoke и pnpm.cmd test:e2e если затронуто видимое поведение. Повторить сравнение baseline; зафиксировать команды/результат/ограничения в Task Master и отметить завершение.",
+            "status": "done",
+            "dependencies": [
+              "10.2",
+              "10.3",
+              "10.4",
+              "10.5"
+            ],
+            "parentTaskId": 10,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T00:56:27.870Z"
+          }
+        ],
+        "updatedAt": "2026-09-26T01:02:18.236Z"
+      },
+      {
+        "id": "11",
+        "title": "Уточнить замер и границы памяти аналитики и Undo предпочтений (follow-up #10)",
+        "description": "Пост-ревизия #10: сделать замер памяти воспроизводимым и изолированным, доказать масштабируемость перепривязки на большой доле затронутых сделок и уточнить формулировки о границах памяти в документации. Публичные контракты, IPC DTO и семантика не меняются.",
+        "details": "Пробелы после #10: (1) в platform/database/src/query-benchmark.test.ts полный список остаётся удержанным при замере потокового пути, а heap-замер не включён (не было --expose-gc); (2) 10.1 требовала замера preference update/undo при rebindHistorical=false и true — он не сделан; (3) в docs/engineering/query-performance.md и ADR заявлено, что память не зависит от журнала, хотя summarizeTradeFacts держит Map по уникальным инструментам, а снимок перепривязки — массив затронутых строк. Точки: platform/database/src/query-benchmark.test.ts, platform/database/src/sqlite-trade-preferences.test.ts, vitest.config.ts, docs/engineering/query-performance.md, docs/adr/0004-canonical-trade-result-and-snapshots.md, docs/adr/0010-statistics-report-and-drawdown.md. Порядок: включить global.gc для тестов через test.execArgv; изолировать heap-замер и добавить детерминированный proxy удержанных байт; расширить масштабный тест перепривязки; уточнить документацию. Критерий: детерминированный gate (число запросов и payload-байты) плюс информативный heap-замер; формулировки соответствуют фактическим границам O(инструменты) и O(затронутые строки).",
+        "testStrategy": "pnpm.cmd test (query-benchmark + sqlite-trade-preferences), затем pnpm.cmd check и pnpm.cmd format:check. Прогнать query-benchmark дважды для проверки стабильности gate. Heap-замеры — ориентир, не flaky-assert; регрессионный gate — число подготовленных statement-ов и payload-байты.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Изолированный воспроизводимый замер памяти read-путей",
+            "description": "Включить global.gc для тестов и сделать heap-замер изолированным; добавить детерминированный proxy удержанных байт.",
+            "details": "vitest.config.ts: test.execArgv=['--expose-gc']. platform/database/src/query-benchmark.test.ts: освобождать полный список (let + null) перед замером потокового пути, читать heap после gc, добавить Buffer.byteLength(JSON.stringify(...)) для полного списка и для результата сводки. Детеминированный gate: число prepared statements (1 vs 3) и payload-байты (summary на порядки меньше). Heap — информативный лог, не flaky-assert.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 11,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T12:37:48.208Z"
+          },
+          {
+            "id": 2,
+            "title": "Масштабный тест перепривязки на большой доле затронутых сделок",
+            "description": "Проверить, что снимок и inverse ограничены затронутыми строками и число запросов не растёт с журналом.",
+            "details": "platform/database/src/sqlite-trade-preferences.test.ts: фикстура с сотнями unbound R-сделок, несколькими R, привязанными к другому значению, и cash-сделками. saveTradePreferences(true): rebind затрагивает только unbound+прежний default, число prepared statements постоянно (4), длина снимка равна числу затронутых; restoreTradePreferences: 2 statement-а независимо от числа строк, значения восстанавливаются точно, чужие сделки не тронуты. Зафиксировать payload-байты снимка как информативный показатель.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 11,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T12:37:48.214Z"
+          },
+          {
+            "id": 3,
+            "title": "Уточнить формулировки о границах памяти в документации",
+            "description": "Привести query-performance.md и ADR к фактическим границам O(инструменты) и O(затронутые строки).",
+            "details": "docs/engineering/query-performance.md, docs/adr/0010-statistics-report-and-drawdown.md, docs/adr/0004-canonical-trade-result-and-snapshots.md: заменить «память не зависит от журнала» на точные границы; зафиксировать, что потоковый summary держит Map по уникальным инструментам, а inverse перепривязки пропорционален переписанным строкам (не журналу). Не менять решения ADR, только уточнить последствия.",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 11,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T12:37:48.218Z"
+          }
+        ],
+        "updatedAt": "2026-09-26T12:37:48.218Z"
+      },
+      {
+        "id": "12",
+        "title": "Windows v1: release hardening and publication",
+        "description": "Close existing defects #8/#9 and Electron smoke #2-#6; validate a production-installed Windows x64 NSIS build, then publish unsigned v1 through GitHub Releases. Deferred product slices B/C/D belong after v1.",
+        "details": "Work in current dirty tree without reverting owner changes. Follow order: fix timestamp editing UTC/local mismatch and account-editor validation presentation with regression coverage; reconcile smoke evidence against #7 and rerun impacted flows; verify backup/migration, installer install/upgrade/uninstall and vault survival; run clean typecheck, check, format:check, build, test:e2e, make; record accepted unsigned release decision in ADR and release notes with SmartScreen disclosure; clean temporary plan 08 after deferrals are persisted in Task Master; update README status links; publish checked SHA256 and download-test from GitHub Releases. No public release until all actual tests and installed-artifact acceptance pass. Track failures as independent Task Master defects.",
+        "testStrategy": "",
+        "status": "in-progress",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Fix release-blocking UI defects #8 and #9",
+            "description": "#9: local wall-time display/edit, canonical UTC persistence, date-only/time-only and DST regression tests; #8: account validation displayed inside dialog with account-specific copy and retained draft. Focused component/E2E tests; no domain/IPC change.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 12,
+            "updatedAt": "2026-09-26T13:16:56.772Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Reconcile and complete Electron acceptance #2-#6",
+            "description": "Use task #7 evidence only where it covers same version/scenario; rerun changed account profiles, trades, filters, statistics, backups, themes with isolated userData via electron-playwright; document each PASS/FAIL and create regression defects.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 12,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T13:30:24.742Z"
+          },
+          {
+            "id": 3,
+            "title": "Build and verify installed Windows release",
+            "description": "Run clean typecheck/check/format:check/build/test:e2e/make; verify Windows x64 NSIS on clean profile, install/upgrade/uninstall without losing vault, pre-migration backup and restore. Confirm version and SHA256; record evidence. Release gate requires installed-artifact test.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 12,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T13:30:28.015Z"
+          },
+          {
+            "id": 4,
+            "title": "Record unsigned-release decision and clean temporary docs",
+            "description": "Record user choice: public unsigned Windows v1 via GitHub Releases, warning about SmartScreen and checksum limits, ADR before publication. Defer tag analytics/CSV import/saved views after v1 in Task Master; remove docs/plans/temporary-architecture-audit only after disposition; fix README current task links; preserve historical roadmap and ADRs.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 12,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T13:18:55.012Z"
+          },
+          {
+            "id": 5,
+            "title": "Publish verified GitHub v1 release",
+            "description": "Only after #8/#9, acceptance and installed-artifact gates pass: create version tag and GitHub Release draft; attach NSIS and SHA256, release notes/requirements and unsigned warning; download-test, then publish; record link and results in Task Master.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 12,
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2026-09-26T13:30:28.015Z"
+      },
+      {
+        "id": "13",
+        "title": "After v1: deferred product slices from architecture audit plan 08",
+        "description": "Owner deferred tag analytics, generic CSV import and saved views/recurring review until after public Windows v1. Each slice is independent and requires renewed product acceptance before implementation. FND-029 qualitative notes already delivered; attachments remain separately deferred and need ADR before implementation.",
+        "details": "Tag analytics: OR multi-tag filtering, optional untagged, overlapping groups not additive, EXISTS so aggregate KPIs count each trade once, bounded reports, 100k benchmark. CSV import: bounded preview, mapping, dry-run, deterministic fingerprint and atomic/resumable commit decision, no historical rebasing from current balance, large-file streaming. Saved views: vault-scoped typed filters/preferences, versioning, missing referenced IDs and restart checks. Do not implement any of these for Windows v1. Source: removed docs/plans/temporary-architecture-audit/08-product-followups.md; ADR-0016 for delivered notes. Future selection requires ADR where schema/semantics change and independent verification.",
+        "testStrategy": "",
+        "status": "deferred",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Deferred B: tag analytics",
+            "description": "After v1, validate need with owner. OR within selected tags and optional untagged; overlapping tag breakdown counts are nonadditive, overall KPI must count each trade once via EXISTS/semi-join. Current assignments; deletion/Undo invalidates report. Retain 400-point/50-row caps, test multi-tag and untagged, deletion, keyboard accessibility and 100k realistic cardinality benchmark; only add SQL indexes after query plan and measurement. ADR for overlap semantics and UI copy.",
+            "details": "",
+            "status": "deferred",
+            "dependencies": [],
+            "parentTaskId": 13,
+            "updatedAt": "2026-09-26T13:01:44.377Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Deferred C: safe generic CSV import",
+            "description": "After v1 owner selection; main chooses local CSV, bounded preview and mapping time/symbol/direction/result/unit/account and optional tags; dry run all rows with accepted/rejected/duplicate counts; commit atomic or explicitly resumable with persisted deterministic source fingerprint, avoiding false dedup of identical trades. Unknown account/asset explicit mapping. Reuse trade Decimal rules; historical percent/R conversion requires chronological policy, never current final balance. Tests BOM/delimiter/quotes/RU-EN dates/decimals/malformed rows, repeat idempotence, failure rollback/resume, streaming large file, E2E preview/commit. ADR before schema policy.",
+            "details": "",
+            "status": "deferred",
+            "dependencies": [],
+            "parentTaskId": 13,
+            "updatedAt": "2026-09-26T13:02:00.742Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Deferred D: saved views and recurring review",
+            "description": "After v1 owner selection; prefer vault-scoped named typed journal/statistics filters and display prefs because IDs are vault-specific; no domain facts or new dashboard. Version schema, reconcile missing/renamed/deleted account/asset/tag IDs, built-in week/month/unreviewed/tag review presets as separately accepted scope. Applying does not mutate trade facts; Undo only if existing preferences semantics demand it. E2E save/restart/apply/delete.",
+            "details": "",
+            "status": "deferred",
+            "dependencies": [],
+            "parentTaskId": 13,
+            "updatedAt": "2026-09-26T13:02:17.229Z",
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2026-09-26T13:02:17.229Z"
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2026-09-26T13:30:28.015Z",
+      "taskCount": 13,
+      "completedCount": 11,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}

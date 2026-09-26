@@ -100,7 +100,12 @@ export interface JournalPresenter {
   deleteTrades(ids: readonly string[]): Promise<void>;
   redo(): Promise<void>;
   setPage(page: ApplicationPage): void;
-  updateSettings(settings: ApplicationSettingsDto): Promise<void>;
+  /**
+   * Merges a partial settings patch into the latest known values, applies it
+   * immediately and persists the merged result. The acknowledged response is
+   * authoritative, so the UI never depends on a later committed-change refresh.
+   */
+  updateSettings(patch: Partial<ApplicationSettingsDto>): Promise<void>;
   updateInstrumentProfile(profile: InstrumentCalculationProfileDto): Promise<void>;
   updateTradePreferences(
     preferences: TradePreferencesDto,
@@ -134,6 +139,17 @@ export const useJournalPresenter = (gateway: RendererGateway): JournalPresenter 
   const [page, setPage] = useState<ApplicationPage>('trades');
   const [settings, setSettings] = useState<ApplicationSettingsDto>(DEFAULT_APPLICATION_SETTINGS);
   const [tags, setTags] = useState<readonly TagDto[]>([]);
+  // Settings are edited through partial patches: the ref is the latest optimistic
+  // value used to merge rapid successive changes, and the persisted ref is the
+  // last acknowledged value used to roll back a rejected write.
+  const settingsRef = useRef(settings);
+  const persistedSettingsRef = useRef(settings);
+  const settingsWriteSequence = useRef(0);
+
+  const applySettings = useCallback((next: ApplicationSettingsDto): void => {
+    settingsRef.current = next;
+    setSettings(next);
+  }, []);
   const [tagTradeCounts, setTagTradeCounts] = useState<Readonly<Record<string, number>>>({});
   const [tradePreferences, setTradePreferences] =
     useState<TradePreferencesDto>(EMPTY_TRADE_PREFERENCES);
@@ -206,8 +222,9 @@ export const useJournalPresenter = (gateway: RendererGateway): JournalPresenter 
       setError(result.error);
       return;
     }
-    setSettings(result.value);
-  }, [gateway]);
+    persistedSettingsRef.current = result.value;
+    applySettings(result.value);
+  }, [applySettings, gateway]);
 
   const loadTradePreferences = useCallback(async (): Promise<void> => {
     const result = await gateway.getTradePreferences();
@@ -319,7 +336,7 @@ export const useJournalPresenter = (gateway: RendererGateway): JournalPresenter 
     void gateway
       .getDiagnostics()
       .then((result) => {
-        if (result?.ok) setVaultPath(result.value.vaultPath);
+        if (result.ok) setVaultPath(result.value.vaultPath);
       })
       .finally(() => setVaultResolved(true));
   }, [gateway]);
@@ -345,8 +362,20 @@ export const useJournalPresenter = (gateway: RendererGateway): JournalPresenter 
       settings.languageMode === 'system' ? navigator.language.slice(0, 2) : settings.languageMode;
     void i18n.changeLanguage(language === 'en' ? 'en' : 'ru');
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    document.documentElement.dataset.theme =
-      settings.themeMode === 'auto' ? (mediaQuery.matches ? 'dark' : 'light') : settings.themeMode;
+    const applyTheme = (): void => {
+      document.documentElement.dataset.theme =
+        settings.themeMode === 'auto'
+          ? mediaQuery.matches
+            ? 'dark'
+            : 'light'
+          : settings.themeMode;
+    };
+    applyTheme();
+    // Auto follows the operating-system scheme for the whole session; Light and
+    // Dark stay fixed until the user changes them.
+    if (settings.themeMode !== 'auto') return undefined;
+    mediaQuery.addEventListener('change', applyTheme);
+    return () => mediaQuery.removeEventListener('change', applyTheme);
   }, [settings]);
 
   // Void-shaped mutations cannot report success through `undefined !== null`, so
@@ -383,6 +412,29 @@ export const useJournalPresenter = (gateway: RendererGateway): JournalPresenter 
     setError(null);
     return result.value;
   }, []);
+
+  const updateSettings = useCallback(
+    async (patch: Partial<ApplicationSettingsDto>): Promise<void> => {
+      // Apply the patch locally first so the control reflects the choice without
+      // waiting for the committed-change round trip; merging reads the latest
+      // optimistic value, so two quick changes compose instead of overwriting
+      // each other with a stale snapshot.
+      const expected = { ...settingsRef.current, ...patch };
+      applySettings(expected);
+      const sequence = settingsWriteSequence.current + 1;
+      settingsWriteSequence.current = sequence;
+      const saved = await execute(() => gateway.updateSettings(expected));
+      // A newer write owns the state; an older response must not revert it.
+      if (sequence !== settingsWriteSequence.current) return;
+      if (saved === null) {
+        applySettings(persistedSettingsRef.current);
+        return;
+      }
+      persistedSettingsRef.current = saved;
+      applySettings(saved);
+    },
+    [applySettings, execute, gateway],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -484,9 +536,7 @@ export const useJournalPresenter = (gateway: RendererGateway): JournalPresenter 
     undo: async () => {
       await execute(() => gateway.undo());
     },
-    updateSettings: async (value) => {
-      await execute(() => gateway.updateSettings(value));
-    },
+    updateSettings,
     updateInstrumentProfile: async (profile) => {
       await execute(() => gateway.updateInstrumentProfile(profile));
     },
@@ -494,15 +544,11 @@ export const useJournalPresenter = (gateway: RendererGateway): JournalPresenter 
       await execute(() => gateway.updateTradePreferences({ preferences, rebindHistorical }));
     },
     updateTableLayout: async (layout) => {
-      await execute(() =>
-        gateway.updateSettings({
-          ...settings,
-          tableLayouts: [
-            ...settings.tableLayouts.filter((existing) => existing.id !== layout.id),
-            layout,
-          ],
-        }),
-      );
+      const tableLayouts = [
+        ...settingsRef.current.tableLayouts.filter((existing) => existing.id !== layout.id),
+        layout,
+      ];
+      await updateSettings({ tableLayouts });
     },
     updateTrade: async (trade) =>
       (await executeWithStatus(() => gateway.updateTrade(trade))).succeeded,

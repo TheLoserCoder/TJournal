@@ -28,6 +28,8 @@ const makeDefaults = (): readonly AccountInstrumentDefaults[] => [
     commissionUsd: '1',
     instrumentId: 'instrument-1',
     spreadTicks: '2',
+    tickSize: null,
+    tickValueUsdPerLot: null,
     updatedAt: '2026-01-01T00:00:00.000Z',
   },
 ];

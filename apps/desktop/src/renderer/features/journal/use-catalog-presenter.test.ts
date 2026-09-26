@@ -53,6 +53,8 @@ const defaultsRow = (instrumentId: string): AccountInstrumentDefaultsDto => ({
   commissionUsd: '1',
   instrumentId,
   spreadTicks: '2',
+  tickSize: null,
+  tickValueUsdPerLot: null,
   updatedAt: '2026-09-01T00:00:00.000Z',
 });
 
@@ -93,7 +95,13 @@ describe('useCatalogPresenter account profiles', () => {
 
     await waitFor(() => expect(result.current.accountDefaultsStatus).toBe('ready'));
     expect(result.current.accountDraft.defaults).toEqual([
-      { commissionUsd: '1', instrumentId: EURUSD.id, spreadTicks: '2' },
+      {
+        commissionUsd: '1',
+        instrumentId: EURUSD.id,
+        spreadTicks: '2',
+        tickSize: '',
+        tickValueUsdPerLot: '',
+      },
     ]);
 
     let saved = false;
@@ -103,7 +111,15 @@ describe('useCatalogPresenter account profiles', () => {
 
     expect(saved).toBe(true);
     expect(journal.updateAccount).toHaveBeenCalledWith({
-      defaults: [{ commissionUsd: '1', instrumentId: EURUSD.id, spreadTicks: '2' }],
+      defaults: [
+        {
+          commissionUsd: '1',
+          instrumentId: EURUSD.id,
+          spreadTicks: '2',
+          tickSize: null,
+          tickValueUsdPerLot: null,
+        },
+      ],
       id: ACCOUNT.id,
       name: ACCOUNT.name,
       openingBalanceUsd: ACCOUNT.openingBalanceUsd,
@@ -192,7 +208,13 @@ describe('useCatalogPresenter account profiles', () => {
     });
 
     expect(result.current.accountDraft.defaults).toEqual([
-      { commissionUsd: '1', instrumentId: GBPUSD.id, spreadTicks: '2' },
+      {
+        commissionUsd: '1',
+        instrumentId: GBPUSD.id,
+        spreadTicks: '2',
+        tickSize: '',
+        tickValueUsdPerLot: '',
+      },
     ]);
   });
 
@@ -330,13 +352,31 @@ describe('useCatalogPresenter account profiles', () => {
     act(() => result.current.addAccountDefault());
 
     expect(result.current.accountDraft.defaults).toEqual([
-      { commissionUsd: '0', instrumentId: EURUSD.id, spreadTicks: '0' },
-      { commissionUsd: '0', instrumentId: GBPUSD.id, spreadTicks: '0' },
+      {
+        commissionUsd: '0',
+        instrumentId: EURUSD.id,
+        spreadTicks: '0',
+        tickSize: '',
+        tickValueUsdPerLot: '',
+      },
+      {
+        commissionUsd: '0',
+        instrumentId: GBPUSD.id,
+        spreadTicks: '0',
+        tickSize: '',
+        tickValueUsdPerLot: '',
+      },
     ]);
 
     act(() => result.current.removeAccountDefault(0));
     expect(result.current.accountDraft.defaults).toEqual([
-      { commissionUsd: '0', instrumentId: GBPUSD.id, spreadTicks: '0' },
+      {
+        commissionUsd: '0',
+        instrumentId: GBPUSD.id,
+        spreadTicks: '0',
+        tickSize: '',
+        tickValueUsdPerLot: '',
+      },
     ]);
   });
 });

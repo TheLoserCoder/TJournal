@@ -4,6 +4,7 @@ import { CASH_MOVEMENT_KINDS } from '@tjournal/account';
 import type {
   AccountBalance,
   AccountInstrumentDefaults,
+  AccountInstrumentDefaultWrite,
   AccountStore,
   CashMovement,
   CashMovementKind,
@@ -32,8 +33,20 @@ interface DefaultsRow {
   readonly instrument_id: string;
   readonly commission_usd: string;
   readonly spread_ticks: string;
+  readonly tick_size: string | null;
+  readonly tick_value_usd_per_lot: string | null;
   readonly updated_at: string;
 }
+
+const toAccountDefault = (row: DefaultsRow): AccountInstrumentDefaults => ({
+  accountId: row.account_id,
+  commissionUsd: row.commission_usd,
+  instrumentId: row.instrument_id,
+  spreadTicks: row.spread_ticks,
+  tickSize: row.tick_size,
+  tickValueUsdPerLot: row.tick_value_usd_per_lot,
+  updatedAt: row.updated_at,
+});
 
 interface CashMovementRow {
   readonly account_id: string;
@@ -282,32 +295,47 @@ export class SqliteAccountStore implements AccountStore {
     const rows = this.vaultDatabase
       .require()
       .prepare(
-        'SELECT account_id, instrument_id, commission_usd, spread_ticks, updated_at FROM account_instrument_defaults WHERE account_id = ? ORDER BY instrument_id',
+        'SELECT account_id, instrument_id, commission_usd, spread_ticks, tick_size, tick_value_usd_per_lot, updated_at FROM account_instrument_defaults WHERE account_id = ? ORDER BY instrument_id',
       )
       .all(accountId) as unknown as readonly DefaultsRow[];
-    return rows.map((row) => ({
-      accountId: row.account_id,
-      commissionUsd: row.commission_usd,
-      instrumentId: row.instrument_id,
-      spreadTicks: row.spread_ticks,
-      updatedAt: row.updated_at,
-    }));
+    return rows.map(toAccountDefault);
+  }
+
+  /**
+   * Calculation ticks for one account+instrument pair. Returns `null` when the
+   * pair has no complete tick profile, so the caller falls back to the legacy
+   * instrument profile.
+   */
+  public getInstrumentCalculationProfile(
+    accountId: string,
+    instrumentId: string,
+  ): { readonly tickSize: string; readonly tickValueUsdPerLot: string } | null {
+    const row = this.vaultDatabase
+      .require()
+      .prepare(
+        'SELECT account_id, instrument_id, commission_usd, spread_ticks, tick_size, tick_value_usd_per_lot, updated_at FROM account_instrument_defaults WHERE account_id = ? AND instrument_id = ?',
+      )
+      .get(accountId, instrumentId) as DefaultsRow | undefined;
+    if (
+      row === undefined ||
+      row.tick_size === null ||
+      row.tick_value_usd_per_lot === null ||
+      row.tick_size === '' ||
+      row.tick_value_usd_per_lot === ''
+    ) {
+      return null;
+    }
+    return { tickSize: row.tick_size, tickValueUsdPerLot: row.tick_value_usd_per_lot };
   }
 
   public listDefaultsForInstrument(instrumentId: string): readonly AccountInstrumentDefaults[] {
     const rows = this.vaultDatabase
       .require()
       .prepare(
-        'SELECT account_id, instrument_id, commission_usd, spread_ticks, updated_at FROM account_instrument_defaults WHERE instrument_id = ? ORDER BY account_id',
+        'SELECT account_id, instrument_id, commission_usd, spread_ticks, tick_size, tick_value_usd_per_lot, updated_at FROM account_instrument_defaults WHERE instrument_id = ? ORDER BY account_id',
       )
       .all(instrumentId) as unknown as readonly DefaultsRow[];
-    return rows.map((row) => ({
-      accountId: row.account_id,
-      commissionUsd: row.commission_usd,
-      instrumentId: row.instrument_id,
-      spreadTicks: row.spread_ticks,
-      updatedAt: row.updated_at,
-    }));
+    return rows.map(toAccountDefault);
   }
 
   public listAccounts(): readonly (TradingAccount &
@@ -442,8 +470,9 @@ export class SqliteAccountStore implements AccountStore {
     return this.setArchived(id, null);
   }
 
-  public saveDefaults(accountId: string, defaults: readonly AccountInstrumentDefaults[]): void {
+  public saveDefaults(accountId: string, defaults: readonly AccountInstrumentDefaultWrite[]): void {
     const database = this.vaultDatabase.require();
+    const now = new Date().toISOString();
     const existingArchived = new Set(
       (
         database
@@ -470,15 +499,19 @@ export class SqliteAccountStore implements AccountStore {
     });
     database.prepare('DELETE FROM account_instrument_defaults WHERE account_id = ?').run(accountId);
     const insert = database.prepare(
-      'INSERT INTO account_instrument_defaults (account_id, instrument_id, commission_usd, spread_ticks, updated_at) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO account_instrument_defaults (account_id, instrument_id, commission_usd, spread_ticks, tick_size, tick_value_usd_per_lot, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     );
     for (const item of defaults) {
+      const tickSize = item.tickSize ?? null;
+      const tickValueUsdPerLot = item.tickValueUsdPerLot ?? null;
       insert.run(
         accountId,
         item.instrumentId,
         new Decimal(item.commissionUsd).toFixed(),
         new Decimal(item.spreadTicks).toFixed(),
-        item.updatedAt,
+        tickSize === null ? null : new Decimal(tickSize).toFixed(),
+        tickValueUsdPerLot === null ? null : new Decimal(tickValueUsdPerLot).toFixed(),
+        item.updatedAt ?? now,
       );
     }
   }

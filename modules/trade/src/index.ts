@@ -16,6 +16,7 @@ export {
   type NeutralRange,
   type RiskBinding,
   type RiskBindingSnapshot,
+  type SavedTradePreferences,
   type TradeDirection,
   type TradeExecution,
   type TradeExecutionInput,
@@ -24,6 +25,7 @@ export {
   type TradeReviewStatus,
   type TradeResultKind,
   type TradeResultSource,
+  type TradeRiskBindingSnapshot,
 } from './domain/trade';
 export {
   calculateExecutionResult,
@@ -49,7 +51,9 @@ export {
   TRADE_VALIDATION_CODES,
   MAX_TRADE_NOTE_CODE_POINTS,
   TradeValidationError,
+  isPositiveDecimalInput,
   isTradeNoteWithinLimit,
+  normalizeDecimalInput,
   normalizeTradeNotes,
   validateTradeInput,
   validateTradePreferences,
@@ -64,13 +68,17 @@ export type {
 export type { TradeTagReferenceReader } from './contracts/tag-reference-reader';
 export type { TradeUnitOfWork } from './contracts/trade-unit-of-work';
 export {
+  JOURNAL_TABLE_DETAIL_NUMERIC_FIELDS,
   JOURNAL_TABLE_ENTRY_KINDS,
+  JOURNAL_TABLE_NOTE_PRESENCE,
   JOURNAL_TABLE_SORT_FIELDS,
   MAX_JOURNAL_TABLE_PAGE_SIZE,
   NUMBER_BOUND_MODES,
+  type JournalTableDetailNumericField,
   type JournalTableEntryKind,
   type JournalTableFilters,
   type JournalTableMovementRow,
+  type JournalTableNotePresence,
   type JournalTablePage,
   type JournalTableQuery,
   type JournalTableReader,
@@ -79,6 +87,7 @@ export {
   type JournalTableSort,
   type JournalTableSortDirection,
   type JournalTableSortField,
+  type JournalTableTradeDetails,
   type JournalTableTradeRow,
   type JournalTableTradeSource,
   type NumberBoundMode,

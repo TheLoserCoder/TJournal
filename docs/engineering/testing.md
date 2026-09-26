@@ -20,3 +20,4 @@
 - Keyboard-проверки покрывают порядок Tab в toolbar, sidebar и таблице, редактирование выбранной строки и возврат фокуса на trigger после Escape.
 - Артефакты падения: trace, screenshot, HTML-отчёт `playwright-report/`; временный workspace с JSONL-логами сохраняется, а его путь печатается в консоль. Успешный прогон удаляет workspace.
 - Ручной визуальный smoke в Electron остаётся обязательным для редизайнов, overlay-изменений и новых адаптивных раскладок.
+- Интерактивный smoke и отладку Electron выполнять через `electron-playwright` MCP: подключаться к экземпляру с CDP и отдельным тестовым `userData`, проверять accessibility snapshot и целевые действия; для видимого окна использовать window-placement launcher. Автоматическую регрессию сохранять в `test/e2e/*.spec.ts` и запускать через `pnpm test:e2e`. Подробности запуска и завершения сеанса — `docs/engineering/tooling.md`.

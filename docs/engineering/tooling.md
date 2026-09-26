@@ -1,5 +1,13 @@
 # Инструменты агента
 
+## CodeGraph и Task Master (OpenCode)
+
+- Запускать OpenCode из корня TJournal: CodeGraph работает с текущим workspace, Task Master получает абсолютный путь к корню через `projectRoot`. Оба доступны как MCP-инструменты OpenCode и не входят в зависимости приложения. Проверено: инкрементальная индексация CodeGraph, поиск `CreateTradeUseCase`, индекс/семантический поиск документа; Task Master 0.43.1 — создание, чтение, смена статуса и выбор следующей задачи.
+- При значимой работе с кодом сначала `codegraph_reindex_workspace` (без `force`), затем поиск символов и нужных связей/влияния. После изменения исходников обновить индекс; для архитектурных выводов сверяться с кодом, тестами, `docs/architecture/code-map.md` и ADR. `codegraph_index_markdown` индексирует один файл по абсолютному пути; после правок документа повторить вызов. Список проверять через `codegraph_list_doc_sources`, содержимое — через `codegraph_search_docs`. Это поисковый индекс, а не место для редактирования документов.
+- Task Master хранит состояние в `.taskmaster/config.json`, `.taskmaster/state.json` и `.taskmaster/tasks/tasks.json` (отслеживаются Git). Перед работой — `get_tasks` / `get_task` / `next_task`; затем `add_task` (ручные поля допустимы), `set_task_status`, при необходимости `add_subtask`. Во все вызовы передавать абсолютный `projectRoot`. Задачи, перенесённые из исторического `docs/roadmap/tasks.md`, ссылаются на FND-ID; автоматически парсить весь архив как PRD нельзя — это дублирует завершённые задачи и придумывает новые статусы. Текущие незакрытые ручные проверки перенесены в Task Master; старый файл остаётся историей.
+- Инициализация выполнена без добавления npm-зависимостей и генерации OpenCode-команд. Модели в `.taskmaster/config.json` — шаблонные настройки генератора; в этом окружении `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `PERPLEXITY_API_KEY`, `GOOGLE_API_KEY` не заданы, поэтому AI-операции (`parse_prd`, AI `add_task`, `expand_task`) не проверены и могут быть недоступны. Для них отдельно настроить поддерживаемую модель через `task-master.cmd models --set-main <model-id>` и предоставить ключ провайдера **в окружении процесса MCP**, а не в Git; для research — отдельную модель/ключ. После этого проверить AI-вызов на небольшой новой задаче и только затем применять его к проектным планам. В PowerShell использовать `task-master.cmd`: вызов `.ps1` может блокироваться execution policy.
+- Если MCP-сервер недоступен в новом сеансе, проверить, что интеграции CodeGraph и Task Master активны в конфигурации OpenCode, корневой каталог открыт как workspace, а `.taskmaster/tasks/tasks.json` существует. Не создавать второй `opencode.json` с шаблонными ключами и не повторять `initialize_project` в уже инициализированном репозитории.
+
 ## Package manager
 
 Проект использует закреплённую версию pnpm через Corepack. Global virtual store отключён в `pnpm-workspace.yaml`, чтобы структура `node_modules` была одинаковой в локальной разработке, Codex и CI.
@@ -10,6 +18,13 @@
 - `pnpm test:e2e:debug` — тот же прогон с Playwright Inspector.
 - `pnpm test:e2e:report` — HTML-отчёт последнего прогона.
 - Electron запускается дочерним процессом теста; при работе из OpenCode GUI-окна направляются через window-placement launcher.
+
+## Интерактивная проверка Electron через MCP
+
+- `electron-playwright` уже доступен в OpenCode как MCP. Для ручного smoke и отладки TJournal использовать его `connect` к работающему экземпляру с CDP-портом, затем `snapshot`, точечные действия и, когда нужно, `screenshot`/`evaluate`. Проверено на собранном приложении: подключение к `9222`, чтение дерева доступности onboarding, `Escape` и повторное чтение — блокирующий диалог не закрылся.
+- Перед запуском отдельно собрать приложение (`pnpm.cmd build` в PowerShell). Запускать **видимое** окно через `C:\Users\PC\Documents\Programming\opencode-tools\tools\window-placement\Start-OnOtherScreen.cmd`, передавая Electron из зависимости `apps/desktop` с `--remote-debugging-port=9222` и собранный `apps/desktop/out/main/index.js`. Путь исполняемого Electron получать из установленной зависимости проекта, а не записывать его версию в MCP-конфигурацию. Если экземпляр уже запущен с CDP, повторно окно не запускать; подключаться к его фактическому порту.
+- Для тестового экземпляра задавать `TJOURNAL_E2E=1` и `TJOURNAL_E2E_USER_DATA_DIR` внутри `C:\Users\PC\AppData\Local\Temp\opencode` до запуска, чтобы не использовать пользовательский vault. Заканчивая проверку через `connect`, вызывать `disconnect` (он не завершает приложение), затем закрывать только свой тестовый экземпляр. `close` в MCP применим к экземпляру, созданному через `launch`; этот способ не гарантирует запуск через window-placement launcher, поэтому для видимого окна использовать `connect`.
+- Интерактивный MCP не заменяет `pnpm test:e2e`: стабильные регрессионные сценарии остаются в `test/e2e`, а MCP используется для наблюдения и проверки интерфейса в работающем Electron. Не направлять Electron UI-запросы в браузерный Playwright MCP.
 
 ## Architecture checks
 

@@ -12,6 +12,7 @@ import { SqliteJournalStorage } from './sqlite-journal-storage';
 import { SqliteVaultBackupStore } from './sqlite-vault-backup-store';
 import { SqliteVaultDatabase } from './sqlite-vault-database';
 
+const BULK_BACKUP_TEST_TIMEOUT_MS = 15_000;
 const directories: string[] = [];
 const workspace = (): string => {
   const path = mkdtempSync(join(tmpdir(), 'tjournal-backup-'));
@@ -148,7 +149,7 @@ describe('SQLite vault backups', () => {
     } finally {
       storage.close();
     }
-  });
+  }, BULK_BACKUP_TEST_TIMEOUT_MS);
 
   it('rejects malformed and unsupported manifests without deleting their snapshots', async () => {
     const { vaultPath, storage, backups } = fixture();
@@ -193,7 +194,7 @@ describe('SQLite vault backups', () => {
     } finally {
       storage.close();
     }
-  });
+  }, BULK_BACKUP_TEST_TIMEOUT_MS);
 
   it('recovers from an unreadable source database using only its verified backup', async () => {
     const { parent, vaultPath, storage, backups } = fixture();

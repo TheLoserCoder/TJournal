@@ -85,19 +85,28 @@ export interface JournalPageResultBoundsDto {
   readonly mode: JournalPageBoundMode;
 }
 
+export type JournalPageDetailNumericField =
+  'commission' | 'entryPrice' | 'exitCount' | 'quantity' | 'spread' | 'stopLoss';
+export type JournalPageNotePresence = 'entry' | 'review';
+
 export interface JournalPageFiltersDto {
   readonly accountIds: readonly string[];
   readonly categories: readonly InstrumentCategory[];
   readonly closedFromDate: string | null;
   readonly closedToDate: string | null;
+  readonly detailBounds: Readonly<
+    Partial<Record<JournalPageDetailNumericField, JournalPageResultBoundsDto>>
+  > | null;
   readonly entryKinds: readonly JournalPageEntryKind[];
   readonly includeUntagged: boolean;
   readonly includeUnassigned: boolean;
   readonly instrumentIds: readonly string[];
+  readonly notePresence: readonly JournalPageNotePresence[];
   readonly occurredFrom: string | null;
   readonly occurredTo: string | null;
   readonly resultBounds: JournalPageResultBoundsDto | null;
   readonly resultUnits: readonly TradeResultKind[];
+  readonly reviewStatuses: readonly ('unreviewed' | 'reviewed')[];
   readonly tagIds: readonly string[];
   readonly textQuery: string | null;
 }
@@ -113,10 +122,28 @@ export interface JournalPageRequestDto {
   };
 }
 
+/**
+ * Bounded trade-detail projection carried with every page row so the table can
+ * render execution columns without loading the full trade aggregate. Note
+ * contents and exit rows remain in the point lookup.
+ */
+export interface JournalPageTradeDetailsDto {
+  readonly commissionUsd: string | null;
+  readonly entryPrice: string | null;
+  readonly exitCount: number;
+  readonly hasEntryNote: boolean;
+  readonly hasReviewNote: boolean;
+  readonly quantityLots: string | null;
+  readonly reviewStatus: 'unreviewed' | 'reviewed';
+  readonly spreadTicks: string | null;
+  readonly stopLossPrice: string | null;
+}
+
 export type JournalPageTradeDto = Omit<
   TradeDto,
   'entryNote' | 'execution' | 'reviewNote' | 'reviewStatus'
->;
+> &
+  JournalPageTradeDetailsDto;
 
 export type JournalPageRowDto =
   | {
@@ -211,14 +238,25 @@ export interface AccountInstrumentDefaultsDto {
   readonly instrumentId: string;
   readonly commissionUsd: string;
   readonly spreadTicks: string;
+  /** Calculation ticks live with the account cost profile, nullable when unset. */
+  readonly tickSize: string | null;
+  readonly tickValueUsdPerLot: string | null;
   readonly updatedAt: string;
 }
+
+export type AccountInstrumentDefaultsInputDto = Omit<
+  AccountInstrumentDefaultsDto,
+  'accountId' | 'tickSize' | 'tickValueUsdPerLot' | 'updatedAt'
+> & {
+  readonly tickSize?: string | null;
+  readonly tickValueUsdPerLot?: string | null;
+};
 
 export interface CreateAccountDto {
   readonly name: string;
   readonly openingBalanceUsd: string;
   readonly defaultRiskUsd?: string | null;
-  readonly defaults: readonly Omit<AccountInstrumentDefaultsDto, 'accountId' | 'updatedAt'>[];
+  readonly defaults: readonly AccountInstrumentDefaultsInputDto[];
 }
 
 export interface UpdateAccountDto extends CreateAccountDto {
@@ -313,7 +351,6 @@ export interface InstrumentCalculationProfileDto {
 }
 export interface TradeSummaryPreferencesDto {
   readonly followTableFilters: boolean;
-  readonly metric: TradeResultKind;
   readonly period: SummaryPeriod;
 }
 export interface TradeSummaryFilterDto {

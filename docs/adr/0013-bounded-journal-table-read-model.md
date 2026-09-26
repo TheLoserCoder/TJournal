@@ -19,12 +19,12 @@ The Trades workspace loaded every trade and every cash movement through `trades.
 
 ## Consequences
 
-- A page read costs one indexed scan plus lightweight batch trade mapping: measured 3.9 ms and 5 prepared statements for 100 rows on a 5 000-row journal.
+- A page read costs one indexed scan plus lightweight batch trade mapping and a batched exit count: measured 4.2 ms and 6 prepared statements for 100 rows on a 5 000-row journal.
 - The renderer loads pages of 100 rows and retains at most three pages. It requests the adjacent page near either retained boundary; absolute virtual row indexes and spacer rows preserve scroll geometry when the far page is evicted. Before the container is measured the table renders a bounded retained window, so the surface is never blank.
 - Selection and bulk deletion apply to loaded rows only; the select-all label says so explicitly.
 - The catalogue's trade counts come from a dedicated `tags:counts` read route, and the table reloads itself from the committed-change version instead of a presenter-owned trade list.
 - The previous unbounded `trades.list` route is removed from IPC, preload, gateway and DTOs; a renderer cannot request the whole journal any more.
-- Journal page trade rows omit execution/exits. Opening the editor loads the complete aggregate through the bounded `trades:get` point route.
+- Journal page trade rows omit exit rows and note contents, but carry a bounded trade-detail projection (scalar execution fields, exit count, note presence, review status) so the table can render detail columns without the full aggregate; opening the editor still loads the complete aggregate through the bounded `trades:get` point route (ADR-0017).
 - The reader is synchronous like the rest of the database layer; the IPC boundary keeps it off the renderer thread.
 
 ## Alternatives considered

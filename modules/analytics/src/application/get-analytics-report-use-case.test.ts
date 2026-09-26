@@ -138,7 +138,7 @@ describe('GetAnalyticsReportUseCase', () => {
     expect(report.kpis.netResultUsd).toBe('401');
   });
 
-  it('excludes uncovered instruments from monetary highlights and sorts them last', () => {
+  it('excludes uncovered instruments and never reports one covered instrument as both best and worst', () => {
     const source = new InMemoryFactSource([
       fact('1', '2026-09-01T10:00:00.000Z', null, 'uncovered'),
       fact('2', '2026-09-02T10:00:00.000Z', '-1', 'covered'),
@@ -146,9 +146,28 @@ describe('GetAnalyticsReportUseCase', () => {
 
     const report = new GetAnalyticsReportUseCase(source).execute(query());
 
-    expect(report.highlights.bestInstrument?.id).toBe('covered');
+    // A single negative group is the worst, not simultaneously the best.
+    expect(report.highlights.bestInstrument).toBeNull();
     expect(report.highlights.worstInstrument?.id).toBe('covered');
     expect(report.breakdown.rows.map((row) => row.id)).toEqual(['covered', 'uncovered']);
+  });
+
+  it('reports a single positive instrument only as the best', () => {
+    const source = new InMemoryFactSource([fact('1', '2026-09-01T10:00:00.000Z', '4', 'solo')]);
+
+    const report = new GetAnalyticsReportUseCase(source).execute(query());
+
+    expect(report.highlights.bestInstrument?.id).toBe('solo');
+    expect(report.highlights.worstInstrument).toBeNull();
+  });
+
+  it('drops both highlights when a single covered instrument is neutral', () => {
+    const source = new InMemoryFactSource([fact('1', '2026-09-01T10:00:00.000Z', '0', 'flat')]);
+
+    const report = new GetAnalyticsReportUseCase(source).execute(query());
+
+    expect(report.highlights.bestInstrument).toBeNull();
+    expect(report.highlights.worstInstrument).toBeNull();
   });
 
   it('keeps a continuous hourly axis for a bounded day', () => {

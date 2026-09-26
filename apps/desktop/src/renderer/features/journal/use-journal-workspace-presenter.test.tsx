@@ -178,6 +178,79 @@ describe('useJournalWorkspacePresenter account risk', () => {
   });
 });
 
+describe('useJournalWorkspacePresenter risk prompt', () => {
+  const prepareRTrade = (result: {
+    readonly current: ReturnType<typeof useJournalWorkspacePresenter>;
+  }): void => {
+    act(() => {
+      result.current.setResultKind('r');
+      result.current.setSymbol('EURUSD');
+      result.current.setResultValue('2');
+    });
+  };
+
+  it('rejects a partially numeric 1R and never attempts the trade', async () => {
+    const journal = createJournal();
+    const { result } = renderPresenter(journal);
+    await waitForSelection(result);
+    prepareRTrade(result);
+
+    await act(async () => {
+      await result.current.submitRiskPrompt('12abc');
+    });
+
+    expect(result.current.riskPromptInvalid).toBe(true);
+    expect(journal.createTrade).not.toHaveBeenCalled();
+  });
+
+  it('normalises a comma 1R and clears the error once the value is valid', async () => {
+    const journal = createJournal();
+    const { result } = renderPresenter(journal);
+    await waitForSelection(result);
+    prepareRTrade(result);
+
+    await act(async () => {
+      await result.current.submitRiskPrompt('12abc');
+    });
+    expect(result.current.riskPromptInvalid).toBe(true);
+
+    act(() => result.current.clearRiskPromptError());
+    expect(result.current.riskPromptInvalid).toBe(false);
+
+    await act(async () => {
+      await result.current.submitRiskPrompt('1,5');
+    });
+
+    expect(journal.createTrade).toHaveBeenCalledWith(expect.objectContaining({ riskUsd: '1.5' }));
+    expect(result.current.riskPromptInvalid).toBe(false);
+  });
+});
+
+describe('useJournalWorkspacePresenter account memory', () => {
+  const SECONDARY: AccountDto = { ...ACCOUNT, id: 'account-2', name: 'Secondary' };
+
+  it('restores the account remembered for the vault after a remount', async () => {
+    window.localStorage.clear();
+    const firstJournal = createJournal();
+    firstJournal.accounts = [ACCOUNT, SECONDARY];
+    const first = renderPresenter(firstJournal);
+    await waitForSelection(first.result);
+
+    act(() => first.result.current.setAccountId(SECONDARY.id));
+    expect(first.result.current.accountId).toBe(SECONDARY.id);
+    first.unmount();
+
+    const secondJournal = createJournal();
+    secondJournal.accounts = [ACCOUNT, SECONDARY];
+    const second = renderPresenter(secondJournal);
+    // The remembered choice wins over the first active account.
+    await waitFor(() => expect(second.result.current.accountId).toBe(SECONDARY.id));
+
+    second.unmount();
+    window.localStorage.clear();
+  });
+});
+
 describe('useJournalWorkspacePresenter quick entry', () => {
   it('keeps the typed result when the trade is rejected and clears it after success', async () => {
     const journal = createJournal();

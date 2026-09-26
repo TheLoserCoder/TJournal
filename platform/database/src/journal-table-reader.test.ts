@@ -13,7 +13,10 @@ import {
   TRADE_RESULT_SOURCES,
   type JournalTableFilters,
   type JournalTableQuery,
+  type JournalTableResultBounds,
   type JournalTableRow,
+  type TradeExecution,
+  type TradeReviewStatus,
 } from '@tjournal/trade';
 
 import { SqliteAccountStore } from './sqlite-account-store';
@@ -31,14 +34,27 @@ interface TradeInput {
   readonly closedAt?: string;
   readonly direction?: 'long' | 'short' | null;
   readonly entryNote?: string | null;
+  readonly execution?: TradeExecution | null;
   readonly id: string;
   readonly inputResultKind?: 'cash' | 'percent' | 'r';
   readonly inputResultValue?: string;
   readonly instrumentSymbol: string;
   readonly netResultUsd?: string;
   readonly reviewNote?: string | null;
+  readonly reviewStatus?: TradeReviewStatus;
   readonly tagIds?: readonly string[];
 }
+
+const testExecution = (overrides: Partial<TradeExecution> = {}): TradeExecution => ({
+  commissionUsd: '0',
+  entryPrice: '1',
+  exits: [],
+  instrumentSnapshot: { tickSize: '0.0001', tickValueUsdPerLot: '10' },
+  quantityLots: '1',
+  spreadTicks: '0',
+  stopLossPrice: null,
+  ...overrides,
+});
 
 const createFixture = () => {
   const parentDirectory = mkdtempSync(join(tmpdir(), 'tjournal-'));
@@ -92,7 +108,7 @@ const createFixture = () => {
       closedAt: input.closedAt ?? TEST_CLOSED_AT,
       direction: input.direction ?? TRADE_DIRECTIONS.long,
       entryNote: input.entryNote ?? null,
-      execution: null,
+      execution: input.execution ?? null,
       id: input.id,
       ...(input.inputResultKind === undefined ? {} : { inputResultKind: input.inputResultKind }),
       ...(input.inputResultValue === undefined ? {} : { inputResultValue: input.inputResultValue }),
@@ -102,7 +118,7 @@ const createFixture = () => {
       resultSource: TRADE_RESULT_SOURCES.manual,
       resultValue: input.inputResultValue ?? input.netResultUsd ?? '0',
       reviewNote: input.reviewNote ?? null,
-      reviewStatus: 'unreviewed',
+      reviewStatus: input.reviewStatus ?? 'unreviewed',
       riskBindingSnapshot: null,
       tagIds: input.tagIds ?? [],
     });
@@ -153,14 +169,17 @@ const emptyFilters = (): JournalTableFilters => ({
   categories: [],
   closedFromDate: null,
   closedToDate: null,
+  detailBounds: null,
   entryKinds: [],
   includeUntagged: false,
   includeUnassigned: false,
   instrumentIds: [],
+  notePresence: [],
   occurredFrom: null,
   occurredTo: null,
   resultBounds: null,
   resultUnits: [],
+  reviewStatuses: [],
   tagIds: [],
   textQuery: null,
 });
@@ -265,6 +284,88 @@ describe('SqliteJournalTableReader', () => {
         'trade:shared-id',
         'cash-movement:shared-id',
       ]);
+    } finally {
+      fixture.dispose();
+    }
+  });
+
+  it('filters by bounded trade details and excludes cash movements', () => {
+    const fixture = createFixture();
+    try {
+      fixture.insertTrade({
+        accountId: 'account-a',
+        execution: testExecution({
+          commissionUsd: '2.5',
+          entryPrice: '1.1',
+          exits: [
+            {
+              allocationKind: 'percent',
+              allocationValue: '100',
+              exitPrice: '1.2',
+              id: 'exit-1',
+              order: 0,
+              reportedResultKind: null,
+              reportedResultValue: null,
+            },
+          ],
+          quantityLots: '2',
+          spreadTicks: '3',
+          stopLossPrice: '1.0',
+        }),
+        id: 'exec-1',
+        instrumentSymbol: 'EURUSD',
+        netResultUsd: '10',
+        reviewStatus: 'reviewed',
+      });
+      fixture.insertTrade({
+        accountId: 'account-a',
+        entryNote: 'entry reason',
+        id: 'note-1',
+        instrumentSymbol: 'EURUSD',
+        netResultUsd: '5',
+      });
+      fixture.insertMovement({
+        accountId: 'account-a',
+        amountUsd: '12',
+        id: 'movement-1',
+        kind: 'deposit',
+        occurredAt: TEST_CLOSED_AT,
+      });
+
+      const greaterThan = (minimum: string): JournalTableResultBounds => ({
+        maximum: null,
+        minimum,
+        mode: 'greaterThan',
+      });
+
+      expect(
+        idsOf(
+          fixture.reader.readPage(
+            createQuery({}, { detailBounds: { commission: greaterThan('2') } }),
+          ).rows,
+        ),
+      ).toEqual(['trade:exec-1']);
+      expect(
+        idsOf(
+          fixture.reader.readPage(
+            createQuery({}, { detailBounds: { exitCount: greaterThan('0') } }),
+          ).rows,
+        ),
+      ).toEqual(['trade:exec-1']);
+      expect(
+        idsOf(fixture.reader.readPage(createQuery({}, { reviewStatuses: ['reviewed'] })).rows),
+      ).toEqual(['trade:exec-1']);
+      expect(
+        idsOf(fixture.reader.readPage(createQuery({}, { notePresence: ['entry'] })).rows),
+      ).toEqual(['trade:note-1']);
+      const execTrade = fixture.reader
+        .readPage(createQuery({}, { reviewStatuses: ['reviewed'] }))
+        .rows.find((row) => row.kind === 'trade');
+      if (execTrade?.kind === 'trade') {
+        expect(execTrade.trade.commissionUsd).toBe('2.5');
+        expect(execTrade.trade.exitCount).toBe(1);
+        expect(execTrade.trade.hasEntryNote).toBe(false);
+      }
     } finally {
       fixture.dispose();
     }

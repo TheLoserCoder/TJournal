@@ -101,15 +101,16 @@ export const TagOverflowList = ({
           +{tags.length}
         </span>
       </span>
-      {tags.slice(0, visibleCount).map((tag) => (
-        <Tooltip
-          content={tag.description === '' ? tag.name : tag.description}
-          delayDuration={TAG_TOOLTIP_DELAY}
-          key={tag.id}
-        >
-          <TagChip color={tag.color} label={tag.name} />
-        </Tooltip>
-      ))}
+      {tags.slice(0, visibleCount).map((tag) =>
+        // Only a real comment opens a tooltip; a tag without one stays a plain chip.
+        tag.description.trim() === '' ? (
+          <TagChip color={tag.color} key={tag.id} label={tag.name} />
+        ) : (
+          <Tooltip content={tag.description} delayDuration={TAG_TOOLTIP_DELAY} key={tag.id}>
+            <TagChip color={tag.color} label={tag.name} />
+          </Tooltip>
+        ),
+      )}
       {hiddenTags.length > 0 ? (
         <Popover
           onOpenChange={setOpen}

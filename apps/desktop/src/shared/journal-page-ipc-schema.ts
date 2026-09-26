@@ -25,6 +25,46 @@ const decimalStringSchema = z
     }
   });
 
+const resultBoundsSchema = z
+  .object({
+    maximum: decimalStringSchema.nullable(),
+    minimum: decimalStringSchema.nullable(),
+    mode: z.enum(['between', 'equals', 'greaterThan', 'lessThan']),
+  })
+  .superRefine((bounds, context) => {
+    const requiredValue =
+      bounds.mode === 'lessThan'
+        ? bounds.maximum
+        : bounds.mode === 'between'
+          ? null
+          : bounds.minimum;
+    if (bounds.mode === 'between' && (bounds.minimum === null || bounds.maximum === null)) {
+      context.addIssue({ code: 'custom', message: 'Both bounds are required.' });
+      return;
+    }
+    if (bounds.mode !== 'between' && requiredValue === null) {
+      context.addIssue({ code: 'custom', message: 'The selected bound is required.' });
+      return;
+    }
+    if (
+      bounds.mode === 'between' &&
+      bounds.minimum !== null &&
+      bounds.maximum !== null &&
+      new Decimal(bounds.minimum).greaterThan(bounds.maximum)
+    ) {
+      context.addIssue({ code: 'custom', message: 'The minimum must not exceed the maximum.' });
+    }
+  });
+
+const detailNumericFieldSchema = z.enum([
+  'commission',
+  'entryPrice',
+  'exitCount',
+  'quantity',
+  'spread',
+  'stopLoss',
+]);
+
 export const journalPageRequestSchema = z.object({
   cursor: cursorSchema.nullable(),
   filters: z.object({
@@ -32,44 +72,17 @@ export const journalPageRequestSchema = z.object({
     categories: z.array(z.enum(['crypto', 'energy', 'equity', 'etf', 'forex', 'index', 'metal'])),
     closedFromDate: dateKeySchema.nullable(),
     closedToDate: dateKeySchema.nullable(),
+    detailBounds: z.record(detailNumericFieldSchema, resultBoundsSchema).nullable(),
     entryKinds: z.array(z.enum(['deposit', 'long', 'short', 'withdrawal'])),
     includeUntagged: z.boolean(),
     includeUnassigned: z.boolean(),
     instrumentIds: identifierListSchema,
+    notePresence: z.array(z.enum(['entry', 'review'])),
     occurredFrom: instantSchema.nullable(),
     occurredTo: instantSchema.nullable(),
-    resultBounds: z
-      .object({
-        maximum: decimalStringSchema.nullable(),
-        minimum: decimalStringSchema.nullable(),
-        mode: z.enum(['between', 'equals', 'greaterThan', 'lessThan']),
-      })
-      .superRefine((bounds, context) => {
-        const requiredValue =
-          bounds.mode === 'lessThan'
-            ? bounds.maximum
-            : bounds.mode === 'between'
-              ? null
-              : bounds.minimum;
-        if (bounds.mode === 'between' && (bounds.minimum === null || bounds.maximum === null)) {
-          context.addIssue({ code: 'custom', message: 'Both bounds are required.' });
-          return;
-        }
-        if (bounds.mode !== 'between' && requiredValue === null) {
-          context.addIssue({ code: 'custom', message: 'The selected bound is required.' });
-          return;
-        }
-        if (
-          bounds.mode === 'between' &&
-          bounds.minimum !== null &&
-          bounds.maximum !== null &&
-          new Decimal(bounds.minimum).greaterThan(bounds.maximum)
-        ) {
-          context.addIssue({ code: 'custom', message: 'The minimum must not exceed the maximum.' });
-        }
-      })
-      .nullable(),
+    resultBounds: resultBoundsSchema.nullable(),
     resultUnits: z.array(resultKindSchema),
+    reviewStatuses: z.array(z.enum(['unreviewed', 'reviewed'])),
     tagIds: identifierListSchema,
     textQuery: z.string().max(200).nullable(),
   }),

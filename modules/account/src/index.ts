@@ -1,6 +1,8 @@
 export type {
   AccountBalance,
+  AccountInstrumentDefaultInput,
   AccountInstrumentDefaults,
+  AccountInstrumentDefaultWrite,
   CashMovement,
   CashMovementKind,
   CreateCashMovementInput,

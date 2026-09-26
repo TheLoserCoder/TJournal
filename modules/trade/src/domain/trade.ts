@@ -123,3 +123,15 @@ export interface TradePreferences {
   readonly riskBinding: RiskBinding | null;
   readonly riskPromptDismissed: boolean;
 }
+
+/** Previous risk binding of one trade a historical rebind rewrote. */
+export interface TradeRiskBindingSnapshot {
+  readonly riskBindingSnapshot: RiskBindingSnapshot | null;
+  readonly tradeId: string;
+}
+
+export interface SavedTradePreferences {
+  readonly preferences: TradePreferences;
+  /** Rewritten trades with their pre-update binding, for an exact inverse. */
+  readonly reboundRiskBindings: readonly TradeRiskBindingSnapshot[];
+}

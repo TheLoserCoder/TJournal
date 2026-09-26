@@ -74,13 +74,7 @@ export const AssetsTable = ({
   ): boolean => isEntityColumnFilterActive(filterState, columnId, kind, ASSET_COLUMN_IDS.status);
   const filteredAssets = useMemo(
     () =>
-      assets.filter((asset) =>
-        matchesEntityFilters(asset, filterState, {
-          text: [asset.symbol],
-          tickSize: asset.calculationProfile?.tickSize,
-          tickValue: asset.calculationProfile?.tickValueUsdPerLot,
-        }),
-      ),
+      assets.filter((asset) => matchesEntityFilters(asset, filterState, { text: [asset.symbol] })),
     [assets, filterState],
   );
   const columns = useMemo<readonly LegacyColumnDef<InstrumentDto>[]>(
@@ -110,19 +104,6 @@ export const AssetsTable = ({
         accessorFn: (row) => row.category,
         cell: ({ row }) => t(INSTRUMENT_CATEGORY_LABEL_KEYS[row.original.category]),
         header: t(TRANSLATION_KEYS.fieldCategory),
-      },
-      {
-        cell: ({ row }) =>
-          row.original.calculationProfile?.tickSize ?? t(TRANSLATION_KEYS.tableNotApplicable),
-        header: t(TRANSLATION_KEYS.fieldTickSize),
-        id: ASSET_COLUMN_IDS.tickSize,
-      },
-      {
-        cell: ({ row }) =>
-          row.original.calculationProfile?.tickValueUsdPerLot ??
-          t(TRANSLATION_KEYS.tableNotApplicable),
-        header: t(TRANSLATION_KEYS.fieldTickValue),
-        id: ASSET_COLUMN_IDS.tickValue,
       },
       {
         cell: ({ row }) =>

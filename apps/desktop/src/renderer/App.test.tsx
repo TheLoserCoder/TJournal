@@ -63,6 +63,7 @@ const createDesktopApiMock = ({
   accounts = [TEST_ACCOUNT],
   vaultPath = TEST_VAULT_PATH,
 }: DesktopApiMockOptions = {}) => ({
+  changes: { subscribe: vi.fn().mockReturnValue(vi.fn()) },
   diagnostics: {
     getStatus: vi.fn().mockResolvedValue({
       ok: true,
@@ -140,7 +141,14 @@ const createDesktopApiMock = ({
     get: vi.fn().mockResolvedValue({ ok: true, value: null }),
     update: vi.fn(),
   },
+  cashMovements: {
+    create: vi.fn(),
+    delete: vi.fn(),
+    list: vi.fn().mockResolvedValue({ ok: true, value: [] }),
+    update: vi.fn(),
+  },
   tags: {
+    counts: vi.fn().mockResolvedValue({ ok: true, value: {} }),
     create: vi.fn(),
     deleteMany: vi.fn(),
     list: vi.fn().mockResolvedValue({ ok: true, value: [] }),
@@ -153,7 +161,7 @@ const createDesktopApiMock = ({
         languageMode: 'system',
         tableLayouts: [],
         themeMode: 'auto',
-        tradeSummary: { followTableFilters: false, metric: 'cash', period: 'all' },
+        tradeSummary: { followTableFilters: false, period: 'all' },
         statisticsView: {
           breakdownDimension: 'instrument',
           breakdownMetric: 'net-result',
@@ -374,7 +382,7 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps Add disabled while the trade asset is empty', async () => {
+  it('keeps Add disabled until the trade has both an asset and a result', async () => {
     setupWindow();
     render(<App />);
     await screen.findByRole('heading', { name: i18n.t(TRANSLATION_KEYS.navigationTrades) });
@@ -385,6 +393,12 @@ describe('App', () => {
 
     fireEvent.change(screen.getByRole('combobox', { name: i18n.t(TRANSLATION_KEYS.fieldAsset) }), {
       target: { value: TEST_INSTRUMENT_SYMBOL },
+    });
+    // A known asset alone is not enough: the result is still missing.
+    expect(addButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(i18n.t(TRANSLATION_KEYS.fieldResult)), {
+      target: { value: '25' },
     });
     await waitFor(() => expect(addButton).toBeEnabled());
   });

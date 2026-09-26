@@ -27,16 +27,17 @@ describe('trade table configuration', () => {
     expect(visibility[TRADE_TABLE_COLUMN_IDS.id]).toBe(true);
   });
 
-  it('uses result, asset, tags, type, account and date as the canonical visible order', () => {
+  it('uses asset, result, type, asset type, tags, account and date as the canonical visible order', () => {
     const visibleColumns = DEFAULT_TRADE_TABLE_COLUMNS.filter((column) => column.visible).map(
       (column) => column.id,
     );
 
     expect(visibleColumns).toEqual([
-      TRADE_TABLE_COLUMN_IDS.result,
       TRADE_TABLE_COLUMN_IDS.asset,
-      TRADE_TABLE_COLUMN_IDS.tags,
+      TRADE_TABLE_COLUMN_IDS.result,
       TRADE_TABLE_COLUMN_IDS.direction,
+      TRADE_TABLE_COLUMN_IDS.assetCategory,
+      TRADE_TABLE_COLUMN_IDS.tags,
       TRADE_TABLE_COLUMN_IDS.account,
       TRADE_TABLE_COLUMN_IDS.closedAt,
     ]);
@@ -45,13 +46,13 @@ describe('trade table configuration', () => {
     ).toBe(true);
   });
 
-  it('keeps the asset type column configurable through the table settings', () => {
+  it('shows the asset type column by default in both modes', () => {
     expect(DEFAULT_TRADE_TABLE_COLUMN_ORDER.includes(TRADE_TABLE_COLUMN_IDS.assetCategory)).toBe(
       true,
     );
     expect(
       getTradeTableVisibility(TABLE_DISPLAY_MODES.compact)[TRADE_TABLE_COLUMN_IDS.assetCategory],
-    ).toBe(false);
+    ).toBe(true);
     expect(
       getTradeTableVisibility(TABLE_DISPLAY_MODES.advanced)[TRADE_TABLE_COLUMN_IDS.assetCategory],
     ).toBe(true);

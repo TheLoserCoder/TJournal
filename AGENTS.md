@@ -1,11 +1,23 @@
 # TJournal Engineering Constitution
 
-## Read before changing code
+## Orient before changing code
 
 1. Read this file.
-2. Read the relevant product, architecture, engineering, roadmap, and ADR documents.
-3. Check `docs/architecture/code-map.md` and search the existing code before creating a file, class, contract, adapter, route, or component.
-4. Decide whether the request extends or contradicts an existing decision.
+2. Orient with CodeGraph: refresh the workspace index incrementally, find the relevant symbols/modules, and inspect their relationships, callers, dependencies and impact before broad file exploration. Confirm conclusions against source, tests and build output; the graph is an aid, not an architectural authority.
+3. Read the specific source files it points to before creating a file, class, contract, adapter, route, or component.
+4. Decide whether the request extends or contradicts an existing decision; ADRs remain the record of architectural decisions.
+
+## Project intelligence and task tracking
+
+- Work from the TJournal repository root. Use CodeGraph as the project-orientation mechanism: refresh the workspace index incrementally, search for relevant symbols and inspect their relationships/impact before broad file exploration, and confirm conclusions against source and tests. The graph is an aid, not an architectural authority. Re-index changed modules instead of maintaining navigation documents.
+- Task Master (`.taskmaster/`) is the single mechanism for plans, tasks and follow-ups. Plans are never written as documents: create or update a Task Master task instead of a markdown plan or a roadmap entry. Check existing tasks first, then create or update a task with scope, affected contracts, dependencies, edge cases, acceptance criteria and verification; keep its status accurate (`pending`, `in-progress`, `review`, `done`, `blocked`, `deferred`, `cancelled`). Pass the absolute repository root as `projectRoot` to MCP tools. Do not create tasks for small isolated edits or questions.
+- `.taskmaster/tasks/tasks.json` is the current task ledger. `docs/roadmap/tasks.md`, `docs/roadmap/phases.md` and other roadmap/plan documents are frozen legacy history: do not append new statuses, do not create new plan documents, and do not migrate work into them. ADRs remain the record of architectural decisions and bug documents remain the diagnosis record; planning and tracking live only in Task Master. Cross-reference legacy FND IDs in Task Master when closing follow-ups.
+- AI-powered Task Master operations require a configured model and credentials in the Task Master process; the working MCP CRUD/navigation tools do not imply that AI generation is configured. Never commit API keys or expose vault data to model providers. Setup and verification are in `docs/engineering/tooling.md`.
+
+## Electron UI verification
+
+- Use the `electron-playwright` MCP for interactive testing, visual inspection, and debugging of the TJournal Electron app. Prefer connecting to an already running instance through its explicit CDP port; launch a new visible instance through the window-placement launcher and use isolated test `userData` so real vaults are never modified. Do not hardcode an app path in global MCP configuration.
+- Use accessibility snapshots and targeted actions to verify actual UI states. Keep `pnpm test:e2e` and its Playwright specs as repeatable automated regression coverage; MCP interaction complements those tests. See `docs/engineering/testing.md` and `docs/engineering/tooling.md` for the workflow.
 
 ## Skills
 
@@ -30,16 +42,16 @@ The skills are guidance. This constitution, the ADRs, and the architecture docum
 
 ## Model roles and handoff
 
-- Sol is the project planner and architect. Sol researches the repository, checks for conflicts with existing ADRs and architecture, chooses the implementation approach, decomposes the work, identifies affected contracts, edge cases, tests, acceptance criteria, and documentation updates.
+- Sol is the project planner and architect. Sol researches the repository with CodeGraph, checks for conflicts with existing ADRs and architecture, chooses the implementation approach, decomposes the work, identifies affected contracts, edge cases, tests and acceptance criteria, and records the plan in Task Master.
 - Terra and Luna are implementation agents. They execute the prepared plan within its stated boundaries and must not independently change architectural decisions, public contracts, the data model, or the scope without an explicit, evidence-based reason.
-- A plan handed to an implementation agent must be detailed enough to execute without making unstated architectural decisions. It explicitly records the goal and scope, current implementation and integration points, affected modules and files, required type/API/IPC/schema/persistence changes, implementation order, validation and error-handling rules, edge cases, test scenarios, verification commands, completion criteria, and documentation updates.
-- If an executor discovers ambiguity or a conflict with the plan, the executor first checks the existing rules and project documents, then reports a blocking question or discrepancy. It must not silently introduce a new architectural decision.
+- A plan handed to an implementation agent must be detailed enough to execute without making unstated architectural decisions. It lives in Task Master and explicitly records the goal and scope, current implementation and integration points, affected modules and files, required type/API/IPC/schema/persistence changes, implementation order, validation and error-handling rules, edge cases, test scenarios, verification commands, and completion criteria.
+- If an executor discovers ambiguity or a conflict with the plan, the executor first checks the existing rules and ADRs, then reports a blocking question or discrepancy. It must not silently introduce a new architectural decision.
 - Small and obvious changes may use a compact plan, but the plan must still state the expected result, affected area, and verification method.
 - Model roles do not override the project constitution, security requirements, required checks, or the obligation to disclose unverified assumptions.
 
 ## Challenge poor decisions
 
-Do not automatically accept a request that duplicates behaviour, breaks an invariant, weakens security, risks data loss, violates an ADR, or creates needless complexity. Explain the concrete impact, cite the affected code or document, and propose alternatives. If the owner explicitly insists, update the roadmap and ADR before implementing unless safety rules forbid the action.
+Do not automatically accept a request that duplicates behaviour, breaks an invariant, weakens security, risks data loss, violates an ADR, or creates needless complexity. Explain the concrete impact, cite the affected code or document, and propose alternatives. If the owner explicitly insists, record the decision in an ADR and a Task Master task before implementing unless safety rules forbid the action.
 
 ## Architecture
 
@@ -98,10 +110,10 @@ Do not automatically accept a request that duplicates behaviour, breaks an invar
 - Prefer the simplest fix first — algorithm, query plan, index, batching — before adding a cache or new infrastructure. Do not introduce Redis, queues, microservices, or other infrastructure without a concrete measured need and an ADR.
 - React changes must avoid unnecessary re-renders, oversized components, and global state without need, and must keep heavy synchronous work off the main thread.
 
-## Testing and documentation
+## Testing
 
 - Every behaviour change includes suitable tests.
 - Every bug fix includes a regression test.
 - Run the relevant tests, lint, typecheck, and architecture checks before reporting completion.
-- Update `docs/architecture/code-map.md` in the same change when a module, public entry point, route, contract, adapter, or persistent data flow is added, moved, or removed.
-- Update roadmap, ADR, and bug documentation when their scope changes.
+- Record outcomes and open defects as Task Master tasks; do not create or update plan/roadmap documents.
+- Re-index changed modules in CodeGraph instead of maintaining navigation documents.

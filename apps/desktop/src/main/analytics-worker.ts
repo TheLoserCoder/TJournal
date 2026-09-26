@@ -1,7 +1,8 @@
-import { calculateTradeSummary, GetAnalyticsReportUseCase } from '@tjournal/analytics';
+import { GetAnalyticsReportUseCase, summarizeTradeFacts } from '@tjournal/analytics';
 import {
   SqliteAnalyticsFactSource,
   SqliteTradeStore,
+  SqliteTradeSummaryFactSource,
   SqliteVaultDatabase,
 } from '@tjournal/platform-database';
 import { DATA_RESOURCES, type DataResource } from '../shared/desktop-api';
@@ -43,14 +44,17 @@ const run = (rawJob: AnalyticsJob): AnalyticsJobResult => {
         vaultGeneration: job.vaultGeneration,
       };
     }
-    const summary = calculateTradeSummary(tradeStore.listTrades(), {
-      filters: job.query.filters,
-      metric: job.query.metric,
-      neutralCostSettings: preferences.neutralCostSettings,
-      neutralRange: preferences.neutralRanges[job.query.metric],
-      now: new Date(),
-      period: job.query.period,
-    });
+    const summary = summarizeTradeFacts(
+      new SqliteTradeSummaryFactSource(database).scanSummaryFacts(),
+      {
+        filters: job.query.filters,
+        metric: job.query.metric,
+        neutralCostSettings: preferences.neutralCostSettings,
+        neutralRange: preferences.neutralRanges[job.query.metric],
+        now: new Date(),
+        period: job.query.period,
+      },
+    );
     return {
       durationMs: Date.now() - startedAt,
       kind: 'summary',

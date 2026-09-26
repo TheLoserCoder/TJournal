@@ -11,7 +11,11 @@ import { Dialog } from '../../components/ui/dialog';
 import { IconButton } from '../../components/ui/icon-button';
 import { Select } from '../../components/ui/select';
 import { TextField } from '../../components/ui/text-field';
-import { TRANSLATION_KEYS } from '../../i18n-keys';
+import {
+  ERROR_TRANSLATION_KEYS,
+  TRANSLATION_KEYS,
+  VALIDATION_TRANSLATION_KEYS,
+} from '../../i18n-keys';
 import {
   DEFAULT_INSTRUMENT_CATEGORY,
   INSTRUMENT_CATEGORIES,
@@ -83,6 +87,33 @@ const AccountForm = ({
           />
         </label>
       </div>
+      {presenter.accountError !== null && (
+        <div className="error-message" role="alert">
+          <p>
+            {t(
+              presenter.accountError.code === 'validation-invalid'
+                ? TRANSLATION_KEYS.accountValidationFailed
+                : ERROR_TRANSLATION_KEYS[presenter.accountError.code],
+            )}
+          </p>
+          {presenter.accountError.issues?.map((issue, index) => (
+            <p key={`${issue.path}-${index}`}>
+              {issue.path === 'openingBalanceUsd'
+                ? t(TRANSLATION_KEYS.fieldAccountOpening)
+                : issue.path === 'name'
+                  ? t(TRANSLATION_KEYS.fieldAccount)
+                  : issue.path}
+              :{' '}
+              {t(
+                issue.path === 'openingBalanceUsd' && issue.code === 'invalid_format'
+                  ? TRANSLATION_KEYS.accountInvalidOpeningBalance
+                  : (VALIDATION_TRANSLATION_KEYS[issue.code] ??
+                      TRANSLATION_KEYS.accountValidationFailed),
+              )}
+            </p>
+          ))}
+        </div>
+      )}
       {account !== null && (
         <fieldset className="entity-defaults-fieldset">
           <legend>{t(TRANSLATION_KEYS.accountCostProfilesTitle)}</legend>
@@ -110,6 +141,8 @@ const AccountForm = ({
                 <span>{t(TRANSLATION_KEYS.fieldAsset)}</span>
                 <span>{t(TRANSLATION_KEYS.fieldCommission)}</span>
                 <span>{t(TRANSLATION_KEYS.fieldSpreadTicks)}</span>
+                <span>{t(TRANSLATION_KEYS.fieldTickSize)}</span>
+                <span>{t(TRANSLATION_KEYS.fieldTickValue)}</span>
                 <span />
               </div>
               {draft.defaults.map((item, index) => {
@@ -147,6 +180,28 @@ const AccountForm = ({
                       }
                       placeholder={t(TRANSLATION_KEYS.fieldSpreadTicks)}
                       value={item.spreadTicks}
+                    />
+                    <TextField
+                      aria-label={t(TRANSLATION_KEYS.fieldTickSize)}
+                      inputMode="decimal"
+                      onChange={(event) =>
+                        presenter.setAccountDefaultField(index, 'tickSize', event.target.value)
+                      }
+                      placeholder={t(TRANSLATION_KEYS.fieldTickSize)}
+                      value={item.tickSize}
+                    />
+                    <TextField
+                      aria-label={t(TRANSLATION_KEYS.fieldTickValue)}
+                      inputMode="decimal"
+                      onChange={(event) =>
+                        presenter.setAccountDefaultField(
+                          index,
+                          'tickValueUsdPerLot',
+                          event.target.value,
+                        )
+                      }
+                      placeholder={t(TRANSLATION_KEYS.fieldTickValue)}
+                      value={item.tickValueUsdPerLot}
                     />
                     <IconButton
                       label={t(TRANSLATION_KEYS.actionDelete)}
@@ -195,20 +250,22 @@ const AssetForm = ({ presenter }: { readonly presenter: CatalogPresenter }): Rea
   const [category, setCategory] = useState<InstrumentDto['category']>(
     asset?.category ?? DEFAULT_INSTRUMENT_CATEGORY,
   );
-  const [tickSize, setTickSize] = useState(asset?.calculationProfile?.tickSize ?? '');
-  const [tickValue, setTickValue] = useState(asset?.calculationProfile?.tickValueUsdPerLot ?? '');
   useEffect(() => {
     setSymbol(asset?.symbol ?? '');
     setCategory(asset?.category ?? DEFAULT_INSTRUMENT_CATEGORY);
-    setTickSize(asset?.calculationProfile?.tickSize ?? '');
-    setTickValue(asset?.calculationProfile?.tickValueUsdPerLot ?? '');
   }, [asset]);
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
+    // Calculation ticks belong to the account cost profile. An existing legacy
+    // instrument profile is passed through unchanged so an asset edit does not
+    // erase the fallback values.
     const calculationProfile =
-      tickSize.trim() === '' && tickValue.trim() === ''
+      asset?.calculationProfile === null || asset?.calculationProfile === undefined
         ? null
-        : { tickSize, tickValueUsdPerLot: tickValue };
+        : {
+            tickSize: asset.calculationProfile.tickSize,
+            tickValueUsdPerLot: asset.calculationProfile.tickValueUsdPerLot,
+          };
     await presenter.saveAsset({
       ...(asset === null ? {} : { id: asset.id }),
       calculationProfile,
@@ -241,26 +298,6 @@ const AssetForm = ({ presenter }: { readonly presenter: CatalogPresenter }): Rea
             }))}
             placeholder={t(TRANSLATION_KEYS.fieldCategory)}
             value={category}
-          />
-        </label>
-        <label>
-          {t(TRANSLATION_KEYS.fieldTickSize)}
-          <TextField
-            aria-label={t(TRANSLATION_KEYS.fieldTickSize)}
-            inputMode="decimal"
-            onChange={(event) => setTickSize(event.target.value)}
-            placeholder={t(TRANSLATION_KEYS.fieldTickSize)}
-            value={tickSize}
-          />
-        </label>
-        <label>
-          {t(TRANSLATION_KEYS.fieldTickValue)}
-          <TextField
-            aria-label={t(TRANSLATION_KEYS.fieldTickValue)}
-            inputMode="decimal"
-            onChange={(event) => setTickValue(event.target.value)}
-            placeholder={t(TRANSLATION_KEYS.fieldTickValue)}
-            value={tickValue}
           />
         </label>
       </div>

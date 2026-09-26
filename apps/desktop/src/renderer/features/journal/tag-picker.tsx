@@ -113,7 +113,11 @@ export const TagPicker = ({
                   checked={selected.has(option.id)}
                   onCheckedChange={() => toggle(option.id)}
                 />
-                <TagChip color={option.color} label={option.name} title={option.name} />
+                <TagChip
+                  color={option.color}
+                  label={option.name}
+                  title={option.description.trim() === '' ? undefined : option.description}
+                />
               </label>
             ))}
           </div>

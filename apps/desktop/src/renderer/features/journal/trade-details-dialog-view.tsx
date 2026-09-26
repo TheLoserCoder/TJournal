@@ -17,6 +17,7 @@ import { Checkbox } from '../../components/ui/checkbox';
 import { IconButton } from '../../components/ui/icon-button';
 import { TagChip } from './tag-chip';
 import { TagPicker } from './tag-picker';
+import { tradeLocalDateTime } from './trade-local-time';
 
 export interface TradeDetailsDialogLabels {
   readonly account: string;
@@ -151,8 +152,7 @@ export const TradeDetailsDialogView = ({
   trade,
   unitOptions,
 }: TradeDetailsDialogViewProps): ReactElement => {
-  const date = trade.closedAt.slice(0, 10);
-  const time = trade.closedAt.slice(11, 16);
+  const { date, time } = tradeLocalDateTime(trade.closedAt);
   const selectedTags = tags.filter((tag) => tagIds.includes(tag.id));
 
   return (
@@ -261,7 +261,11 @@ export const TradeDetailsDialogView = ({
             <div aria-labelledby="trade-tags-label" className="tag-selected-list">
               {selectedTags.map((tag) => (
                 <span className="tag-selected-chip" key={tag.id}>
-                  <TagChip color={tag.color} label={tag.name} title={tag.name} />
+                  <TagChip
+                    color={tag.color}
+                    label={tag.name}
+                    title={tag.description.trim() === '' ? undefined : tag.description}
+                  />
                   <button
                     aria-label={removeTagLabel(tag.name)}
                     className="tag-selected-remove"

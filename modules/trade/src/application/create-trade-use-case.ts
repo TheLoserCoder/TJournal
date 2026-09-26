@@ -56,10 +56,14 @@ export class CreateTradeUseCase {
         { code: TRADE_VALIDATION_CODES.missingInitialRisk, path: 'riskUsd' },
       ]);
     }
+    // The account cost profile now owns the calculation ticks; the legacy
+    // instrument profile stays as a fallback for vaults that still rely on it.
     const profile =
       input.execution === null
         ? null
-        : (this.instrumentStore?.getInstrumentProfile(input.instrumentId) ?? null);
+        : (this.accountStore?.getInstrumentCalculationProfile(accountId, input.instrumentId) ??
+          this.instrumentStore?.getInstrumentProfile(input.instrumentId) ??
+          null);
     if (input.execution !== null && profile === null) {
       throw new TradeValidationError([
         { code: TRADE_VALIDATION_CODES.missingInstrumentProfile, path: 'instrumentProfile' },

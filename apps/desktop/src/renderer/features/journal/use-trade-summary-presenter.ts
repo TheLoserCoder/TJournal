@@ -26,7 +26,6 @@ export interface TradeSummaryFilterState {
 }
 
 export interface TradeSummaryPresenter {
-  readonly metric: TradeResultKind;
   readonly period: SummaryPeriod;
   readonly followTableFilters: boolean;
   readonly summary: TradeSummaryDto | null;
@@ -34,13 +33,14 @@ export interface TradeSummaryPresenter {
   readonly settingsOpen: boolean;
   closeSettings(): void;
   openSettings(): void;
-  setMetric(value: TradeResultKind): void;
   setPeriod(value: SummaryPeriod): void;
   setFollowTableFilters(value: boolean): void;
 }
 
 const EMPTY_ACCOUNT_FILTER_IDS: readonly string[] = [];
 const EMPTY_ENTRY_FILTERS: readonly TradeEntryFilter[] = [];
+/** The quick summary is always expressed in the authoritative USD result. */
+const TRADE_SUMMARY_METRIC: TradeResultKind = 'cash';
 
 const toFilter = (state: TradeSummaryFilterState): TradeSummaryFilterDto => {
   const resultBounds = state.resultBounds;
@@ -146,7 +146,7 @@ export const useTradeSummaryPresenter = (
             textQuery,
           })
         : null,
-      metric: preferences.metric,
+      metric: TRADE_SUMMARY_METRIC,
       period: preferences.period,
     };
     void getTradeSummary(request).then((nextSummary) => {
@@ -189,25 +189,22 @@ export const useTradeSummaryPresenter = (
     getTradeSummary,
     journal.dataVersion,
     preferences.followTableFilters,
-    preferences.metric,
     preferences.period,
     journal.accounts,
     enabled,
   ]);
 
   const update = (next: typeof preferences): void => {
-    void journal.updateSettings({ ...journal.settings, tradeSummary: next });
+    void journal.updateSettings({ tradeSummary: next });
   };
 
   return {
-    metric: preferences.metric,
     period: preferences.period,
     followTableFilters: preferences.followTableFilters,
     settingsOpen,
     summaryRefreshing,
     closeSettings: () => setSettingsOpen(false),
     openSettings: () => setSettingsOpen(true),
-    setMetric: (value) => update({ ...preferences, metric: value }),
     setPeriod: (value) => update({ ...preferences, period: value }),
     setFollowTableFilters: (value) => update({ ...preferences, followTableFilters: value }),
     summary,

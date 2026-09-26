@@ -11,6 +11,7 @@ import type {
   TradeExecutionInputDto,
 } from '../../../shared/desktop-api';
 import type { JournalPresenter } from './use-journal-presenter';
+import { updateTradeLocalTime } from './trade-local-time';
 
 const EMPTY_TRADE_ID = '';
 const DEFAULT_COMMISSION = '0';
@@ -110,13 +111,32 @@ export const useTradeEditorPresenter = (
   );
   const submitting = useRef(false);
 
+  // Calculation ticks come from the account cost profile; the legacy instrument
+  // profile is only a fallback, mirroring the create-trade use case.
+  const loadProfile = async (accountId: string | null, instrumentId: string): Promise<void> => {
+    if (accountId !== null) {
+      const defaults = await journal.listAccountDefaults(accountId);
+      const match = defaults?.find((item) => item.instrumentId === instrumentId);
+      if (match !== undefined && match.tickSize !== null && match.tickValueUsdPerLot !== null) {
+        setEditingProfile({
+          instrumentId,
+          tickSize: match.tickSize,
+          tickValueUsdPerLot: match.tickValueUsdPerLot,
+          updatedAt: match.updatedAt,
+        });
+        return;
+      }
+    }
+    setEditingProfile(await journal.getInstrumentProfile(instrumentId));
+  };
+
   const loadEditor = (trade: TradeDto): void => {
     const nextExecutionDraft = toExecutionDraft(trade);
     setEditingTrade(trade);
     setInitialEditingTrade(trade);
     setExecutionDraft(nextExecutionDraft);
     setInitialExecutionDraft(nextExecutionDraft);
-    void journal.getInstrumentProfile(trade.instrumentId).then(setEditingProfile);
+    void loadProfile(trade.account?.accountId ?? quick.accountId ?? null, trade.instrumentId);
   };
 
   const closeEditor = (): void => {
@@ -276,8 +296,9 @@ export const useTradeEditorPresenter = (
             },
       ),
     setEditingClosedAt: (value) => {
-      if (editingTrade !== null)
-        setEditingTrade({ ...editingTrade, closedAt: new Date(value).toISOString() });
+      if (editingTrade === null) return;
+      const closedAt = updateTradeLocalTime(editingTrade.closedAt, value);
+      if (closedAt !== null) setEditingTrade({ ...editingTrade, closedAt });
     },
     setEditingAccountId: (accountId) => {
       if (editingTrade === null) return;
@@ -313,7 +334,7 @@ export const useTradeEditorPresenter = (
           instrumentSymbol: instrument.symbol,
         });
         setExecutionDraft(null);
-        void journal.getInstrumentProfile(instrument.id).then(setEditingProfile);
+        void loadProfile(editingTrade.account?.accountId ?? null, instrument.id);
       }
     },
     setEditingResultKind: (resultKind) => {
