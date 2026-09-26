@@ -360,7 +360,7 @@
         "description": "Close existing defects #8/#9 and Electron smoke #2-#6; validate a production-installed Windows x64 NSIS build, then publish unsigned v1 through GitHub Releases. Deferred product slices B/C/D belong after v1.",
         "details": "Work in current dirty tree without reverting owner changes. Follow order: fix timestamp editing UTC/local mismatch and account-editor validation presentation with regression coverage; reconcile smoke evidence against #7 and rerun impacted flows; verify backup/migration, installer install/upgrade/uninstall and vault survival; run clean typecheck, check, format:check, build, test:e2e, make; record accepted unsigned release decision in ADR and release notes with SmartScreen disclosure; clean temporary plan 08 after deferrals are persisted in Task Master; update README status links; publish checked SHA256 and download-test from GitHub Releases. No public release until all actual tests and installed-artifact acceptance pass. Track failures as independent Task Master defects.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "subtasks": [
@@ -413,14 +413,14 @@
             "title": "Publish verified GitHub v1 release",
             "description": "Only after #8/#9, acceptance and installed-artifact gates pass: create version tag and GitHub Release draft; attach NSIS and SHA256, release notes/requirements and unsigned warning; download-test, then publish; record link and results in Task Master.",
             "details": "",
-            "status": "in-progress",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 12,
             "parentId": "undefined",
-            "updatedAt": "2026-09-26T13:49:27.126Z"
+            "updatedAt": "2026-09-26T13:58:55.160Z"
           }
         ],
-        "updatedAt": "2026-09-26T13:49:27.126Z"
+        "updatedAt": "2026-09-26T13:58:55.160Z"
       },
       {
         "id": "13",
@@ -471,9 +471,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-09-26T13:49:27.126Z",
+      "lastModified": "2026-09-26T13:58:55.161Z",
       "taskCount": 13,
-      "completedCount": 11,
+      "completedCount": 12,
       "tags": [
         "master"
       ]
