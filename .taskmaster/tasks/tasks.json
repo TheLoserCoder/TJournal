@@ -669,7 +669,7 @@
         "description": "Publish an Authenticode-unsigned Windows x64 patch release (ADR-0018) containing the TJournal application icon and the quick-entry toolbar layout fix. Vault format, IPC contracts and domain behaviour are unchanged.",
         "details": "Scope: (1) application icon assets in apps/desktop/resources plus win.icon and the runtime window icon (task-less change completed in this session); (2) Trades quick-entry toolbar: the Add and With-details actions follow the form fields while filter reset and view settings stay pinned to the trailing edge. Phase 1 metadata: bump root and desktop versions to 1.0.2, point the README release link at v1.0.2 and record the new evidence task, prepare GitHub release notes (icon, toolbar fix, unchanged unsigned SmartScreen status and unchanged vault format). Phase 2 local gates: pnpm verify:release (clean, check, format:check, E2E, NSIS) and record exact unit/E2E/architecture/build results. Phase 3 artifact acceptance: confirm Authenticode NotSigned, SHA-256, install/upgrade 1.0.1 -> 1.0.2 in isolated directories, launch with isolated userData, verify the icon and toolbar layout, uninstall without deleting the vault. Phase 4 source publication: commit the icon + toolbar + metadata changes, push main, create annotated v1.0.2 tag, push it. Phase 5 CI/release: wait for the Windows release verification run, download the exact CI artifact, compare its checksum, smoke-install it, normalize the public filename to TJournal-Setup-1.0.2.exe, regenerate SHA256SUMS.txt, publish the GitHub Release with SmartScreen disclosure, redownload both assets and verify the public checksum. Do not move or overwrite v1.0.0/v1.0.1. Completion requires clean main, tag and release URL, successful Actions run and recorded evidence in Task Master.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "subtasks": [
@@ -711,31 +711,32 @@
             "title": "Commit, push, tag, and verify CI",
             "description": "Commit the icon, toolbar and v1.0.2 metadata changes, push main, create the annotated v1.0.2 tag without touching v1.0.0/v1.0.1, push the tag, wait for the Windows release verification run and download the exact CI artifact and checksum.",
             "details": "",
-            "status": "in-progress",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 17,
             "parentId": "undefined",
-            "updatedAt": "2026-09-26T17:39:27.219Z"
+            "updatedAt": "2026-09-26T17:58:15.824Z"
           },
           {
             "id": 5,
             "title": "Publish and independently verify GitHub release",
             "description": "Smoke-install the CI artifact, rename the public installer to TJournal-Setup-1.0.2.exe without changing bytes, regenerate SHA256SUMS.txt, publish the release with the unsigned warning, redownload both assets and compare the checksum; record URL/run/hash and close the task.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 17,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T17:58:15.845Z"
           }
         ],
-        "updatedAt": "2026-09-26T17:39:27.219Z"
+        "updatedAt": "2026-09-26T17:58:15.845Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-09-26T17:39:27.219Z",
+      "lastModified": "2026-09-26T17:58:15.846Z",
       "taskCount": 17,
-      "completedCount": 15,
+      "completedCount": 16,
       "tags": [
         "master"
       ]
