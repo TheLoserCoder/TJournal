@@ -1,6 +1,7 @@
 declare module 'electron' {
   export interface BrowserWindowConstructorOptions {
     readonly height?: number;
+    readonly icon?: string;
     readonly minHeight?: number;
     readonly minWidth?: number;
     readonly preload?: string;

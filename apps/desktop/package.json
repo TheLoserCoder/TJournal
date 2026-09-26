@@ -1,6 +1,6 @@
 {
   "name": "@tjournal/desktop",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Offline desktop trading journal",
   "author": "TheLoserCoder",
@@ -53,9 +53,11 @@
     },
     "files": [
       "out/**/*",
+      "resources/icon.png",
       "package.json"
     ],
     "win": {
+      "icon": "resources/icon.ico",
       "target": [
         {
           "target": "nsis",

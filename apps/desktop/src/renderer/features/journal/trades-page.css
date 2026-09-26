@@ -62,11 +62,12 @@
 /* One compact row: proportioned controls keep the toolbar on a single line on wide
    workspaces and only fall back to wrapping when the workspace is genuinely narrow.
    Field tracks are capped so the entry kind, account, asset and result fields stay
-   compact, and the primary Add/Details actions sit right after the fields. */
+   compact; the group sizes to its content, so the Add/Details actions sit right after
+   the fields instead of leaving a gap between the form and its buttons. */
 .trades-topbar-fields {
   align-items: center;
   display: grid;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   gap: var(--ref-space-2);
   /* entry | account | asset | direction | result | unit | tags. The trailing track
      sizes to its content, so an empty percent/R preview never leaves a gap between
@@ -105,10 +106,13 @@
   padding-inline: var(--ref-space-2);
 }
 
+/* The action group takes the space after the fields, so Add and Details follow the
+   form controls. `.table-toolbar-actions` keeps its own `margin-left: auto` inside
+   this group and stays pinned to the trailing edge of the toolbar. */
 .trades-topbar-actions {
   align-items: center;
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   flex-wrap: nowrap;
   gap: var(--ref-space-2);
 }

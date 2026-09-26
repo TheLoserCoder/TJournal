@@ -39,6 +39,7 @@
 - `pnpm typecheck` (`tsc --build`) — единственный источник `.tsbuild` и `*.tsbuildinfo`; модули резолвятся через `exports` своих `package.json`, поэтому зависимости должны быть собраны раньше.
 - `pnpm clean` (`tsc --build --clean`) — целевая очистка build-артефактов без удаления широких путей. Чистая проверка: `pnpm clean && pnpm typecheck`; она ловит пропущенные project references, которые stale `.tsbuild` может скрывать.
 - Каждая project reference описывает реальный импорт `@tjournal/*`; при добавлении cross-module импорта сначала обновляется `tsconfig.json` модуля-потребителя.
+- Ассеты иконки приложения лежат в `apps/desktop/resources`: `icon.ico` (кадры 16–256, `build.win.icon`) задаёт иконку exe, установщика, деинсталлятора и ярлыков, `icon.png` (1024) — мастер и иконка окна, `icons/icon-<size>.png` — набор 16–1024 из того же арта (обрезка по фигуре, поля 10% канвы). `resources` — public-каталог main-процесса electron-vite: `?asset`-импорт в `src/main/index.ts` резолвится в путь рядом с `out/`, поэтому `resources/icon.png` перечислен в `build.files`; без этой записи окно собранного приложения останется без иконки, а упаковка об этом не предупредит.
 
 ## Release verification
 

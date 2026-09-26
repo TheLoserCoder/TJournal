@@ -8,10 +8,10 @@ desktop, future mobile and optional server adapters separate from the domain.
 
 The v1 feature set is implemented and the current public Windows release is published as an
 unsigned installer on
-[GitHub Releases](https://github.com/TheLoserCoder/TJournal/releases/tag/v1.0.1)
+[GitHub Releases](https://github.com/TheLoserCoder/TJournal/releases/tag/v1.0.2)
 ([ADR-0018](docs/adr/0018-unsigned-windows-v1-distribution.md)); Windows may show a SmartScreen
 warning. Release acceptance and verification evidence live in
-[Task Master](.taskmaster/tasks/tasks.json) (task #12).
+[Task Master](.taskmaster/tasks/tasks.json) (task #17).
 [Product scope](docs/product/scope-v1.md) records what v1 deliberately does not include.
 
 ## What it does

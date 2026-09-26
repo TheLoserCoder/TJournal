@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu } from 'electron';
 import { join } from 'node:path';
 import { toSafeAppError } from '@tjournal/platform-errors';
 
+import appIcon from '../../resources/icon.png?asset';
 import { createDesktopContainer } from './desktop-container';
 import type { DesktopDependencies } from './desktop-container';
 import { getE2EEnvironmentValue } from './e2e-environment';
@@ -18,7 +19,7 @@ applyE2EEnvironment();
 
 const createMainWindow = (): BrowserWindow => {
   const preloadPath = join(__dirname, '../preload/index.js');
-  const mainWindow = new BrowserWindow(createWindowOptions(preloadPath));
+  const mainWindow = new BrowserWindow(createWindowOptions(preloadPath, appIcon));
 
   const rendererUrl = process.env.ELECTRON_RENDERER_URL;
 
