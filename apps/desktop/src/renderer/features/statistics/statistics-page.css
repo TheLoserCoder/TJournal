@@ -331,7 +331,7 @@
   .statistics-table-region table,
   .statistics-data-details table {
     border-collapse: collapse;
-    min-width: 42rem;
+    min-width: 100%;
     width: 100%;
   }
 

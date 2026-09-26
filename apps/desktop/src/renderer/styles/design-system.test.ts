@@ -111,6 +111,14 @@ describe('renderer design system contract', () => {
     expect(tradesPageCss).toContain('.trades-topbar');
     expect(designSystemCss).not.toContain('.trades-topbar');
     expect(designSystemCss).not.toContain('.trade-summary {');
+    // A wrapped assets row reuses the seven metric tracks of the row above, so
+    // every card keeps one width and the tone edges stay aligned in columns.
+    expect(tradesPageCss).toContain('grid-template-columns: subgrid');
+    expect(tradesPageCss).toContain('grid-column: 1 / span 2');
+    expect(tradesPageCss).toContain('repeat(7, minmax(0, 1fr))');
+    expect(tradesPageCss).not.toContain('minmax(9rem, 13rem)');
+    expect(tradesPageCss).not.toContain('repeat(auto-fit, minmax(7rem, 1fr))');
+    expect(tradesPageCss).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));');
   });
 
   it('keeps DataTable scroll mechanics and sticky header in one owner', () => {
@@ -286,6 +294,8 @@ describe('renderer design system contract', () => {
     expect(statisticsPageCss).toContain('.statistics-ring');
     expect(statisticsPageCss).toContain('.statistics-kpi-label');
     expect(statisticsPageCss).toContain('.statistics-kpi-positive');
+    // Statistics tables fit their card instead of forcing a horizontal stripe.
+    expect(statisticsPageCss).not.toContain('min-width: 42rem');
     expect(statisticsPageCss).toContain('font-family: var(--ref-font-mono)');
     expect(dataTableCss).toContain('font-variant-numeric: tabular-nums');
     expect(dataTableCss).toContain('var(--table-row-selected-indicator)');

@@ -256,9 +256,10 @@
   gap: var(--ref-space-2);
 }
 
-/* Summary keeps three meaning groups plus the reserved settings action. The group
-   tracks are proportional to their card counts (2 + 5 + 2), so every metric card
-   keeps the same width while the groups stay separated by thin rules. */
+/* Summary keeps three meaning groups plus the reserved settings action. Nine
+   equal tracks (2 + 5 + 2) give every metric card one width, and each group
+   inherits those tracks through subgrid, so the tone edges line up in columns.
+   Group separators live in the grid gap and never shift a card. */
 .trade-summary {
   align-items: stretch;
   background: var(--color-surface);
@@ -267,7 +268,7 @@
   box-shadow: var(--ref-shadow-sm);
   display: grid;
   gap: var(--ref-space-3);
-  grid-template-columns: minmax(0, 2fr) minmax(0, 5fr) minmax(0, 2fr) auto;
+  grid-template-columns: repeat(9, minmax(0, 1fr)) auto;
   margin: 0;
   min-width: 0;
   padding: var(--ref-space-3) var(--ref-space-4);
@@ -277,29 +278,39 @@
   align-items: stretch;
   display: grid;
   gap: var(--ref-space-3);
+  grid-template-columns: subgrid;
   min-width: 0;
+  position: relative;
 }
 
-.trade-summary-group + .trade-summary-group,
-.trade-summary-settings {
-  border-inline-start: 1px solid var(--color-border);
-  padding-inline-start: var(--ref-space-4);
-}
-
-.trade-summary-group-financial,
-.trade-summary-group-assets {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.trade-summary-group-financial {
+  grid-column: span 2;
 }
 
 .trade-summary-group-performance {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-column: span 5;
+}
+
+.trade-summary-group-assets {
+  grid-column: span 2;
+}
+
+.trade-summary-group + .trade-summary-group::before {
+  background: var(--color-border);
+  content: '';
+  inline-size: 0.0625rem;
+  inset-block: 0;
+  inset-inline-start: calc(var(--ref-space-3) / -2 - 0.03125rem);
+  position: absolute;
 }
 
 .trade-summary-settings {
   align-items: center;
+  border-inline-start: 1px solid var(--color-border);
   display: flex;
   justify-content: flex-end;
   min-width: var(--ui-control-height);
+  padding-inline-start: var(--ref-space-4);
 }
 
 .trade-summary-item {
@@ -455,24 +466,29 @@
 }
 
 /* Compact workspace: the assets group takes a full row instead of squeezing the
-   numeric tiles. The toolbar stays on one line while the fields can still fit. */
+   numeric tiles. It reuses the seven metric slots (2 + 5) of the row above, so
+   every card keeps one width and the tone edges line up in columns; no separator
+   stripe is drawn across the wrapped row. The toolbar stays on one line while the
+   fields can still fit. */
 @container (max-width: 72rem) {
   .trade-summary {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 5fr) auto;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) auto;
   }
 
+  /* Assets drop to their own row but keep the seven tracks of the row above,
+     so every card stays one width and the columns line up. */
   .trade-summary-group-assets {
-    border-inline-start: 0;
-    border-top: 1px solid var(--color-border);
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(auto-fit, minmax(9rem, 13rem));
-    justify-content: start;
-    padding-inline-start: 0;
+    grid-column: 1 / span 2;
+    grid-row: 2;
     padding-top: var(--ref-space-3);
   }
 
+  .trade-summary-group + .trade-summary-group-assets::before {
+    content: none;
+  }
+
   .trade-summary-settings {
-    grid-column: 3;
+    grid-column: -2;
     grid-row: 1;
   }
 }
@@ -496,6 +512,8 @@
 }
 
 /* Narrow prototype: single-column forms, stacked KPI groups and a fluid toolbar.
+   Every group shares one track template, so cards keep a single width and the
+   tone edges stay in the same columns while groups stack.
    This tier prepares the future mobile shell and is exercised by zoom or devtools. */
 @container (max-width: 45rem) {
   .trade-summary {
@@ -503,14 +521,16 @@
   }
 
   .trade-summary-group,
-  .trade-summary-group-assets,
-  .trade-summary-group-performance {
-    border-inline-start: 0;
+  .trade-summary-group-assets {
     border-top: 1px solid var(--color-border);
     grid-column: auto;
-    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-    padding-inline-start: 0;
+    grid-row: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     padding-top: var(--ref-space-3);
+  }
+
+  .trade-summary-group + .trade-summary-group::before {
+    content: none;
   }
 
   .trade-summary-group:first-child {

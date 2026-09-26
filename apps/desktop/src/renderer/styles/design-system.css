@@ -152,7 +152,9 @@ p {
   font-weight: 600;
 }
 
-/* Page content is the scroll owner and the container that Trades adapts to. */
+/* Page content is the scroll owner and the container that Trades adapts to.
+   The stable gutter keeps the content width fixed when a scrollbar appears or
+   disappears, so resizing the window never shifts the cards sideways. */
 .page-content {
   container-type: inline-size;
   display: flex;
@@ -161,6 +163,7 @@ p {
   min-width: 0;
   overflow: auto;
   padding: var(--ref-space-5) clamp(var(--ref-space-3), 1.5vw, var(--ref-space-5));
+  scrollbar-gutter: stable;
 }
 
 .page-content > section {

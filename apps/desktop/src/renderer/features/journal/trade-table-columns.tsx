@@ -11,6 +11,7 @@ import type {
 } from '../../../shared/desktop-api';
 import { Checkbox } from '../../components/ui/checkbox';
 import { TRANSLATION_KEYS } from '../../i18n-keys';
+import { formatSignedAmount } from './format-signed-amount';
 import { TagOverflowList } from './tag-overflow-list';
 import { getJournalEntryAmountUsd } from './trade-table-filters';
 import type { JournalEntryRow } from './journal-entry-row';
@@ -257,7 +258,7 @@ export const createTradeTableColumns = ({
         return (
           <span
             className={`trade-result ui-numeric trade-result-${tone}`}
-          >{`${amountUsd} ${labels.unitCash}`}</span>
+          >{`${formatSignedAmount(amountUsd)} ${labels.unitCash}`}</span>
         );
       },
       sortFn: (firstRow, secondRow) => {

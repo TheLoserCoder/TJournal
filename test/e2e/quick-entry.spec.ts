@@ -42,7 +42,7 @@ test('previews and saves a percent trade against the current balance', async () 
   ).toBeVisible();
 
   await page.getByRole('button', { name: APP_TEXT.action.add }).click();
-  await expect(page.getByRole('cell', { name: '100 USD', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '+100 USD', exact: true })).toBeVisible();
 });
 
 test('prompts for 1R on an R trade and rejects a non-positive value', async () => {
@@ -68,7 +68,7 @@ test('prompts for 1R on an R trade and rejects a non-positive value', async () =
   await dialog.getByLabel(APP_TEXT.trade.oneRiskUsd).fill('50');
   await dialog.getByRole('button', { name: APP_TEXT.action.save }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('cell', { name: '250 USD', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '+250 USD', exact: true })).toBeVisible();
 });
 
 test('creates a new asset from an unknown symbol and saves the trade', async () => {

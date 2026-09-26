@@ -60,7 +60,7 @@ test('records a USD trade that survives an application restart', async () => {
   await application.restart();
 
   await expect(application.page.getByRole('cell', { name: 'EURUSD', exact: true })).toBeVisible();
-  await expect(application.page.getByRole('cell', { name: '25 USD', exact: true })).toBeVisible();
+  await expect(application.page.getByRole('cell', { name: '+25 USD', exact: true })).toBeVisible();
 });
 
 test('backs up, restarts, restores into a new vault and opens the original data', async () => {
@@ -90,7 +90,7 @@ test('backs up, restarts, restores into a new vault and opens the original data'
     .getByRole('button', { name: APP_TEXT.navigation.trades, exact: true })
     .click();
   await expect(application.page.getByRole('cell', { name: 'EURUSD', exact: true })).toBeVisible();
-  await expect(application.page.getByRole('cell', { name: '25 USD', exact: true })).toBeVisible();
+  await expect(application.page.getByRole('cell', { name: '+25 USD', exact: true })).toBeVisible();
 });
 
 test('undoes and redoes a saved trade', async () => {

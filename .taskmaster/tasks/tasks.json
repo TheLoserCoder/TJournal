@@ -467,13 +467,70 @@
           }
         ],
         "updatedAt": "2026-09-26T13:02:17.229Z"
+      },
+      {
+        "id": "14",
+        "title": "UI polish: remove the native menu, align summary and statistics, sign positive results",
+        "description": "Owner-reported visual issues: (1) remove the Electron File/Edit/View/Window menu bar on Windows; (2) when the window shrinks, quick summary cards wrap at different widths and the tone edges/separators look offset; (3) the same wrap misalignment shows on the Statistics page; (4) positive results need an explicit + so positive and negative values align in the trades table.",
+        "details": "Scope: main-process menu removal behind a tested seam; renderer CSS for .trade-summary tiers so wrapped groups reuse the same card tracks and no stray separator stripe appears; Statistics KPI/filter layout made uniform at reduced widths; trades-table Result column shows +N USD for positive authoritative USD values while zero stays 0 USD; keep cash-movement rows consistent; no domain/IPC/SQLite changes. Update docs/architecture/design-system.md and styles/design-system.test.ts contracts; adjust E2E cell expectations. Verify by screenshots in Electron at 1280x800 and 960x640 in both themes. Run pnpm check, test:e2e, format:check, build.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Remove the native application menu",
+            "description": "Main process: drop File/Edit/View/Window via a tested seam (removeApplicationMenuUnlessMac(platform, menu)); keep macOS default menu. Verify no menu bar in the built app.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 14,
+            "updatedAt": "2026-09-26T14:30:47.874Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Align the Trades quick summary at reduced widths",
+            "description": "In the 45-72rem tier the assets group must reuse the same card tracks as the seven metric slots instead of stretching to 13rem; remove the stray separator stripe; in the <=45rem tier every group must share one track template so cards keep one width and tone edges line up.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 14,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:30:51.202Z"
+          },
+          {
+            "id": 3,
+            "title": "Align the Statistics page at reduced widths",
+            "description": "Reproduce the Statistics page at 1280x800, 1100x800 and 960x640; make KPI cards, filter bar and chart cards keep one width and left edge when wrapping, with no horizontal scrollbars. Document what was actually misaligned before changing CSS.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 14,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:30:54.517Z"
+          },
+          {
+            "id": 4,
+            "title": "Sign positive results in the trades table",
+            "description": "Authoritative Result column shows +N USD for positive values, -N USD for negative and 0 USD for zero, so rows align; same for cash-movement rows. Unit test the signed formatter; update E2E cell expectations (25 USD -> +25 USD) and the design-system contract.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 14,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:30:57.809Z"
+          }
+        ],
+        "updatedAt": "2026-09-26T14:30:57.809Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-09-26T13:58:55.161Z",
-      "taskCount": 13,
-      "completedCount": 12,
+      "lastModified": "2026-09-26T14:30:57.809Z",
+      "taskCount": 14,
+      "completedCount": 13,
       "tags": [
         "master"
       ]
