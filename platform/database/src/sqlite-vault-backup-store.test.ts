@@ -134,22 +134,26 @@ describe('SQLite vault backups', () => {
     }
   });
 
-  it('retains manual backups and only the newest twenty valid automatic backups', async () => {
-    const { vaultPath, storage, backups } = fixture();
-    try {
-      const manual = await backups.create(vaultPath, 'manual');
-      for (let index = 0; index < 21; index += 1) await backups.create(vaultPath, 'automatic');
-      const saved = backups.list(vaultPath).backups;
-      expect(saved.filter((item) => item.kind === 'automatic')).toHaveLength(20);
-      expect(saved.some((item) => item.id === manual.id)).toBe(true);
-      writeFileSync(join(vaultPath, 'backups', 'unrelated.txt'), 'keep');
-      await backups.create(vaultPath, 'automatic');
-      expect(readFileSync(join(vaultPath, 'backups', 'unrelated.txt'), 'utf8')).toBe('keep');
-      expect(backups.verify(vaultPath, manual.id)).toEqual(manual);
-    } finally {
-      storage.close();
-    }
-  }, BULK_BACKUP_TEST_TIMEOUT_MS);
+  it(
+    'retains manual backups and only the newest twenty valid automatic backups',
+    async () => {
+      const { vaultPath, storage, backups } = fixture();
+      try {
+        const manual = await backups.create(vaultPath, 'manual');
+        for (let index = 0; index < 21; index += 1) await backups.create(vaultPath, 'automatic');
+        const saved = backups.list(vaultPath).backups;
+        expect(saved.filter((item) => item.kind === 'automatic')).toHaveLength(20);
+        expect(saved.some((item) => item.id === manual.id)).toBe(true);
+        writeFileSync(join(vaultPath, 'backups', 'unrelated.txt'), 'keep');
+        await backups.create(vaultPath, 'automatic');
+        expect(readFileSync(join(vaultPath, 'backups', 'unrelated.txt'), 'utf8')).toBe('keep');
+        expect(backups.verify(vaultPath, manual.id)).toEqual(manual);
+      } finally {
+        storage.close();
+      }
+    },
+    BULK_BACKUP_TEST_TIMEOUT_MS,
+  );
 
   it('rejects malformed and unsupported manifests without deleting their snapshots', async () => {
     const { vaultPath, storage, backups } = fixture();
@@ -178,23 +182,27 @@ describe('SQLite vault backups', () => {
     }
   });
 
-  it('pages the unpruned manual archive without losing older backup IDs', async () => {
-    const { vaultPath, storage, backups } = fixture();
-    try {
-      for (let index = 0; index < 51; index += 1) await backups.create(vaultPath, 'manual');
-      const first = backups.list(vaultPath);
-      expect(first.backups).toHaveLength(50);
-      expect(first.nextCursor).not.toBeNull();
-      const second = backups.list(vaultPath, first.nextCursor);
-      expect(second.backups).toHaveLength(1);
-      expect(second.nextCursor).toBeNull();
-      const oldest = second.backups[0];
-      if (oldest === undefined) throw new Error('Oldest backup was not listed.');
-      expect(backups.verify(vaultPath, oldest.id)).toEqual(oldest);
-    } finally {
-      storage.close();
-    }
-  }, BULK_BACKUP_TEST_TIMEOUT_MS);
+  it(
+    'pages the unpruned manual archive without losing older backup IDs',
+    async () => {
+      const { vaultPath, storage, backups } = fixture();
+      try {
+        for (let index = 0; index < 51; index += 1) await backups.create(vaultPath, 'manual');
+        const first = backups.list(vaultPath);
+        expect(first.backups).toHaveLength(50);
+        expect(first.nextCursor).not.toBeNull();
+        const second = backups.list(vaultPath, first.nextCursor);
+        expect(second.backups).toHaveLength(1);
+        expect(second.nextCursor).toBeNull();
+        const oldest = second.backups[0];
+        if (oldest === undefined) throw new Error('Oldest backup was not listed.');
+        expect(backups.verify(vaultPath, oldest.id)).toEqual(oldest);
+      } finally {
+        storage.close();
+      }
+    },
+    BULK_BACKUP_TEST_TIMEOUT_MS,
+  );
 
   it('recovers from an unreadable source database using only its verified backup', async () => {
     const { parent, vaultPath, storage, backups } = fixture();

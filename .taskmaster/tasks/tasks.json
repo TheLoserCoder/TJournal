@@ -413,13 +413,14 @@
             "title": "Publish verified GitHub v1 release",
             "description": "Only after #8/#9, acceptance and installed-artifact gates pass: create version tag and GitHub Release draft; attach NSIS and SHA256, release notes/requirements and unsigned warning; download-test, then publish; record link and results in Task Master.",
             "details": "",
-            "status": "pending",
+            "status": "in-progress",
             "dependencies": [],
             "parentTaskId": 12,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T13:49:27.126Z"
           }
         ],
-        "updatedAt": "2026-09-26T13:30:28.015Z"
+        "updatedAt": "2026-09-26T13:49:27.126Z"
       },
       {
         "id": "13",
@@ -470,7 +471,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-09-26T13:30:28.015Z",
+      "lastModified": "2026-09-26T13:49:27.126Z",
       "taskCount": 13,
       "completedCount": 11,
       "tags": [
