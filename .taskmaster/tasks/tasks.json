@@ -599,7 +599,7 @@
         "description": "Publish a signed-off-by-tests but Authenticode-unsigned Windows x64 patch release containing the UI fixes from task 14 and the developer workflow/navigation improvements from task 15.",
         "details": "Depends on task 15. Phase 1 release metadata: bump root and desktop versions to 1.0.1, update README release link/status and write release notes describing removed native menu, aligned summary/statistics behavior, explicit + result sign, CodeGraph workflow improvements and unchanged unsigned/SmartScreen status from ADR-0018. Phase 2 local gates: pnpm verify:release; confirm 438+ unit tests, 34 E2E tests, architecture guards, format, typecheck and NSIS output. Phase 3 artifact acceptance: confirm Authenticode NotSigned, generate SHA-256, install or upgrade from 1.0.0 in isolated acceptance directories, launch with isolated userData, verify existing vault opens and the three UI regressions, uninstall without deleting the vault. Phase 4 source publication: commit task 15 + version/docs changes, push main, create annotated v1.0.1 tag and push it. Phase 5 CI/release: wait for Windows release verification, download the exact CI artifact, compare its included checksum, smoke-install that artifact, normalize the public filename to TJournal-Setup-1.0.1.exe, regenerate SHA256SUMS.txt for that name, publish GitHub Release with SmartScreen disclosure, download both assets and verify the public checksum. Do not move or overwrite v1.0.0. Completion requires clean main, tag and release URL, successful Actions run and recorded evidence in Task Master.",
         "testStrategy": "",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "15"
         ],
@@ -643,31 +643,32 @@
             "title": "Commit, push, tag, and verify CI",
             "description": "Commit task 15 and v1.0.1 metadata, push main, create annotated v1.0.1 tag without changing v1.0.0, push tag, wait for Windows release verification and download the exact CI artifact/checksum.",
             "details": "",
-            "status": "in-progress",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16,
             "parentId": "undefined",
-            "updatedAt": "2026-09-26T15:07:53.936Z"
+            "updatedAt": "2026-09-26T15:18:00.991Z"
           },
           {
             "id": 5,
             "title": "Publish and independently verify GitHub release",
             "description": "Smoke-install CI artifact, rename public installer to TJournal-Setup-1.0.1.exe without changing bytes, regenerate SHA256SUMS.txt, publish non-draft release with unsigned warning, redownload both assets and compare checksum; record URL/run/hash and close task.",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16,
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T15:18:04.365Z"
           }
         ],
-        "updatedAt": "2026-09-26T15:07:53.936Z"
+        "updatedAt": "2026-09-26T15:18:04.365Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-09-26T15:07:53.936Z",
+      "lastModified": "2026-09-26T15:18:04.365Z",
       "taskCount": 16,
-      "completedCount": 14,
+      "completedCount": 15,
       "tags": [
         "master"
       ]
