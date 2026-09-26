@@ -1,6 +1,6 @@
 {
   "name": "tjournal-workspace",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "Offline desktop trading journal",
@@ -23,6 +23,7 @@
     "test:e2e": "pnpm typecheck && pnpm --filter @tjournal/desktop build && pnpm typecheck:e2e && playwright test",
     "test:e2e:debug": "pnpm typecheck && pnpm --filter @tjournal/desktop build && pnpm typecheck:e2e && playwright test --debug",
     "test:e2e:report": "playwright show-report",
+    "verify:release": "pnpm clean && pnpm check && pnpm format:check && pnpm test:e2e && pnpm make",
     "architecture": "depcruise --config dependency-cruiser.cjs apps modules platform --exclude \"^(apps/desktop/(out|release)|.*\\.tsbuild)\" --output-type err-long && node test/architecture-fixtures/verify-guards.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm architecture && pnpm test",
     "format": "prettier --write .",

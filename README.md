@@ -6,9 +6,9 @@ desktop, future mobile and optional server adapters separate from the domain.
 
 ## Status
 
-The v1 feature set is implemented and the first public Windows release is published as an
+The v1 feature set is implemented and the current public Windows release is published as an
 unsigned installer on
-[GitHub Releases](https://github.com/TheLoserCoder/TJournal/releases/tag/v1.0.0)
+[GitHub Releases](https://github.com/TheLoserCoder/TJournal/releases/tag/v1.0.1)
 ([ADR-0018](docs/adr/0018-unsigned-windows-v1-distribution.md)); Windows may show a SmartScreen
 warning. Release acceptance and verification evidence live in
 [Task Master](.taskmaster/tasks/tasks.json) (task #12).
@@ -54,6 +54,7 @@ pnpm format:check     # verify Prettier formatting
 pnpm architecture     # dependency-cruiser rules plus the guard self-test
 pnpm make             # build the Windows NSIS installer
 pnpm clean            # remove TypeScript build outputs
+pnpm verify:release   # clean verification: checks, E2E and Windows installer
 ```
 
 ## Documentation

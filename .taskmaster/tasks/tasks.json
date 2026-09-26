@@ -524,13 +524,150 @@
           }
         ],
         "updatedAt": "2026-09-26T14:30:57.809Z"
+      },
+      {
+        "id": "15",
+        "title": "Improve CodeGraph signal, repository navigation, and quality workflow",
+        "description": "Reduce generated-artifact noise in CodeGraph, make architecture navigation repeatable, curate the searchable documentation set, and strengthen the local quality workflow without adding production dependencies or treating graph heuristics as release gates.",
+        "details": "Phase 1 baseline: record CodeGraph 0.20.1 behavior, noisy source paths, false self-loop cycles, empty memories, and authoritative comparison against dependency-cruiser. Phase 2 configuration: add repeatable --exclude arguments for node_modules, .git, .tsbuild, out, release, playwright-report and test-results to the user-scoped CodeGraph MCP command; document that changing exclusions requires a forced reindex because incremental indexing retains stale nodes. Keep machine-specific executable paths outside Git. Phase 3 navigation: add a concise task-to-entry-point table to docs/architecture/code-map.md and clarify the workflow CodeGraph -> source/tests -> ADR/architecture guards. Phase 4 docs search: remove frozen roadmap docs from the local docs store and index current architecture/design-system/testing/tooling/performance/backup/bugs sources; document the canonical set and reindex procedure. Phase 5 quality workflow: add a root verify:release command that runs clean, check, format:check, test:e2e and make in the release order; keep CodeGraph cycle/hot-path findings advisory, never a gate. Acceptance: no production dependency changes; config validates against CodeGraph CLI help; documentation is consistent with AGENTS.md; pnpm check and format:check pass; next CodeGraph session can force-reindex with exclusions and source searches no longer return generated paths.",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Capture CodeGraph quality baseline",
+            "description": "Record CodeGraph 0.20.1, current 418-file index, generated-path search noise, empty memories, false self-loop cycle reports and dependency-cruiser as the authority. Acceptance: findings and caveats are documented, with no graph heuristic promoted to a gate.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 15,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:53:30.423Z"
+          },
+          {
+            "id": 2,
+            "title": "Configure generated-directory exclusions",
+            "description": "Update user-scoped OpenCode CodeGraph command with repeatable --exclude arguments for node_modules, .git, .tsbuild, out, release, playwright-report and test-results. Preserve other MCP settings; document forced reindex requirement and validate the exact CLI options. Machine-specific path remains outside Git.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 15,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:53:33.915Z"
+          },
+          {
+            "id": 3,
+            "title": "Improve architecture navigation map",
+            "description": "Add a concise task-to-entry-point table and a repeatable orientation sequence to docs/architecture/code-map.md. Keep it architectural rather than an exhaustive file inventory; point to public boundaries, relevant tests and guards.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 15,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:53:37.458Z"
+          },
+          {
+            "id": 4,
+            "title": "Curate the CodeGraph docs store",
+            "description": "Remove frozen roadmap sources from local semantic search; index current code-map, design-system, ADR index and accepted ADRs, coding/testing/tooling, query and analytics performance, backup recovery, product scope and bugs. Document the canonical set and update procedure.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 15,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:53:40.996Z"
+          },
+          {
+            "id": 5,
+            "title": "Add a repeatable release quality command",
+            "description": "Add root verify:release script for clean -> check -> format:check -> test:e2e -> make, document when to use it, and keep CI steps separate for readable failure reporting. Verify check, format and script dry-run boundaries without adding production dependencies.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 15,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:53:44.536Z"
+          }
+        ],
+        "updatedAt": "2026-09-26T14:53:44.536Z"
+      },
+      {
+        "id": "16",
+        "title": "Windows v1.0.1: verified patch release",
+        "description": "Publish a signed-off-by-tests but Authenticode-unsigned Windows x64 patch release containing the UI fixes from task 14 and the developer workflow/navigation improvements from task 15.",
+        "details": "Depends on task 15. Phase 1 release metadata: bump root and desktop versions to 1.0.1, update README release link/status and write release notes describing removed native menu, aligned summary/statistics behavior, explicit + result sign, CodeGraph workflow improvements and unchanged unsigned/SmartScreen status from ADR-0018. Phase 2 local gates: pnpm verify:release; confirm 438+ unit tests, 34 E2E tests, architecture guards, format, typecheck and NSIS output. Phase 3 artifact acceptance: confirm Authenticode NotSigned, generate SHA-256, install or upgrade from 1.0.0 in isolated acceptance directories, launch with isolated userData, verify existing vault opens and the three UI regressions, uninstall without deleting the vault. Phase 4 source publication: commit task 15 + version/docs changes, push main, create annotated v1.0.1 tag and push it. Phase 5 CI/release: wait for Windows release verification, download the exact CI artifact, compare its included checksum, smoke-install that artifact, normalize the public filename to TJournal-Setup-1.0.1.exe, regenerate SHA256SUMS.txt for that name, publish GitHub Release with SmartScreen disclosure, download both assets and verify the public checksum. Do not move or overwrite v1.0.0. Completion requires clean main, tag and release URL, successful Actions run and recorded evidence in Task Master.",
+        "testStrategy": "",
+        "status": "in-progress",
+        "dependencies": [
+          "15"
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Bump patch version and prepare release notes",
+            "description": "Set root and desktop package versions to 1.0.1, update README to v1.0.1, and prepare concise GitHub release notes covering user-visible fixes, developer tooling, unchanged vault format and unsigned SmartScreen warning.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 16,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T14:54:19.196Z"
+          },
+          {
+            "id": 2,
+            "title": "Run clean local release verification",
+            "description": "Run pnpm verify:release and record exact unit/E2E/architecture/format/build results. Any failure becomes a separate blocking defect; no tag while gates are red.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 16,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T15:07:46.445Z"
+          },
+          {
+            "id": 3,
+            "title": "Verify local installer upgrade and vault survival",
+            "description": "Check Authenticode NotSigned and SHA-256; install/upgrade 1.0.0 -> 1.0.1 in isolated directories, launch against isolated userData, verify prior vault plus menu/summary/+ regressions, uninstall and confirm vault survival.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 16,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T15:07:50.378Z"
+          },
+          {
+            "id": 4,
+            "title": "Commit, push, tag, and verify CI",
+            "description": "Commit task 15 and v1.0.1 metadata, push main, create annotated v1.0.1 tag without changing v1.0.0, push tag, wait for Windows release verification and download the exact CI artifact/checksum.",
+            "details": "",
+            "status": "in-progress",
+            "dependencies": [],
+            "parentTaskId": 16,
+            "parentId": "undefined",
+            "updatedAt": "2026-09-26T15:07:53.936Z"
+          },
+          {
+            "id": 5,
+            "title": "Publish and independently verify GitHub release",
+            "description": "Smoke-install CI artifact, rename public installer to TJournal-Setup-1.0.1.exe without changing bytes, regenerate SHA256SUMS.txt, publish non-draft release with unsigned warning, redownload both assets and compare checksum; record URL/run/hash and close task.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 16,
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2026-09-26T15:07:53.936Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-09-26T14:30:57.809Z",
-      "taskCount": 14,
-      "completedCount": 13,
+      "lastModified": "2026-09-26T15:07:53.936Z",
+      "taskCount": 16,
+      "completedCount": 14,
       "tags": [
         "master"
       ]
